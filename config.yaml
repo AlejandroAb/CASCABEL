@@ -1,0 +1,753 @@
+################################################################################
+#                             CONFIGURATION FILE                               #
+#------------------------------------------------------------------------------#
+# Configuration file for the Amplicon Metagenomic analysis Workflow.           #
+# Set the parameters below, save the file and run snakemake.                   #
+# The file format is yaml (http://www.yaml.org/) In this file, you only need   #
+# to overwrite settings according to your needs, most values are already       #
+# pre-configured. It is very important to keep the indentation of the file     #
+# (don’t change the tabs and spaces), as well as the name of the               #
+# parameters/variables. But you can change the values of the parameters to     #
+# deviate from the default settings. Any text after a hash tag is considered a #
+# comment and will be ignored by snakemake.                                    #
+#                                                                              #
+# Author: Julia Engelmann and Alejandro Abdala                                 #
+# Last update: 31/05/2018                                                      #
+################################################################################
+
+################################################################################
+#                          GENERAL PARAMS SECTION                              #
+#------------------------------------------------------------------------------#
+# The general parameters section defines variables that are global or general  #
+# for the complete work-flow execution, as well as extra information for the   #
+# report generation.                                                           #
+################################################################################
+
+#------------------------------------------------------------------------------#
+#                             Execution mode                                   #
+#------------------------------------------------------------------------------#
+# Set this flag to T (default) in order to interact at some specific steps with#
+# the pipeline. For a list for all the "interactive" checkpoints take a look   #
+# into the following link: TBD                                                 #
+#------------------------------------------------------------------------------#
+interactive : "T"
+#------------------------------------------------------------------------------#
+#                             Project Name                                     #
+#------------------------------------------------------------------------------#
+# The name of the project for which the pipe line will be executed. This should#
+# be the same name used as the first parameter on init_sample.sh script        #
+#------------------------------------------------------------------------------#
+PROJECT: ""
+
+#------------------------------------------------------------------------------#
+#                            LIBRAIRES/SAMPLES                                 #
+#------------------------------------------------------------------------------#
+# SAMPLES/Libraries you will like to include on the analysis                   #
+# Same library names used  with init_sample.sh script                          #
+# Include each sample name surrounded by quotes, and comma separated           #
+# i.e LIBRARY["SAMP1","SAMP2",..."SAMPN"]                                      #
+#------------------------------------------------------------------------------#
+LIBRARY: [""]
+
+#------------------------------------------------------------------------------#
+#                             INPUT TYPE                                       #
+#------------------------------------------------------------------------------#
+# This pipeline supports two types of input files, fastq and gzipped fastq   #
+# files.                                                                       #
+# The option gzip_input can take the values "T" if the input files are gziped  #
+# (only the reads!, the metadata file always needs to be uncompressed) or "F"  #
+# if the input files are regular fastq files                                   #
+#------------------------------------------------------------------------------#
+gzip_input: "F"
+
+#------------------------------------------------------------------------------#
+#                             INPUT FILES                                      #
+#------------------------------------------------------------------------------#
+# There are two ways to initialize the required project structure in order to  #
+# run the pipeline. The first one is doing it with the script init_sample.sh   #
+# before running the pipeline; more info at:                                   #
+# http://redmine.nioz.nl/projects/pipeline-for-amplicon-analysis/wiki/Run#3-Init-directory-structure-multiple-librarires
+# If you are planning to run the pipeline for one single library, you can      #
+# supply all the necessary input files directly into this section and avoid    #
+# running the previpous mentioned script.                                      #
+# Here you have to enter FULL PATH! to the raw reads and to the metadata file  #
+# this last one, only if you want to perform the demultiplexing steps          #
+# fw_reads:  Full path to raw reads in forward direction                       #
+# rw_reads:  Full path to raw reads in reverse direction                       #
+# metadata:  Full path to metadata with barcodes for library demultiplexing /  #
+#            splitting                                                         #
+#------------------------------------------------------------------------------#
+fw_reads: ""
+rv_reads: ""
+metadata: ""
+
+#------------------------------------------------------------------------------#
+#                   DEMULTIPLEX INPUT FILES                                    #
+#------------------------------------------------------------------------------#
+# This pipeline could perform the library demultiplexing for barcoded  reads   #
+# This feature can be turned ON/OFF, following the different options:          #
+# demultiplex: "T" If the pipeline is going to demultiplex the input files.    #
+#                 In this case, the metadata file should be provided           #
+#                 "F" If the input files are already demultiplexed             #
+# create_fastq_files: "T" or "F" If demultiplex = T and this is also T the     #
+#                      pipeline will create demultiplexed fastq files per      #
+#                      sample                                                  #
+# dmx_params:  An in-house program to write demultiplexed files per sample is  #
+#              used to full fill previous fastq file creation. This program is #
+#              ready to run, but if the user will like to change the prefix,   #
+#              suffix among other changes some parameters could be send via    #
+#              this variable. To see available variables at execution pipeline #
+#              execution level you can run:  java -cp Scripts DemultiplexQiime #
+#------------------------------------------------------------------------------#
+demultiplexing:
+  demultiplex: "T"
+  create_fastq_files: "T"
+  dmx_params: ""
+
+#------------------------------------------------------------------------------#
+#                               RUN                                            #
+#------------------------------------------------------------------------------#
+# Name of the RUN - Only use alphanumeric characters and don't use spaces.     #
+# This argument helps the user to execute different runs (pipeline execution)  #
+# with the same input data but with different parameters (ideally).            #
+# The RUN variable can be set here or remain empty, in the latter case, the    #
+# user must assign this value via the command line --config RUN=User_run_name  #
+#------------------------------------------------------------------------------#
+RUN: ""
+
+#------------------------------------------------------------------------------#
+#                           Description                                        #
+#------------------------------------------------------------------------------#
+# Brief description for the pipeline. Any description written here will be     #
+# included on the final report. This field is not mandatory so it canremain    #
+# empty                                                                        #
+#------------------------------------------------------------------------------#
+description: ""
+
+#------------------------------------------------------------------------------#
+#                           PDF Report                                         #
+#------------------------------------------------------------------------------#
+# By default, the pipeline creates the final report in HTML format. In order to#
+# create the report as a pdf file, set this flag to T                          #
+#Important! in order to convert the file to pdf format, it is necessary execute#
+#the pipeline within a X server environment i.e MobaXterm or ssh -X. One way to#
+#validate if your active session is ussing any Xserver execute echo $DISPLAY   #
+#If the previous command returns empty you do not have an x server session,    #
+#therefore set this flag to F                                                  #
+#------------------------------------------------------------------------------#
+pdfReport: "T"
+wkhtmltopdf_command: "wkhtmltopdf"
+
+#------------------------------------------------------------------------------#
+#                           Portable Report                                    #
+#------------------------------------------------------------------------------#
+# By default, the pipeline creates the final report in HTML format, same that  #
+# contain references to other images or links, therefore just downloading the  #
+# html files for sharing or inspecting the results, commonly is not enough.    #
+# By setting this flag portableReport to true will generate a zip file with all#
+# the necessary resources in order to share and distribute CASCABEL's report   #
+#------------------------------------------------------------------------------#
+portableReport: "T"
+
+#------------------------------------------------------------------------------#
+#                           Krona Report                                         #
+#------------------------------------------------------------------------------#
+#If the previous command returns empty you do not have an x server session,    #
+#therefore set this flag to F    singletons                                              #
+# def no singletons
+#------------------------------------------------------------------------------#
+krona:
+  report: "T"
+  command: "ktImportText"
+  samples: "all"
+  otu_table: "default"
+  extra_params: "-n root_extra"
+
+################################################################################
+#                   Specific Parameters Section                                #
+#------------------------------------------------------------------------------#
+# In this section of the configuration file, you can find all the values used  #
+# to run the different rules during the pipeline execution.                    #
+# Some of the parameters below, contains an option called "extra_params".      #
+# This option is designed to allow the user enter any other extra parameter    #
+# available on the program to be executed, therefore if the default            #
+# configuration of the pipeline doesn't consider some particular user desired  #
+# argument, it can be specified on the extra_params section for each rule      #
+#------------------------------------------------------------------------------#
+
+#------------------------------------------------------------------------------#
+#                       Quality control  FastQC                                #
+# rules: fast_qc, validateQC                                                   #
+#------------------------------------------------------------------------------#
+# FastQC evaluates 12 main concepts on the sequences: (Basic Statistics, Per   #
+# base sequence quality, Per tile sequence quality, Per sequence quality scores#
+# Per base sequence content, Per sequence GC content,Per base N content,       #
+# Sequence Length Distribution, Sequence Duplication Levels, Overrepresented   #
+# sequences, Adapter Content and Kmer Content).                                #
+# - command Command needed to call fastqc. default "fastqc"                    #
+# - extra_params. Extra parameters. See fastqc --help for more info            #
+# -qcLimit: Set the max number of FAILS accepted on fastqc without sending a   #
+# warning message                                                              #
+#------------------------------------------------------------------------------#
+fastQC:
+  command: "fastqc"
+  extra_params: ""
+  qcLimit : 3
+
+#------------------------------------------------------------------------------#
+#                 Assembly the fragments (FW with RV reads)                    #
+# rule: pear                                                                   #
+#------------------------------------------------------------------------------#
+# This step is performed to extend paired reads.                               #
+# - t: Minimum length of reads after trimming the low                          #
+# - v: Minimum overlap size. The minimum overlap may be set to 1 when the      #
+#      statistical test is used. (default in pear: 10)                         #
+# - j: Number of threads to use                                                #
+# - p: Specify  a p-value for the statistical test. Valid options are: 0.0001, #
+#      0.001, 0.01, 0.05 and 1.0. Setting 1.0 disables the test (default: 0.01)#
+# - extra_params: Extra parameters. See pear --help for more info              #
+# - prcpear: The minimun percentage of expected peared reads, if less a warning#
+#            will be shown                                                     #
+#------------------------------------------------------------------------------#
+pear:
+  command: "pear"
+  t: 100
+  v: 10
+  j: 6
+  p: 0.05
+  extra_params: ""
+  prcpear: 90
+
+#------------------------------------------------------------------------------#
+#                  FastQC on extended / assembled fragments                    #
+# rule: fastQCPear                                                             #
+#------------------------------------------------------------------------------#
+#  Once that the paired end fragments have been extended, run FastQC again to  #
+#  check the quality for the extended reads. Set this option to T (true) or F  #
+# (false) in order to execute or skip this step respectively                   #
+#------------------------------------------------------------------------------#
+fastQCPear: T
+
+#------------------------------------------------------------------------------#
+#                                  QIIME                                       #
+# rule: bc_mapping_validation,extract_barcodes,split_libraries,split_libraries_rc                             #
+#------------------------------------------------------------------------------#
+# Different QIIME scripts are used along the pipeline, in order to execute     #
+# this scripts, they need to be located on the user PATH environmental variable#
+# or include the bin directory on the following variable:  path                #
+# This variable will be used along the pipeline for all the rules that use     #
+# any qiime script.                                                            #
+#------------------------------------------------------------------------------#
+qiime:
+  path: ""
+
+#------------------------------------------------------------------------------#
+#                                    R                                         #
+# rules:  correct_barcodes                                                     #
+#------------------------------------------------------------------------------#
+# R is used along different rules whitin the pipeline. In order to run such    #
+# the pipeline use the Rscript command in order to call the R scripts.         #
+# Here you can change the command on how Rscript is called                     #
+# - path: Rscript path / command. default "Rscript"                            #
+# (/usr/local/bioinf/R/3.5.0/lib64/R/bin/Rscript for ymga)                     #
+#------------------------------------------------------------------------------#
+Rscript:
+  command: "Rscript"
+
+#------------------------------------------------------------------------------#
+#                                  JAVA                                        #
+# rules:  write_dmx_files                                                     #
+#------------------------------------------------------------------------------#
+# R is used along different rules whitin the pipeline. In order to run such    #
+# the pipeline use the Rscript command in order to call the R scripts.         #
+# Here you can change the command on how Rscript is called                     #
+# - path: Rscript path / command. default "Rscript"                            #
+#------------------------------------------------------------------------------#
+java:
+  command: "java"
+
+#------------------------------------------------------------------------------#
+#                        extract_barcodes.py                                   #
+# rule: extract_barcodes                                                     #
+#------------------------------------------------------------------------------#
+# This rule extract barcodes from the reads, at the end generates two files one#
+# with all the barcodes and a second one with the sequences without those      #
+# barcodes.                                                                    #
+# - c: "INPUT_TYPE" barcode_single_end (Input is a single fastq file, that     #
+#       starts with the barcode sequence.) barcode_paired_stitched (Input is a #
+#       single fastq file that has barcodes at the beginning and end)          #
+#       The option barcode_paired_end is not valid here since the fragments are#
+#       already extended!                                                      #
+# - bc_length: If c equal to "barcode_paired_stitched" use both: --bc1_len X   #
+#              --bc2_len Y. If c equal to "barcode_single_end" only use        #
+#              --bc1_len X. Where X and Y is the length of the barcode         #
+# - extra_params: Extra parameters. See extract_barcodes.py -help              #
+#------------------------------------------------------------------------------#
+ext_bc:
+  c: "barcode_single_end"
+  bc_length: "--bc1_len 12"
+  extra_params: ""
+
+#------------------------------------------------------------------------------#
+#                     Scripts/errorCorrectBarcodes.R                           #
+# rule: correct_barcodes & correct_barcodes_unassigned                         #
+#------------------------------------------------------------------------------#
+# This rule allows bar code missmatch correction.                              #
+#                                                                              #
+#    bc_missmatch: Number of allowed missmatches.                              #
+#                  If bc_missmatch = 0 don't allow missmatch                   #
+#                  iF bc_missmatch > 0 correct bc_missmatch bases as maximum   #
+#------------------------------------------------------------------------------#
+bc_missmatch: 2
+
+#------------------------------------------------------------------------------#
+#                             Split libraries                                  #
+# rule: split_libraries and split_libraries_rc                                 #
+#------------------------------------------------------------------------------#
+# This script performs demultiplexing of Fastq sequence data where barcodes and#
+# sequences are contained in two separate fastq files                          #
+# - barcode_type: The type of barcode used. This can be an integer, e.g. for   #
+#   length 6 barcodes, or “golay_12” for golay error-correcting barcodes.      #
+# - q: he maximum unacceptable Phred quality score (e.g., for Q20 and better,  #
+#      specify -q 19) [default: 3]                                             #
+# - r: --max_bad_run_length=MAX_BAD_RUN_LENGTH max number of consecutive low   #
+#       quality base calls allowed before truncating a read [default: 3]       #
+# - extra_params: Any extra parameter. Run split_libraries_fastq -h for options#
+#------------------------------------------------------------------------------#
+split:
+  q: "19"
+  r: "5"
+  barcode_type:  "12"
+  extra_params: ""
+
+#------------------------------------------------------------------------------#
+#                         Align reads vs a reference database                  #
+# rule: align_vs_reference                                                     #
+#------------------------------------------------------------------------------#
+# Sometimes it could be useful to generate a pre-alignment of the reads against#
+# a specific data base, this way you can filter-out a lot of chimeric sequences#
+# or sequences of no interest, thus improving the OTU clustering and further   #
+# taxonomy assignation. In order to run this option use the value align: "T"   #
+# and bear in mind that when ever you want to do this, you should only do it   #
+# with small to medium sized data bases.                                       #
+# - mothur_cmd: Enter the command to call mothur. default "mothur"
+# - align:  T or F to run or skip this rule respectively.                        #
+# - dbAligned: DB to perform the alignment.                                      #
+# - cpus: Number of cpuS to perform the alignment                                #
+#------------------------------------------------------------------------------#
+align_vs_reference:
+  mothur_cmd: "mothur"
+  align: "F"
+  dbAligned: ""
+  cpus: 4
+
+#------------------------------------------------------------------------------#
+#                             Remove adapters                                  #
+# rule: cutadapt                                                               #
+#------------------------------------------------------------------------------#
+# This rule runs Cutadapt program. Cutadapt searches for the adapter in all    #
+# reads and removes it when it finds it. Unless you use a filtering option, all#
+# reads that were present in the input file will also be present in the output #
+# file, some of them trimmed, some of them not.                                #
+# For details, see: http://cutadapt.readthedocs.io/en/stable/guide.html        #
+# - cutAdapters: if T (true) remove adapter. F (false) do not remove adapters  #
+# - command: Necessary command to invoque cutadapt software. default: cutadapt #
+# - adapters: Use -a ADAPTER to remove adapter ligated to the 3' end of the DNA#
+#             Cutadapt deals with 3’ adapters by removing the adapter itself   #
+#             and any sequence that may follow. Add the $ character to the end #
+#             of an adapter sequence specified via -a in order to anchor the   #
+#             adapter to the end of the read, such as -a ADAPTER$. The adapter #
+#             will only be found if it is a suffix of the read.                #
+#             use -a ADAPTER$ to remove the adapter. To remove adapters at the #
+#             5' use -g ADAPTER. If you want to trim only if the adapter is at #
+#             the beginning, use -g ^ADAPTER. The ^ is supposed to indicate    #
+#             that the adapter is “anchored” at the beginning of the read. In  #
+#             other words: The adapter is expected to be a prefix of the read. #
+#             If your sequence of interest its “framed” by a 5’ and a 3’adapter#
+#             and you want to remove both adapters, then you may want to use a #
+#             linked adapter. A linked adapter combines an anchored 5’ adapter #
+#             and a 3’ adapter. The 3’ adapter can be regular or anchored. The #
+#             idea is that a read is only trimmed if the anchored adapters     #
+#             occur. Thus, the 5’ adapter is always required, and if the 3’    #
+#             adapter was specified as anchored, it also must exist for a      #
+#          successful match: i.e -a GTGYCAGCMGCCGCGGTAA...ATTAGAWACCCVNGTAGTCC #
+#  - extra_params: Any extra parameter. A good extra parameter here is         #
+#             --match-read-wildcards which interpret IUPAC wildcards in reads. #
+#             Default: False                                                   #
+# more info and options at http://cutadapt.readthedocs.io/en/stable/guide.html #
+#------------------------------------------------------------------------------#
+cutAdapters: "F"
+cutadapt:
+  command: "cutadapt"
+  adapters: ""
+  extra_params: "--match-read-wildcards"
+
+#------------------------------------------------------------------------------#
+#                         identify_chimeric_seqs.py                            #
+# rule: search_chimera                                                         #
+#------------------------------------------------------------------------------#
+# This rule will be executed if and only if the option search="T" otherwise it #
+# wont be executed!!!                                                          #
+#                                                                              #
+# This rule try to identify chimerics sequence using usearch61. This algorithm #
+# performs both de novo (abundance based) chimera and reference based detection#
+# Unclustered sequences should be used as input rather than a representative   #
+# sequence set, as these sequences need to be clustered to get abundance data. #
+# The results can be taken as the union or intersection of all input sequences #
+# not flagged as chimeras.                                                     #
+# For details, see: http://drive5.com/usearch/usearch_docs.html                #
+# It is possible to use two other methods Blast_fragments approach and         #
+# ChimeraSlayer, however we recomend to use usearch61 since it uses unclustered#
+# sequences unlike the other two algorithms, which use representative sequences#
+# If you are using usearch61 method, bare in mind that you can use a reference #
+# database: extra_params: "-r /export/data/databases/gold_db/gold.fa"          #
+# Params:                                                                      #
+# - method: This method could be any of the ones used by identify_chimeric_seqs#
+#            script, however because of the timeline in which the script is    #
+#            executed, for the moment only  usearch61 is available             #
+# - threads: Number of threads to use                                          #
+# - extra_params: Any extra parameter. It is recomended to run the chimeric    #
+#            search against a chimeric DB:                                     #
+#                                    -r /export/data/databases/gold_db/gold.fa #
+# -search: "T" | "F" true or false to execute the chimera checking             #
+#------------------------------------------------------------------------------#
+chimera:
+  search: "F"
+  method: "usearch61"
+  threads: 6
+  extra_params: "-r /export/data01/databases/gold_db/gold.fa"
+
+#------------------------------------------------------------------------------#
+#                    Remove too long and too short reads                       #
+# rule: remove_short_long_reads                                                #
+#------------------------------------------------------------------------------#
+# This rule executes a python script in order to filter the reads based on its #
+# individual length.                                                           #
+# First, this script computes a histogram based on the reads length            #
+# distribution. Next, this histogram will be used by the same script in        #
+# different  possible ways, depending on the pipeline's execution mode         #
+# (Interactive or Automatic).                                                  #
+# If the pipeline is executed on "Interactive" mode, it will always stop at    #
+# this step and let the user choose between the following options:             #
+#      * Use the values specified at the configuration file (the ones  from    #
+#        the below variables "longs" and "shorts")                             #
+#      * Filter the reads based on the median of the sequence length           #
+#        distribution +/- an offset value.                                     #
+#      * Do not filter any sequence                                            #
+#      * Stop the pipeline                                                     #
+# If the pipeline is executed on "Non Interactive/ Automatic" mode the pipeline#
+# wont stop and the reads will be filtered according to the                    #
+# non_interactive_behaviour value.                                             #
+# Params:                                                                      #
+# - non_interactive_behaviour: Behaviour for the non interactive mode.Valid    #
+#   options are:                                                               #
+#            * CFG  use the values from the configuration file [DEFAULT]       #
+#            * AVG  use the values from the median distribution                #
+#            * NONE do not filter any read.                                    #
+# - offset  value used to determine the bounds for the filtering when          #
+#           interactive = F and  non_interactive_behaviour = AVG [DEFAULT = 10]#
+# - longs   Max read length                                                    #
+# - shorst  Min read length                                                    #
+#------------------------------------------------------------------------------#
+# REMARK: If your library contains more than one expected fragment length, you #
+# can either:                                                                  #
+# A) do not filter any length.                                                 #
+# B) Use inclusive boundaries                                                  #
+# C) Rerun the pipeline for all the expected fragment lengths: (--forcerun     #
+# remove_short_long_reads). In this case, do not forget to backup previous     #
+# results, otherwise, they can be overwritten.                                 #
+#------------------------------------------------------------------------------#
+rm_reads:
+  non_interactive_behaviour: "AVG"
+  offset: 10
+  longs: 153
+  shorts: 133
+
+
+#------------------------------------------------------------------------------#
+#                         Sample Chart distribution                            #
+# rule: distribution_chart                                                     #
+#------------------------------------------------------------------------------#
+# This option tells the pipeline to create a pie chart or a bar chart with the #
+# sample distribution for the library.                                         #
+# -sample_chart Chart type. Valid values are bar or pie any other value will   #
+# produce BOTH charts, pie and bar, if you want this, please use both          #
+#------------------------------------------------------------------------------#
+sample_chart: "both"
+
+#------------------------------------------------------------------------------#
+#                               Dereplicate                                    #
+# rule: dereplicate, pick_derep_representatives                                #
+#------------------------------------------------------------------------------#
+# This option allows the user to FULL dereplicate the sequences before apply   #
+# any OTU picking starategy. This is adviced for big datasets, when picking    #
+# OTU methods can take too long or have memory issues.                         #
+# - dereplicate:  Full dereplicate sequences F or T [default "F"]              #
+# - vsearch_cmd:  Command for calling vsearch. [default "vsearch"]             #
+# - min_abundance  minimum abundance for output from dereplication             #
+# - strand        plus|both Search plus or both strands [default: both]        #
+# - extra_params  The replication is performed ussing vsearch, so you can add  #
+#                 different options available at vsearch --help.               #
+#------------------------------------------------------------------------------#
+derep:
+  dereplicate: "T"
+  vsearch_cmd: "vsearch"
+  min_abundance: 1
+  strand: "both"
+  extra_params: ""
+
+#------------------------------------------------------------------------------#
+#                              pick_otus.py                                    #
+# rule: cluster_OTUs                                                           #
+#------------------------------------------------------------------------------#
+# The OTU picking step assigns similar sequences to operational taxonomic      #
+# units, or OTUs, by clustering sequences based on a user-defined similarity   #
+# threshold. Sequences which are similar at or above the threshold level are   #
+# taken to represent the presence of a taxonomic unit (e.g., approximately a   #
+# genus, when the similarity threshold is set at 0.94) in the sequence         #
+# collection.                                                                  #
+# Params:                                                                      #
+# - s    SIMILARITY, --similarity=SIMILARITY Sequence similarity threshold     #
+#        (for blast, cdhit, uclust, uclust_ref, usearch, usearch_ref, usearch61#
+#         usearch61_ref, sumaclust, and sortmerna) [default:0.97]              #
+# - m    OTU_PICKING_METHOD, --otu_picking_method=OTU_PICKING_METHOD Method for#
+#        picking OTUs.  Valid choices are: sortmerna, mothur, trie, uclust_ref,#
+#        usearch, swarm,                                                       #
+# - extra_params Any extra desired parameter run pick_otus.py -h to see all    #
+#        the options
+#------------------------------------------------------------------------------#
+pickOTU:
+  s: "0.97"
+  m: "uclust"
+  cpus: "6"
+  extra_params: ""
+
+#------------------------------------------------------------------------------#
+#                              pick_rep_set.py                                 #
+# rule: pick_representatives                                                   #
+#------------------------------------------------------------------------------#
+# After picking OTUs, this rule pick a representative set of sequences. For    #
+# each OTU, you will end up with one sequence that can be used in subsequent   #
+# analyses.                                                                    #
+# Params:                                                                      #
+# - m --rep_set_picking_method=REP_SET_PICKING_METHOD Method for picking       #
+#       representative sets.  Valid choices are random, longest, most_abundant,#
+#       first [default: first (first chooses cluster seed when picking otus    #
+#       with uclust)]                                                          #
+# - extra_params  Any extra desired parameter run pick_rep_set.py -h to see all#
+#       the options
+#------------------------------------------------------------------------------#
+pickRep:
+  m: "longest"
+  extra_params: ""
+
+################################################################################
+#                            Assign taxonomy                                   #
+# rule: assign_taxonomy                                                        #
+#------------------------------------------------------------------------------#
+# Step performed for taxonomy assignation on the representative sequences      #
+# This step could be performed by three different TOOLS  :                     #
+# 1) VSEARCH. Compare target  sequences <db_file> to the query sequences to    #
+#             taxonomy assign, using global pairwise alignment.                #
+#             tool: "vsearch"                                                  #
+# 2) BLAST.                                                                    #
+# 3) QIIME. In this case we can run assign_taxonomy.py script which is able to #
+#           use any of the following methods:
+#   3.1) BLAST. To use this method type "blast" for the <method> variable below. #
+#      under the "qiime"subsection. This method can work with dbType: "-b" and #
+#      dbFile: "path/to/blast/db"                                              #
+#      or with dbTYpe: "-r" and dbFile: "path/to/fasta/file"                   #
+#   3.2) UCLUST. Method based on sequence clustering. To use this method type    #
+#      "uclust" for the <method> variable below. This method ONLY work with    #
+#      dbType: "-r" and dbFile: "path/to/fasta/file"                           #
+#   3.3) RDP. The Ribosomal Database Project (RDP) Classifier, a naïve Bayesian  #
+#      classifier, can rapidly and accurately classify bacterial 16S rRNA      #
+#      sequences. To use this method type "rdp" for the <method> variable below#
+#      NOTE! in order to run rdp it is necessary to provide the classifier path#
+#      To do so, please include the following line on the extra_params         #
+#      --rdp_classifier_fp /usr/share/rdp-classifier/rdp_classifier-2.2.jar    #
+#      Due to some compatibility issues, RDP needs some custome fasta file and #
+#      taxonomy mapping. so please use the following references:               #
+#    dbFile: "/usr/share/qiime/data/gg_13_8_otus/rep_set/97_otus.fasta"        #
+#    mappFile:"/usr/share/qiime/data/gg_13_8_otus/taxonomy/97_otu_taxonomy.txt"#
+# This 3 different methods can use a different set of options in order to      #
+# fine tune the taxonomy classification. This options can be included via the  #
+# <extra_params> variable. To see what options are available for each method   #
+# just typ on the command line parallel_assign_taxonomy_<method>.py -h         #
+# Params                                                                       #
+# - method assignationmethod. Choose one between: blast, uclus or rdp          #
+# - mapFile: full path to id_to_taxonomy mapping file.                         #
+#          Use "/usr/share/qiime/data/gg_13_8_otus/taxonomy/97_otu_taxonomy.txt#
+#          for RDP assignation                                                 #
+# - dbFile: full path to fasta file or blast DB                                #
+#         Use "/usr/share/qiime/data/gg_13_8_otus/rep_set/97_otus.fasta"       #
+#         for RDP assignation                                                  #
+# - dbType: If dbFile points to a fasta file use -r. If dbFile points to a     #
+#          blast db use -b                                                     #
+# - jobs: Number of jobs to start
+#------------------------------------------------------------------------------#
+assignTaxonomy:
+  tool: "vsearch"
+  blast:
+    command: "blastn"
+    blast_db: "/export/data/databases/silva/qiime/SILVA_128_QIIME_release/"
+    fasta_db: "/export/data01/databases/silva/qiime/SILVA_132_QIIME_release/rep_set/rep_set_all/99/silva132_99.fna"
+    mapFile: "/export/data/databases/silva/qiime/SILVA_128_QIIME_release/taxonomy/taxonomy_all/99/taxonomy_7_levels.txt"
+    taxo_separator: "';'" #char to split taxo path at mapFile
+    evalue: "0.001"
+    max_target_seqs: 5
+    jobs: 10
+    identity: 0.5   #(-perc_identity)
+    extra_params: ""
+  vsearch:
+    command: "vsearch"
+    db_file: "/export/data01/databases/silva/qiime/SILVA_132_QIIME_release/rep_set/rep_set_all/99/silva132_99.fna"
+    mapFile: "/export/data/databases/silva/qiime/SILVA_132_QIIME_release/taxonomy/taxonomy_all/99/taxonomy_7_levels.txt"
+    identity: 0.5
+    taxo_separator: "';'" #char to split taxo path at mapFile
+    max_target_seqs: 5 #0 for all
+    identity_definition: 2  #
+    jobs: 10
+    extra_params: "--top_hits_only --maxrejects 32"
+  #consider task:  <String, Permissible values: 'blastn' 'blastn-short' 'dc-megablast''megablast' 'rmblastn' >
+  qiime:
+    method: "uclust"
+    mapFile: "/export/data/databases/silva/qiime/SILVA_128_QIIME_release/taxonomy/taxonomy_all/99/taxonomy_7_levels.txt"
+    dbFile: "/export/data/databases/silva/qiime/SILVA_128_QIIME_release/rep_set/rep_set_all/99/99_otus.fasta"
+    dbType: "-r"
+    jobs: 10
+    extra_params: ""
+
+#------------------------------------------------------------------------------#
+#                               make_otu_table.py                              #
+# rule: make_otu_table                                                         #
+#------------------------------------------------------------------------------#
+# The rule tabulates the number of times an OTU is found in each sample, and   #
+# adds the taxonomic predictions for each OTU in the last column if a taxonomy #
+# file is supplied                                                             #
+# Params:                                                                      #
+# - extra_params  Any extra desired parameter run make_otu_table.py --help to  #
+# see all the options                                                          #
+#------------------------------------------------------------------------------#
+makeOtu:
+  extra_params: ""
+
+#------------------------------------------------------------------------------#
+#                           filter_otus_from_otu_table.py                      #
+# rule: filter_otu                                                             #
+#------------------------------------------------------------------------------#
+# This rule filter the otu table in order to ride of singletons                #
+# Params:                                                                      #
+# - n  MIN_COUNT, --min_count=MIN_COUNT the minimum total observation count of #
+#      an otu for that otu to be retained [default: 2]                         #
+# - extra_params  Any extra desired parameter run filter_otus_from_otu_table.py#
+#                 --help to  see all the options                               #
+#------------------------------------------------------------------------------#
+filterOtu:
+  n: "2"
+  extra_params: ""
+
+#------------------------------------------------------------------------------#
+#                               biom convert                                   #
+# rule: convert_table                                                          #
+#------------------------------------------------------------------------------#
+# This rule converts the OTU biom table into a tab separated OTU table         #
+# Params:                                                                      #
+# - tableType  [OTU table|Pathway table|Function table|Ortholog table|Gene     #
+#              table|Metabolite table|Taxon table|Table]                       #
+#              default: --table-type 'OTU table'                               #
+# - headerKey: The observation metadata to include from the input BIOM table   #
+#              file when creating a tsv table file. By default no observation  #
+#              metadata will be included. default: "--header-key taxonomy"     #
+# - outFormat: "--to-tsv" Output as TSV-formatted (classic) table. --to-json   #
+#              and --to-hdf5 also available                                    #
+# - extra_params: Any extra desired parameter run biom convert --help to see   #
+#                all the options                                               #
+#------------------------------------------------------------------------------#
+biom:
+  command: "biom"
+  tableType: "--table-type 'OTU table'"
+  headerKey: "--header-key taxonomy"
+  outFormat: "--to-tsv"
+  extra_params: ""
+
+#------------------------------------------------------------------------------#
+#                           summarize_taxa.py                                  #
+# rule: summarize_taxa                                                         #
+#------------------------------------------------------------------------------#
+# This rule provides summary information of the representation of taxonomic    #
+# groups within each sample. It takes an OTU table that contains taxonomic     #
+# information as input. By default, the relative abundance of each taxonomic   #
+# group will be reported, but the raw counts can be returned if -a is passed                                              #
+# Params:                                                                      #
+# - extra_params: Any extra desired parameter run summarize_taxa.py --help to  #
+#                 see all the options.                                         #
+#                 Taxonomic level to summarize by default: 2,3,4,5,6]          #
+#------------------------------------------------------------------------------#
+summTaxa:
+  extra_params: "--level 2,3,4,5,6,7"
+
+#------------------------------------------------------------------------------#
+#                           filter_fasta.py                                    #
+# rule: filter_rep_seqs                                                        #
+#------------------------------------------------------------------------------#
+# This rule performs OTU map-based filtering: Keep all sequences that show up  #
+# in an OTU map.
+# Params:                                                                      #
+# - extra_params: Any extra desired parameter run filter_fasta.py --help to    #
+#                 see all the options.                                         #
+#------------------------------------------------------------------------------#
+filterFasta:
+  extra_params: ""
+
+#------------------------------------------------------------------------------#
+#                           align_seqs.py                                      #
+# rule: align_rep_seqs                                                        #
+#------------------------------------------------------------------------------#
+# This rule aligns the sequences in a FASTA file to each other or to a template#
+# sequence alignment, depending on the method chosen.                          #
+# Params:                                                                      #
+# - align: Some analysis so not require the alignment, therefore the user can  #
+#          skip this rule by assign value "F" default "T"                      #
+# -m:  ALIGNMENT_METHOD,Method for aligning sequences. Valid choices are:      #
+#      pynast, infernal, clustalw, muscle, infernal, mafft. default "pynast"   #
+# - extra_params: Any extra desired parameter run align_seqs.py --help to      #
+#                 see all the options.                                         #
+#------------------------------------------------------------------------------#
+alignRep:
+  align: "F"
+  m: "pynast"
+  extra_params: ""
+
+#------------------------------------------------------------------------------#
+#                           filter_alignment.py                                #
+# rule: filter_alignment                                                       #
+#------------------------------------------------------------------------------#
+# This rule will remove positions which are gaps in every sequence.            #
+# Additionally, the user can supply a lanemask file, that defines which        #
+# positions should included when building the tree, and which should be ignored#
+# This step is applied to generate a useful tree when aligning against a       #
+# template alignment.
+# Params:                                                                      #
+# - extra_params: Any extra desired parameter run filter_alignment.py --help to#
+#                 see all the options.                                         #
+#------------------------------------------------------------------------------#
+filterAlignment:
+  extra_params: ""
+
+#------------------------------------------------------------------------------#
+#                           make_phylogeny.py                                  #
+# rule: make_tree                                                              #
+#------------------------------------------------------------------------------#
+# Many downstream analyses require that the phylogenetic tree relating the OTUs#
+# in a study be present. This rule produces this tree from a multiple sequence #
+# alignment                                                                    #
+# Params:                                                                      #
+# - method:  Method for tree building. Valid choices are: clustalw, raxml_v730,#
+#            muscle, fasttree, clearcut [default: fasttree]                    #
+# - extra_params: Any extra desired parameter run make_phylogeny.py --help to  #
+#                 see all the options.                                         #
+#------------------------------------------------------------------------------#
+makeTree:
+  method: "fasttree"
+  extra_params: ""

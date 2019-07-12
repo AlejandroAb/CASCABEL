@@ -1,0 +1,19 @@
+channels:
+  - bioconda
+  - defaults
+  - r
+dependencies:
+  - fastqc
+  - pyyaml=3.11
+  - biom-format
+  - cutadapt
+  - qiime
+  - vsearch
+  - mothur
+  - wkhtmltopdf
+  - pear
+  - bioconductor-biostrings
+  - bioconductor-shortread
+  - krona
+  - matplotlib
+  - blast
