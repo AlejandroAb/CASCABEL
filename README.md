@@ -23,7 +23,7 @@ The pipeline can be customized to work on different marker genes, reference data
 **Main expected output files for downstream analysis**
 
 + Demultiplexed and trimmed reads
-+ OTU tables
++ OTU table
 + Taxonomy OTU assignation
 + Taxonomy summary
 + Representative sequence alignment
@@ -31,6 +31,18 @@ The pipeline can be customized to work on different marker genes, reference data
 + CASCABEL Report
 
 ## Install the pipeline
+
+The pipeline relays on Snakemake as the workflow-engine, therefore, it is necessary to install this tool in order to have the pipeline running. The easiest and recommended way to install Snakameke is via Conda. The fastest way to obtain Conda is to install Miniconda, a mini version of Anaconda that includes only conda and its dependencies. 
+
+In order to install conda or miniconda please see the following [tutorial](https://docs.conda.io/projects/conda/en/latest/user-guide/install/download.html)
+
+Now that you have conda installed, you can install Snakemake following this on-line help or just with the following command:
+
+<pre><code class="text">
+conda install -c bioconda -c conda-forge snakemake
+</code></pre>
+
+Once that you have Snakemake installed we are ready to clone or download the project.
 
 You can clone the project
 
@@ -44,26 +56,25 @@ Download it from this repository
 https://github.com/AlejandroAb/CASCABEL
 </code></pre>
 
-
-## Load Snakemake environment
-
-In order to have snakemake running into your shell, you need to be located at your $HOME directory (/export/data/username)
-and execute the following command:
+After downloading or cloning the repository, cd to the "CASCABEL" directory and there execute the following command in order to create CASCABEL's environment:
 
 <pre><code class="text">
-source  .zshrc.conda344
+conda env create --name cascabel --file environment.yaml
 </code></pre>
 
+Activate the environment:
 
-To return to your original shell environment just type:
-
-<pre><code class="php">
-source  .zshrc
+<pre><code class="text">
+conda activate cascabel
 </code></pre>
+
+*After activating the environment is possible that Snakemake is not more in your PATH, in such case just export Snakemake's bin directory. i.e:*
+
+<pre><code class="text">
+export PATH=$PATH:/path/to/miniconda3/bin
+</code></pre>
+
 
 ## Configure pipeline
-
-In order to use any of these implementations, just copy the complete subdirectory into your personal directories and read further instructions at the manual.pdf located at /export/data
-document for the specific analysis you are planning to perform.
 
 For a complete guide and complete documentation please visit the official project [wiki](http://redmine.nioz.nl/projects/pipeline-for-amplicon-analysis/wiki/Wiki) 
