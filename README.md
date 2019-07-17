@@ -95,7 +95,7 @@ export PATH=$PATH:/path/to/miniconda3/bin
 + Phylogenetic tree
 + CASCABEL Report
 
-**Run Cascabel**
+**Run CASCABEL**
 
 All the parameters and behavior of the workflow is specified through the configuration file, therefore the easiest way to have the pipeline running is to filling up some required variables on such file: 
 
@@ -122,7 +122,7 @@ LIBRARY: ["EXP1"]
 #------------------------------------------------------------------------------#
 fw_reads: "/full/path/to/forward.reads.fq"
 rv_reads: "/full/path/to/reverse.reads.fq"
-metadata: ""/full/path/to/metadata.barcodes.txt""
+metadata: "/full/path/to/metadata.barcodes.txt"
 
 #------------------------------------------------------------------------------#
 #                               RUN                                            #
@@ -136,7 +136,7 @@ metadata: ""/full/path/to/metadata.barcodes.txt""
 RUN: "My_First_run"
 
 </code></pre>
-As you can see on the previous config.yaml file the variables that are required for Cascabel to start are:
+As you can see on the previous config.yaml file the variables that are required for CASCABEL to start are:
 PROJECT, LIBRARY, RUN,  fw_reads, rv_reads and metadata. Once that you have valid values for these entries, you are ready to run the pipeline:
 
 <pre><code class="yaml">
@@ -146,7 +146,7 @@ snakemake --configfile config.yaml
 Optionally you can also enter the same variables* via --config flag:
 
 <pre><code class="text">
- snakemake --configfile config.yaml --config PROJECT="AmpliconProject"  RUN="MyFirstRun" fw_reads="/export/lv3/scratch/projects_AA/daily_sampling/rawdata/SAMEA3541637_ERR1018481_1.fastq.gz" rv_reads="/export/lv3/scratch/projects_AA/daily_sampling/rawdata/SAMEA3541637_ERR1018481_2.fastq.gz" metadata="/export/lv3/scratch/projects_AA/daily_sampling/amplicon-analysis/config.yaml"
+ snakemake --configfile config.yaml --config PROJECT="My_CASCABEL_Project"  RUN="My_First_run" fw_reads="//full/path/to/forward.reads.fq" rv_reads="/full/path/to/reverse.reads.fq" metadata="full/path/to/metadata.barcodes.txt"
  </code></pre>
 
 
@@ -154,4 +154,4 @@ Optionally you can also enter the same variables* via --config flag:
 
 ### Configure pipeline
 
-For a complete guide on how to setup and use *Cascabel* please visit the official project [wiki](http://redmine.nioz.nl/projects/pipeline-for-amplicon-analysis/wiki/Wiki) 
+For a complete guide on how to setup and use CASCABEL please visit the official project [wiki](http://redmine.nioz.nl/projects/pipeline-for-amplicon-analysis/wiki/Wiki) 
