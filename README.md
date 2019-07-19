@@ -154,4 +154,4 @@ Optionally you can also enter the same variables* via --config flag:
 
 ### Configure pipeline
 
-For a complete guide on how to setup and use CASCABEL please visit the official project [wiki](http://redmine.nioz.nl/projects/pipeline-for-amplicon-analysis/wiki/Wiki) 
+For a complete guide on how to setup and use CASCABEL please visit the official project [wiki](https://github.com/AlejandroAb/CASCABEL/wiki)
