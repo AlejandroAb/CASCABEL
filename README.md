@@ -52,10 +52,10 @@ You can clone the project:
 git clone https://github.com/AlejandroAb/CASCABEL.git
 </code></pre>
 
-Download it from this repository:
+Or download it from this repository:
 
 <pre><code class="text">
-https://github.com/AlejandroAb/CASCABEL
+wget https://github.com/AlejandroAb/CASCABEL
 </code></pre>
 
 After downloading or cloning the repository, cd to the "CASCABEL" directory and there execute the following command in order to create CASCABEL's environment:
@@ -89,6 +89,7 @@ export PATH=$PATH:/path/to/miniconda3/bin
 
 + Demultiplexed and trimmed reads
 + OTU table
++ Representative sequences fasta file
 + Taxonomy OTU assignation
 + Taxonomy summary
 + Representative sequence alignment
@@ -103,17 +104,18 @@ All the parameters and behavior of the workflow is specified through the configu
 #------------------------------------------------------------------------------#
 #                             Project Name                                     #
 #------------------------------------------------------------------------------#
-# The name of the project for which the pipe line will be executed. This should#
-# be the same name used as the first parameter on init_sample.sh script        #
+# The name of the project for which the pipeline will be executed. This should #
+# be the same name used as the first parameter on init_sample.sh script (if    #
+# used for multiple libraries                                                 #
 #------------------------------------------------------------------------------#
 PROJECT: "My_CASCABEL_Project"
 
 #------------------------------------------------------------------------------#
-#                            LIBRAIRES/SAMPLES                                 #
+#                            LIBRARIES/SAMPLES                                 #
 #------------------------------------------------------------------------------#
 # SAMPLES/Libraries you will like to include on the analysis                   #
-# Same library names used  with init_sample.sh script                          #
-# Include each sample name surrounded by quotes, and comma separated           #
+# Same library names used  with init_sample.sh script (if used)                #
+# Include each sample / library name surrounded by quotes, and comma separated #
 # i.e LIBRARY["SAMP1","SAMP2",..."SAMPN"]                                      #
 #------------------------------------------------------------------------------#
 LIBRARY: ["EXP1"]
@@ -143,14 +145,14 @@ PROJECT, LIBRARY, RUN,  fw_reads, rv_reads and metadata. Once that you have vali
 snakemake --configfile config.yaml 
 </code></pre>
 
-Optionally you can also enter the same variables* via --config flag:
+Optionally you can specify the same variables* via --config flag, rather than with the config.yaml file:
 
 <pre><code class="text">
  snakemake --configfile config.yaml --config PROJECT="My_CASCABEL_Project"  RUN="My_First_run" fw_reads="//full/path/to/forward.reads.fq" rv_reads="/full/path/to/reverse.reads.fq" metadata="full/path/to/metadata.barcodes.txt"
  </code></pre>
 
 
-* Except for the LIBRARY, as this is declared as an array, therefore it must be filled up within the config.yaml file
+*Except for the LIBRARY, as this is declared as an array, therefore it must be filled up within the config.yaml file
 
 ### Configure pipeline
 
