@@ -1,8 +1,8 @@
 """
-Amplicon Metagenomics Workflow for NIOZ MMBL.
-Version: 6.0
+CASCABEL
+Version: 4.0
 Author: Julia Engelmann and Alejandro Abdala
-Last update: 22/02/2019
+Last update: 30/07/2019
 """
 run=config["RUN"]
 
@@ -179,8 +179,8 @@ if config["demultiplexing"]["demultiplex"] == "T":
         shell:
             "{config[qiime][path]}extract_barcodes.py -f {input.assembly} -c {config[ext_bc][c]} "
             "{config[ext_bc][bc_length]} {config[ext_bc][extra_params]} -o {params}"
-#If allow missmatch correct bar code
-    if config["bc_missmatch"]:
+#If allow mismatch correct bar code
+    if config["bc_mismatch"]:
         rule correct_barcodes:
             input:
                 bc="{PROJECT}/runs/{run}/{sample}_data/barcodes/barcodes.fastq",
@@ -190,13 +190,13 @@ if config["demultiplexing"]["demultiplex"] == "T":
             benchmark:
                 "{PROJECT}/runs/{run}/{sample}_data/barcodes/barcodes_corrected.benchmark"
             shell:
-                "{config[Rscript][command]} Scripts/errorCorrectBarcodes.R $PWD {input.mapp} {input.bc} "  + str(config["bc_missmatch"])
+                "{config[Rscript][command]} Scripts/errorCorrectBarcodes.R $PWD {input.mapp} {input.bc} "  + str(config["bc_mismatch"])
 #split libraries - demultiplex
     rule split_libraries:
         input:
             rFile="{PROJECT}/runs/{run}/{sample}_data/barcodes/reads.fastq",
             mapFile="{PROJECT}/metadata/sampleList_mergedBarcodes_{sample}.txt",
-            bcFile="{PROJECT}/runs/{run}/{sample}_data/barcodes/barcodes.fastq_corrected" if config["bc_missmatch"] else "{PROJECT}/runs/{run}/{sample}_data/barcodes/barcodes.fastq",
+            bcFile="{PROJECT}/runs/{run}/{sample}_data/barcodes/barcodes.fastq_corrected" if config["bc_mismatch"] else "{PROJECT}/runs/{run}/{sample}_data/barcodes/barcodes.fastq",
             tmp3="{PROJECT}/metadata/bc_validation/{sample}/validation.log"
         output:
             seqs="{PROJECT}/runs/{run}/{sample}_data/splitLibs/seqs.fna", #marc as tmp
@@ -239,8 +239,8 @@ if config["demultiplexing"]["demultiplex"] == "T":
         shell:
             "{config[qiime][path]}extract_barcodes.py -f {input.assembly} -c {config[ext_bc][c]} "
             "{config[ext_bc][bc_length]} {config[ext_bc][extra_params]} -o {params}"
-#If allow missmatch correct bar code
-    if config["bc_missmatch"]:
+#If allow mismatch correct bar code
+    if config["bc_mismatch"]:
         rule correct_barcodes_unassigned:
             input:
                 bc="{PROJECT}/runs/{run}/{sample}_data/barcodes_unassigned/barcodes.fastq",
@@ -250,7 +250,7 @@ if config["demultiplexing"]["demultiplex"] == "T":
             benchmark:
                 "{PROJECT}/runs/{run}/{sample}_data/barcodes_unassigned/barcodes_corrected.benchmark"
             shell:
-                "{config[Rscript][command]} Scripts/errorCorrectBarcodes.R $PWD {input.mapp} {input.bc} "  + str(config["bc_missmatch"])
+                "{config[Rscript][command]} Scripts/errorCorrectBarcodes.R $PWD {input.mapp} {input.bc} "  + str(config["bc_mismatch"])
 
     rule remove_unassigned:
         input:
@@ -270,7 +270,7 @@ if config["demultiplexing"]["demultiplex"] == "T":
             spplited="{PROJECT}/runs/{run}/{sample}_data/splitLibs/seqs.fna",
             rFile="{PROJECT}/runs/{run}/{sample}_data/barcodes_unassigned/reads.fastq",
             mapFile="{PROJECT}/metadata/sampleList_mergedBarcodes_{sample}.txt",
-            bcFile="{PROJECT}/runs/{run}/{sample}_data/barcodes_unassigned/barcodes.fastq_corrected" if config["bc_missmatch"]
+            bcFile="{PROJECT}/runs/{run}/{sample}_data/barcodes_unassigned/barcodes.fastq_corrected" if config["bc_mismatch"]
             else "{PROJECT}/runs/{run}/{sample}_data/barcodes_unassigned/barcodes.fastq"
         output:
             seqsRC="{PROJECT}/runs/{run}/{sample}_data/splitLibsRC/seqs.fna", #marc as tmp
@@ -521,8 +521,7 @@ rule distribution_chart:
         "{PROJECT}/runs/{run}/report_files/"
     script:
         "Scripts/sampleDist.py"
-        #"{config[Rscript][command]} Scripts/sampleDist.R $PWD {input} {output} {config[sample_chart]}"
-        #"touch {output}"
+
 rule combine_filtered_samples:
         input:
             allFiltered = expand("{PROJECT}/runs/{run}/{sample}_data/seqs_fw_rev_filtered_nc.fasta" if config["chimera"]["search"] == "T" else  "{PROJECT}/runs/{run}/{sample}_data/seqs_fw_rev_filtered.fasta",PROJECT=config["PROJECT"],sample=config["LIBRARY"], run=run)
@@ -549,9 +548,7 @@ if config["derep"]["dereplicate"] == "T" and config["pickRep"]["m"] != "swarm" a
         shell:
             "{config[derep][vsearch_cmd]} --derep_fulllength {input} --output {output[0]} --uc {output[1]} --strand {config[derep][strand]} "
             "--fasta_width 0 --minuniquesize {config[derep][min_abundance]}"
-            #"{config[qiime][path]}pick_otus.py -i {input} -o {params} -s1 --derep_fullseq {config[derep][extra_params]}"
-            #"{config[qiime][path]}pick_de_novo_otus.py -i $PWD/seqs.fna -o $PWD/derep_uc/ -p $PWD/dereplication_params.txt"
-             #--derep_fullseq  --denovo_otu_id_prefix=derep -s
+
 #cluster OTUs
 rule cluster_OTUs:
     input:

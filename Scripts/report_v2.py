@@ -220,13 +220,13 @@ if snakemake.config["demultiplexing"]["demultiplex"] == "T":
 ################################################################################
 correctBCStr = ""
 bcFile="barcodes.fastq"
-if snakemake.config["demultiplexing"]["demultiplex"] == "T" and snakemake.config["bc_missmatch"]:
+if snakemake.config["demultiplexing"]["demultiplex"] == "T" and snakemake.config["bc_mismatch"]:
     correctBCStr = "Correct Barcodes\n--------------------\n"
     correctBCStr += "Try to correct the barcode from unassigned reads.\n\n"
-    correctBCStr += "Maximum number of missmatches **"  + str(snakemake.config["bc_missmatch"]) + "**.\n\n"
+    correctBCStr += "Maximum number of mismatches **"  + str(snakemake.config["bc_mismatch"]) + "**.\n\n"
     correctBCStr +=":red:`Tool:` CASCABEL's R script\n\n"
     correctBCStr +="**Command:**\n\n"
-    correctBCStr += ":commd:`Rscript Scripts/errorCorrectBarcodes.R $PWD "+snakemake.wildcards.PROJECT+"/metadata/sampleList_mergedBarcodes_"+snakemake.wildcards.sample+".txt "+snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/barcodes/barcodes.fastq "  + str(snakemake.config["bc_missmatch"]) + "`\n\n"
+    correctBCStr += ":commd:`Rscript Scripts/errorCorrectBarcodes.R $PWD "+snakemake.wildcards.PROJECT+"/metadata/sampleList_mergedBarcodes_"+snakemake.wildcards.sample+".txt "+snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/barcodes/barcodes.fastq "  + str(snakemake.config["bc_mismatch"]) + "`\n\n"
     correctBCStr += "**Output file:**\n\n:green:`- Barcode corrected file:` "+snakemake.wildcards.PROJECT+ "/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/barcodes/barcodes.fastq_corrected\n\n"
     correctBarBench =readBenchmark(snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/barcodes/barcodes_corrected.benchmark")
     correctBCStr += correctBarBench
@@ -270,12 +270,12 @@ if snakemake.config["demultiplexing"]["demultiplex"] == "T":
     splitStr+="**Command:**\n\n"
     splitStr +=":commd:`extract_barcodes.py -f "+snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/splitLibs/unassigned.reversed.fastq -c "+str(snakemake.config["ext_bc"]["c"])+" "+str(snakemake.config["ext_bc"]["bc_length"])+" "+snakemake.config["ext_bc"]["extra_params"]+" -o "+snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/barcodes_unassigned/`\n\n"
 
-    if snakemake.config["bc_missmatch"]:
+    if snakemake.config["bc_mismatch"]:
         splitStr += "Correct reverse complemented barcodes \n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n"
-        splitStr += "Maximum number of missmatches **"  + str(snakemake.config["bc_missmatch"]) + "**.\n\n"
+        splitStr += "Maximum number of mismatches **"  + str(snakemake.config["bc_mismatch"]) + "**.\n\n"
         splitStr +=":red:`Tool:` CASCABEL's R script\n\n"
         splitStr +="**Command:**\n\n"
-        splitStr += ":commd:`Rscript Scripts/errorCorrectBarcodes.R $PWD "+snakemake.wildcards.PROJECT+"/metadata/sampleList_mergedBarcodes_"+snakemake.wildcards.sample+".txt "+snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/barcodes_unassigned/barcodes.fastq_corrected "  + str(snakemake.config["bc_missmatch"]) + "`\n\n"
+        splitStr += ":commd:`Rscript Scripts/errorCorrectBarcodes.R $PWD "+snakemake.wildcards.PROJECT+"/metadata/sampleList_mergedBarcodes_"+snakemake.wildcards.sample+".txt "+snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/barcodes_unassigned/barcodes.fastq_corrected "  + str(snakemake.config["bc_mismatch"]) + "`\n\n"
         splitStr += "**Output file:**\n\n:green:`- Barcode corrected file:` "+snakemake.wildcards.PROJECT+ "/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/barcodes/barcodes.fastq_corrected\n\n"
         splitStrBench =readBenchmark(snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/barcodes_unassigned/barcodes_corrected.benchmark")
         splitStr += splitStrBench+"\n\n"
@@ -424,12 +424,7 @@ countTxt += make_table(fileData)
 ################################################################################
 #                       Sample distribution chart                              #
 ################################################################################
-#bar_image = ""
-#if snakemake.config["sample_chart"] != "pie" or snakemake.config["sample_chart"] != "bar":
-#    bar_image = ".. image:: seqs_fw_rev_filtered.dist.bar.png"
-#trimmedCounts computed in compute counts section
 dist_table = readSampleDist(snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/seqs_fw_rev_filtered.dist.txt",trimmedCounts,samplesLibInt)
-#bar_image = ".. image:: seqs_fw_rev_filtered.dist.bar.png"
 
 
 ################################################################################
