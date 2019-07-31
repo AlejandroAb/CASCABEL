@@ -63,7 +63,7 @@ rule fast_qc:
         "{PROJECT}/samples/{sample}/qc/fq.benchmark"
     shell:
         "{config[fastQC][command]} {input.r1} {input.r2} --extract {config[fastQC][extra_params]} -o {wildcards.PROJECT}/samples/{wildcards.sample}/qc/"
-#validate qc if to many fails on qc report
+#validate qc if too many fails on qc report
 rule validateQC:
     input:
         "{PROJECT}/samples/{sample}/qc/fw_fastqc/summary.txt",
@@ -260,12 +260,15 @@ if config["demultiplexing"]["demultiplex"] == "T":
         shell:
             "cat {input} | grep -P -A1 \"(?!>Unass)^>\" | sed '/^--$/d' > {output}"
 
-#This rule will call a script in order to execute the librarie splitting for the
-#RC sequences. It still needs the seqs.fna file bz this file contains the exact
-#number of sequences assigned during the first split, then the script takes taht
-#number and start to assign reads for the new splitting starting at the previous
-#number...
     rule split_libraries_rc:
+        """
+        This rule will call a script in order to execute the librarie splitting for the
+        RC sequences. It still need the seqs.fna file bz this file contains the exact
+        number of sequences assigned during the first split, then the script takes that
+        number and start to assign reads for the new splitting starting at the previous
+        number...
+        """
+
         input:
             spplited="{PROJECT}/runs/{run}/{sample}_data/splitLibs/seqs.fna",
             rFile="{PROJECT}/runs/{run}/{sample}_data/barcodes_unassigned/reads.fastq",
@@ -283,7 +286,6 @@ if config["demultiplexing"]["demultiplex"] == "T":
             "Scripts/splitRC.py"
     rule validateDemultiplex:
         input:
-        #split="{PROJECT}/runs/{run}/{sample}_data/splitLibs/seqs.fna",
             split="{PROJECT}/runs/{run}/{sample}_data/splitLibs/seqs.assigned.fna",
             splitRC="{PROJECT}/runs/{run}/{sample}_data/splitLibsRC/seqs.fna",
             logSplit="{PROJECT}/runs/{run}/{sample}_data/splitLibs/split_library_log.txt",
@@ -485,20 +487,7 @@ if config["chimera"]["search"] == "T":
             "{PROJECT}/runs/{run}/{sample}_data/seqs_fw_rev_filtered_nc.fasta",
             "{PROJECT}/runs/{run}/{sample}_data/chimera/chimera.log"
         script:
-        #"filter_fasta.py -f {input[1]} -s {input[0]} -n -o {output}"
             "Scripts/remove_chimera.py"
-#else:
-#    rule rename_file_chimera:
-#        input:
-            #"{PROJECT}/runs/{run}/{sample}_data/seqs_fw_rev_accepted.align.no_adapter.degapped.fna" if (config["align_vs_reference"]["align"] == "T") and (config["cutAdapters"] == "T")
-            #"{PROJECT}/runs/{run}/{sample}_data/seqs_fw_rev_accepted.align.degapped.fna" elif config["align_vs_reference"]["align"] == "T" and config["cutAdapters"] != "T"
-            #"{PROJECT}/runs/{run}/{sample}_data/seqs_fw_rev_accepted_no_adapters.fna" elif config["align_vs_reference"]["align"] != "T" and config["cutAdapters"] == "T"
-            #else "{PROJECT}/runs/{run}/{sample}_data/seqs_fw_rev_accepted.fna"
-            #*selectInput()
-#        output:
-#            "{PROJECT}/runs/{run}/{sample}_data/seqs_fw_rev_accepted_nc.fna"
-#        shell:
-#            "mv {input} {output}"
 
 rule count_samples_final:
     input:
@@ -717,7 +706,6 @@ elif  config["assignTaxonomy"]["tool"] == "vsearch":
             "echo '*\\tUnassigned' | cat {input[0]} - | awk 'NR==FNR {{h[$1] = $2; next}} {{print $1\"\\t\"$2\"\\t\"$3\" \"h[$3]}}' FS=\"\\t\" - FS=\"\\t\" {input[1]} "
             " > {output}"
 
-
     rule run_stampa:
         """
          compute lca using stampa merge script
@@ -762,9 +750,6 @@ else:
             "{config[assignTaxonomy][qiime][dbType]} {config[assignTaxonomy][qiime][dbFile]} --jobs_to_start {config[assignTaxonomy][qiime][jobs]} "
             "--output_dir {params.outdir}  {config[assignTaxonomy][qiime][extra_params]}"
 
-
-#The script make_otu_table.py tabulates the number of times an OTU is found in each sample,
-#and adds the taxonomic predictions for each OTU in the last column if a taxonomy file is supplied
 rule make_otu_table:
     input:
         tax="{PROJECT}/runs/{run}/otu/taxonomy_"+config["assignTaxonomy"]["tool"]+"/representative_seq_set_tax_assignments.txt",
@@ -931,7 +916,6 @@ if config["pdfReport"].casefold() == "t":
 
 rule report:
     input:
-        #counts="{PROJECT}/runs/{run}/{sample}_data/allcounts.txt",
         report_all="{PROJECT}/runs/{run}/otu_report_"+config["assignTaxonomy"]["tool"]+".html",
         dist_chart="{PROJECT}/runs/{run}/report_files/seqs_fw_rev_filtered.{sample}.dist.png",
         dmxFiles="{PROJECT}/runs/{run}/{sample}_data/demultiplexed/summary.txt"
@@ -960,8 +944,6 @@ rule create_portable_report:
     input:
         expand("{PROJECT}/runs/{run}/report_{sample}_"+config["assignTaxonomy"]["tool"]+".html", PROJECT=config["PROJECT"],sample=config["LIBRARY"], run=run),
         "{PROJECT}/runs/{run}/otu_report_"+config["assignTaxonomy"]["tool"]+".html"
-        #toTranslate="{PROJECT}/runs/{run}/report_{sample}_"+config["assignTaxonomy"]["tool"]+".html",
-        #tmp="{PROJECT}/runs/{run}/otu_report_"+config["assignTaxonomy"]["tool"]+".pdf"
     output:
         "{PROJECT}/runs/{run}/report_"+config["assignTaxonomy"]["tool"]+".zip"
     params:
