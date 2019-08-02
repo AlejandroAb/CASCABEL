@@ -98,7 +98,7 @@ export PATH=$PATH:/path/to/miniconda3/bin
 
 **Run CASCABEL**
 
-All the parameters and behavior of the workflow is specified through the configuration file, therefore the easiest way to have the pipeline running is to filling up some required variables on such file: 
+All the parameters and behavior of the workflow is specified through the [configuration file](../../wiki#23-the-configuration-file-configyaml), therefore the easiest way to have the pipeline running is to filling up some required parameters on such file: 
 
 <pre><code class="yaml">
 #------------------------------------------------------------------------------#
@@ -122,6 +122,14 @@ LIBRARY: ["EXP1"]
 #------------------------------------------------------------------------------#
 #                             INPUT FILES                                      #
 #------------------------------------------------------------------------------#
+# Here you have to enter the FULL PATH for both: the raw reads and the metadata# 
+# file (barcode mapping file). The metadata file is only needed if you want to #
+# perform demultiplexing.                                                      #
+# - fw_reads:  Full path to the raw reads in forward direction (R1)            #
+# - rw_reads:  Full path to the raw reads in reverse direction (R2)            #
+# - metadata:  Full path to the metadata file with barcodes for each sample    #
+#              to perform library demultiplexing                               #
+#------------------------------------------------------------------------------#
 fw_reads: "/full/path/to/forward.reads.fq"
 rv_reads: "/full/path/to/reverse.reads.fq"
 metadata: "/full/path/to/metadata.barcodes.txt"
@@ -130,22 +138,23 @@ metadata: "/full/path/to/metadata.barcodes.txt"
 #                               RUN                                            #
 #------------------------------------------------------------------------------#
 # Name of the RUN - Only use alphanumeric characters and don't use spaces.     #
-# This argument helps the user to execute different runs (pipeline execution)  #
+# This parameter helps the user to execute different runs (pipeline executions)#
 # with the same input data but with different parameters (ideally).            #
-# The RUN variable can be set here or remain empty, in the latter case, the    #
-# user must assign this value via the command line --config RUN=User_run_name  #
+# The RUN parameter can be set here or remain empty, in the latter case, the   #
+# user must assign this value via the command line.                            #
+# i.e:  --config RUN=run_name                                                  #
 #------------------------------------------------------------------------------#
 RUN: "My_First_run"
 
 </code></pre>
-As you can see on the previous config.yaml file the variables that are required for CASCABEL to start are:
-PROJECT, LIBRARY, RUN,  fw_reads, rv_reads and metadata. Once that you have valid values for these entries, you are ready to run the pipeline:
+As you can see on the previous fragment of the configuration file (config.yaml), the required parameters for CASCABEL to start are: *PROJECT*, *LIBRARY*, *RUN*,  *fw_reads*, *rv_reads* and *metadata*. After entering these parameters, take some minutes and go through the rest of the config file and overwrite settings according to your needs. Most values are already pre-configured. The config file explains itself by using meaningful headers before each rule, explaining the aim of such rule and the different parameters the user can use. It is very important to keep the indentation of the file (don’t change the tabs
+and spaces), as well as the name of the parameters. Once that you have valid values for these entries, you are ready to run the pipeline (before start CASCABEL always is a good practice to make a ["dry run"](../../wiki#31-dry-run)):
 
 <pre><code class="yaml">
 snakemake --configfile config.yaml 
 </code></pre>
 
-Optionally you can specify the same variables* via --config flag, rather than with the config.yaml file:
+Optionally you can specify the same parameters* via --config flag, rather than within the config.yaml file:
 
 <pre><code class="text">
  snakemake --configfile config.yaml --config PROJECT="My_CASCABEL_Project"  RUN="My_First_run" fw_reads="//full/path/to/forward.reads.fq" rv_reads="/full/path/to/reverse.reads.fq" metadata="full/path/to/metadata.barcodes.txt"
