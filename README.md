@@ -55,7 +55,7 @@ git clone https://github.com/AlejandroAb/CASCABEL.git
 Or download it from this repository:
 
 <pre><code class="text">
-wget https://github.com/AlejandroAb/CASCABEL
+wget https://github.com/AlejandroAb/CASCABEL/archive/master.zip
 </code></pre>
 
 After downloading or cloning the repository, cd to the "CASCABEL" directory and there execute the following command in order to create CASCABEL's environment:
@@ -98,7 +98,7 @@ export PATH=$PATH:/path/to/miniconda3/bin
 
 **Run CASCABEL**
 
-All the parameters and behavior of the workflow is specified through the [configuration file](../../wiki#23-the-configuration-file-configyaml), therefore the easiest way to have the pipeline running is to filling up some required parameters on such file: 
+All the parameters and behavior of the workflow is specified through the [configuration file](../../wiki#23-the-configuration-file-configyaml), therefore the easiest way to have the pipeline running is to filling up some required parameters on such file.
 
 <pre><code class="yaml">
 #------------------------------------------------------------------------------#
@@ -147,6 +147,9 @@ metadata: "/full/path/to/metadata.barcodes.txt"
 RUN: "My_First_run"
 
 </code></pre>
+
+_If you need to run CASCABEL for multiple libraries please follow this instructions(../../wiki#22-initialize-structure-for-multiple-libraries)_
+
 As you can see on the previous fragment of the configuration file (config.yaml), the required parameters for CASCABEL to start are: *PROJECT*, *LIBRARY*, *RUN*,  *fw_reads*, *rv_reads* and *metadata*. After entering these parameters, take some minutes and go through the rest of the config file and overwrite settings according to your needs. Most values are already pre-configured. The config file explains itself by using meaningful headers before each rule, explaining the aim of such rule and the different parameters the user can use. It is very important to keep the indentation of the file (don’t change the tabs
 and spaces), as well as the name of the parameters. Once that you have valid values for these entries, you are ready to run the pipeline (before start CASCABEL always is a good practice to make a ["dry run"](../../wiki#31-dry-run)):
 
