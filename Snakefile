@@ -452,23 +452,41 @@ rule remove_short_long_reads:
 
 if config["chimera"]["search"] == "T":
 #check for chimeric sequences
-    rule search_chimera:
-        input:
-            "{PROJECT}/runs/{run}/{sample}_data/seqs_fw_rev_filtered.fasta"
+    if config["chimera"]["method"] == "usearch61":
+        rule search_chimera:
+            input:
+                "{PROJECT}/runs/{run}/{sample}_data/seqs_fw_rev_filtered.fasta"
             #if (config["align_vs_reference"]["align"] == "T" and config["cutAdapters"] == "T") "{PROJECT}/runs/{run}/{sample}_data/seqs_fw_rev_accepted.align.no_adapter.degapped.fna"
             #elif (config["align_vs_reference"]["align"] == "T" and config["cutAdapters"] != "T") "{PROJECT}/runs/{run}/{sample}_data/seqs_fw_rev_accepted.align.degapped.fna"
             #elif (config["align_vs_reference"]["align"] != "T" and config["cutAdapters"] == "T") "{PROJECT}/runs/{run}/{sample}_data/seqs_fw_rev_accepted_no_adapters.fna"
             #else "{PROJECT}/runs/{run}/{sample}_data/seqs_fw_rev_accepted.fna"
             #*selectInput()
-        output:
-            "{PROJECT}/runs/{run}/{sample}_data/chimera/chimeras.txt"
-        params:
-            "{PROJECT}/runs/{run}/{sample}_data/chimera"
-        benchmark:
-            "{PROJECT}/runs/{run}/{sample}_data/chimera/chimera.benchmark"
-        shell:
-            "{config[qiime][path]}identify_chimeric_seqs.py -m {config[chimera][method]} -i {input}  -o {params} --threads {config[chimera][threads]} {config[chimera][extra_params]}"
-        #remove chimeras
+            output:
+                "{PROJECT}/runs/{run}/{sample}_data/chimera/chimeras.txt"
+            params:
+                "{PROJECT}/runs/{run}/{sample}_data/chimera"
+            benchmark:
+                "{PROJECT}/runs/{run}/{sample}_data/chimera/chimera.benchmark"
+            shell:
+                "{config[qiime][path]}identify_chimeric_seqs.py -m {config[chimera][method]} -i {input}  -o {params} --threads {config[chimera][threads]} {config[chimera][extra_params]}"
+            #remove chimeras
+    else:
+        rule search_chimera_vsearch:
+            input:
+                "{PROJECT}/runs/{run}/{sample}_data/seqs_fw_rev_filtered.fasta"
+            output:
+                "{PROJECT}/runs/{run}/{sample}_data/chimera/chimeras.summary.txt"
+            benchmark:
+                "{PROJECT}/runs/{run}/{sample}_data/chimera/chimera.benchmark"
+            shell:
+                "vsearch --{config[chimera][method]} {input} --threads {config[chimera][threads]} {config[chimera][extra_params]} --uchimeout {output}"
+        rule filter_chimera_vsearch:
+            input:
+                "{PROJECT}/runs/{run}/{sample}_data/chimera/chimeras.summary.txt"
+            output:
+                "{PROJECT}/runs/{run}/{sample}_data/chimera/chimeras.txt"
+            shell:
+                "cat {input} | awk '$18==\"Y\"{{print $2\"\\t\"$1}}' > {output}"
     rule remove_chimera:
         """
         This script counts the sequence in input[0], the chimeras in input[2] if it is interactive it
@@ -522,7 +540,7 @@ rule combine_filtered_samples:
             "Scripts/combineAllReads.py"
 
 #Dereplicate
-if config["derep"]["dereplicate"] == "T" and config["pickRep"]["m"] != "swarm" and config["pickRep"]["m"] != "usearch":
+if config["derep"]["dereplicate"] == "T" and config["pickOTU"]["m"] != "swarm" and config["pickOTU"]["m"] != "usearch":
     rule dereplicate:
         input:
             "{PROJECT}/runs/{run}/seqs_fw_rev_combined.fasta"
@@ -541,12 +559,12 @@ if config["derep"]["dereplicate"] == "T" and config["pickRep"]["m"] != "swarm" a
 #cluster OTUs
 rule cluster_OTUs:
     input:
-        "{PROJECT}/runs/{run}/derep/seqs_fw_rev_combined_derep.fasta" if config["derep"]["dereplicate"] == "T" and config["pickRep"]["m"] != "swarm"
-        and config["pickRep"]["m"] != "usearch" else "{PROJECT}/runs/{run}/seqs_fw_rev_combined.fasta"
+        "{PROJECT}/runs/{run}/derep/seqs_fw_rev_combined_derep.fasta" if config["derep"]["dereplicate"] == "T" and config["pickOTU"]["m"] != "swarm"
+        and config["pickOTU"]["m"] != "usearch" else "{PROJECT}/runs/{run}/seqs_fw_rev_combined.fasta"
         #"{PROJECT}/runs/{run}/{sample}_data/seqs_fw_rev_filtered.fasta"
     output:
-        "{PROJECT}/runs/{run}/otu/seqs_fw_rev_combined_derep_otus.txt" if config["derep"]["dereplicate"] == "T" and config["pickRep"]["m"] != "swarm"
-        and config["pickRep"]["m"] != "usearch" else "{PROJECT}/runs/{run}/otu/seqs_fw_rev_combined_otus.txt"
+        "{PROJECT}/runs/{run}/otu/seqs_fw_rev_combined_derep_otus.txt" if config["derep"]["dereplicate"] == "T" and config["pickOTU"]["m"] != "swarm"
+        and config["pickOTU"]["m"] != "usearch" else "{PROJECT}/runs/{run}/otu/seqs_fw_rev_combined_otus.txt"
     params:
         trieDir="{PROJECT}/runs/{run}/otu/"
     benchmark:
@@ -555,7 +573,7 @@ rule cluster_OTUs:
         "{config[qiime][path]}pick_otus.py -m {config[pickOTU][m]} -i {input} "
         "-o {params.trieDir}  -s {config[pickOTU][s]} --threads {config[pickOTU][cpus]} {config[pickOTU][extra_params]} "
 
-if config["derep"]["dereplicate"] == "T" and config["pickRep"]["m"] != "swarm"  and config["pickRep"]["m"] != "usearch":
+if config["derep"]["dereplicate"] == "T" and config["pickOTU"]["m"] != "swarm"  and config["pickOTU"]["m"] != "usearch":
     rule remap_clusters:
         input:
             otu_txt="{PROJECT}/runs/{run}/otu/seqs_fw_rev_combined_derep_otus.txt",
@@ -568,8 +586,8 @@ if config["derep"]["dereplicate"] == "T" and config["pickRep"]["m"] != "swarm"  
 #pick representative OTUs
 rule pick_representatives:
     input:
-        otus="{PROJECT}/runs/{run}/otu/seqs_fw_rev_combined_derep_otus.txt" if config["derep"]["dereplicate"] == "T" and config["pickRep"]["m"] != "swarm"
-        and config["pickRep"]["m"] != "usearch" else "{PROJECT}/runs/{run}/otu/seqs_fw_rev_combined_otus.txt",
+        otus="{PROJECT}/runs/{run}/otu/seqs_fw_rev_combined_derep_otus.txt" if config["derep"]["dereplicate"] == "T" and config["pickOTU"]["m"] != "swarm"
+        and config["pickOTU"]["m"] != "usearch" else "{PROJECT}/runs/{run}/otu/seqs_fw_rev_combined_otus.txt",
         filtered="{PROJECT}/runs/{run}/seqs_fw_rev_combined.fasta"
         #filtered="{PROJECT}/runs/{run}/{sample}_data/seqs_fw_rev_filtered.fasta"
     output:
@@ -605,8 +623,8 @@ if  config["assignTaxonomy"]["tool"] == "blast":
         """
         input:
             blastout="{PROJECT}/runs/{run}/otu/taxonomy_"+config["assignTaxonomy"]["tool"]+"/representative_seq_set_tax_blastn.out",
-            otus="{PROJECT}/runs/{run}/otu/seqs_fw_rev_combined_derep_otus.txt" if config["derep"]["dereplicate"] == "T" and config["pickRep"]["m"] != "swarm"
-            and config["pickRep"]["m"] != "usearch" else "{PROJECT}/runs/{run}/otu/seqs_fw_rev_combined_otus.txt"
+            otus="{PROJECT}/runs/{run}/otu/seqs_fw_rev_combined_derep_otus.txt" if config["derep"]["dereplicate"] == "T" and config["pickOTU"]["m"] != "swarm"
+            and config["pickOTU"]["m"] != "usearch" else "{PROJECT}/runs/{run}/otu/seqs_fw_rev_combined_otus.txt"
         output:
             "{PROJECT}/runs/{run}/otu/taxonomy_"+config["assignTaxonomy"]["tool"]+"/representative_seq_set_tax_blastn.complete.out"
         benchmark:
@@ -753,8 +771,8 @@ else:
 rule make_otu_table:
     input:
         tax="{PROJECT}/runs/{run}/otu/taxonomy_"+config["assignTaxonomy"]["tool"]+"/representative_seq_set_tax_assignments.txt",
-        otus="{PROJECT}/runs/{run}/otu/seqs_fw_rev_combined_remapped_otus.txt" if config["derep"]["dereplicate"] == "T" and config["pickRep"]["m"] != "swarm"
-        and config["pickRep"]["m"] != "usearch" else "{PROJECT}/runs/{run}/otu/seqs_fw_rev_combined_otus.txt"
+        otus="{PROJECT}/runs/{run}/otu/seqs_fw_rev_combined_remapped_otus.txt" if config["derep"]["dereplicate"] == "T" and config["pickOTU"]["m"] != "swarm"
+        and config["pickOTU"]["m"] != "usearch" else "{PROJECT}/runs/{run}/otu/seqs_fw_rev_combined_otus.txt"
     output:
         "{PROJECT}/runs/{run}/otu/taxonomy_"+config["assignTaxonomy"]["tool"]+"/otuTable.biom"
     benchmark:

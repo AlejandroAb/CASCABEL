@@ -27,6 +27,7 @@ isWrong = False
 message = "Barcode validation OK"
 with open(snakemake.input[1]) as mappingFile:
     for line in mappingFile:
+        #line.encode('utf-8').strip()
         if not line.startswith("#"):
             columns = line.split('\t')
             try:

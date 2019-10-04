@@ -13,7 +13,7 @@
 # ignored by Snakemake.                                                        #
 #                                                                              #
 # @Author: Julia Engelmann and Alejandro Abdala                                #
-# @Last update: 31/07/2019                                                     #
+# @Last update: 04/10/2019                                                     #
 ################################################################################
 
 ################################################################################
@@ -443,31 +443,40 @@ cutadapt:
 # This rule will be executed if and only if the option 'search' is set to "T"! #
 # Chimeric sequencesa are predicted using usearch61. This algorithm performs   #
 # both de novo (abundance based) chimera and reference based detection.        #
-# Unclustered sequences should be used as input rather than a representative   # 
-# sequence set, as the sequences will be clustered by usearch61 to get         #
-# abundance data. The results are all input sequences not flagged as chimeras. # 
+# Unclustered sequences are used as input rather than a representative sequence#
+# set, as the sequences will be clustered to get abundance data.               #
+# The results are all input sequences not flagged as chimeras.                 # 
+# This rule implements different methods for identifying chimeras, following,  #
+# more details about the available options.                                    #
 # For details, see: http://drive5.com/usearch/usearch_docs.html                #
-# It is possible to use two other methods: the Blast_fragments approach and    #
-# ChimeraSlayer, however we recomend to use usearch61 since it uses unclustered#
-# sequences unlike the other two algorithms, which use representative          #
-# sequences.                                                                   # 
 # If you are using usearch61, bear in mind that you can use a reference        #
 # database via extra_params, e.g., "-r /path/to/gold_db/gold.fa"               #
-# - method        This method could be any of the ones used by the script      #      
-#                 identify_chimeric_seqs, but because "usearch61" is the most  #
-#                 time-efficient, for the moment CASCABEL only provides        #
-#                 "usearch61".                                                 #
+#                                                                              #
+# - method        Select the method for chimera identification:                #
+#                  - "usearch61" This algorithm performs both de novo          #
+#                    (abundance based) chimera and reference based detection.  #
+#                    This method uses the usearch implementation within qiime's#
+#                    script identify_chimeric_seqs.py.                         #
+#                    To use reference based detection supply the reference     #
+#                    database via extra_params, e.g.:"-r /dbs/gold_db/gold.fa" #
+#                 For details, see: http://drive5.com/usearch/usearch_docs.html#
+#                  - "uchime_denovo" detect chimeras de novo (uses vsearch)    #
+#                  - "uchime_ref" detect chimeras using a reference database.  #
+#                     In this later case, user MUST suply extra_params:        #
+#                     "--db </full/path/to/db.fasta>" (i.e., path to gold db). #
 # - threads       Number of threads to use.                                    #
 # - extra_params  Any extra parameter. It is recomended to run the chimeric    #
 #                 search against a chimera database, e.g.,                     #
-#                 "-r /export/data/databases/gold_db/gold.fa"                  #
+#                 "-r /export/data/databases/gold_db/gold.fa" for "usearch61"  #
+#                 or "--db /export/data/databases/gold_db/gold.fa" for         #
+#                 "uchime_ref"                                                 #
 # - search        "T" | "F" (true or false) to execute chimera checking or not.#
 #------------------------------------------------------------------------------#
 chimera:
   search: "F"
-  method: "usearch61"
+  method: "uchime_ref"
   threads: 6
-  extra_params: ""
+  extra_params: "--db gold.fa"
 
 #------------------------------------------------------------------------------#
 #                          Length filtering                                    #

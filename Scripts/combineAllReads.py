@@ -15,11 +15,17 @@ samples = ""
 sampList = ""
 #print(snakemake.input.allFiltered)
 #print(inputs)
+i = 0
 for inp in allF:
     sampList += inp + " "
     dirs = inp.split("/")
     if len(dirs) > 2 :
-        samples+=dirs[2] + " "
+        i+=1
+        if i==1:
+            samples+=dirs[3].replace("_data","") 
+        else: 
+            samples+=", "+dirs[3].replace("_data","") 
+
 with open(samplesout, "w") as sampfile:
     sampfile.write(samples)
     sampfile.close()

@@ -59,7 +59,7 @@ summTaxaBenchmark = readBenchmark(snakemake.wildcards.PROJECT+"/runs/"+snakemake
 otuNoSingletonsBenchmark = readBenchmark(snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/otu/taxonomy_"+snakemake.config["assignTaxonomy"]["tool"]+"/otuTable_nosingletons.bio.benchmark")
 filterBenchmark = readBenchmark(snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/otu/taxonomy_"+snakemake.config["assignTaxonomy"]["tool"]+"/representative_seq_set_noSingletons.benchmark")
 deRepBenchmark=""
-if  snakemake.config["derep"]["dereplicate"] == "T" and  snakemake.config["pickRep"]["m"] != "swarm" and  snakemake.config["pickRep"]["m"] != "usearch":
+if  snakemake.config["derep"]["dereplicate"] == "T" and  snakemake.config["pickOTU"]["m"] != "swarm" and  snakemake.config["pickOTU"]["m"] != "usearch":
     deRepBenchmark = readBenchmark(snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/derep/derep.benchmark")
 if snakemake.config["alignRep"]["align"] == "T":
     #align_seqs.py -m {config[alignRep][m]} -i {input} -o {params.outdir} {config[alignRep][extra_params]}
@@ -104,7 +104,7 @@ blastnVersion = "**" + blastnV.stdout.decode('utf-8').split('\n', 1)[0].replace(
 vsearchV2 = subprocess.run([snakemake.config["assignTaxonomy"]["vsearch"]["command"], '--version'], stdout=subprocess.PIPE)
 vsearchVersion_tax = "**" + vsearchV2.stdout.decode('utf-8').split('\n', 1)[0].strip() + "**"
 
-if  snakemake.config["derep"]["dereplicate"] == "T" and  snakemake.config["pickRep"]["m"] != "swarm" and  snakemake.config["pickRep"]["m"] != "usearch":
+if  snakemake.config["derep"]["dereplicate"] == "T" and  snakemake.config["pickOTU"]["m"] != "swarm" and  snakemake.config["pickOTU"]["m"] != "usearch":
     vsearchV = subprocess.run([snakemake.config["derep"]["vsearch_cmd"], '--version'], stdout=subprocess.PIPE)
     vsearchVersion = "**" + vsearchV.stdout.decode('utf-8').split('\n', 1)[0].strip() + "**"
 
@@ -138,7 +138,7 @@ except Exception as e:
 
 derep_reads = "TBD"
 intDerep=1
-if  snakemake.config["derep"]["dereplicate"] == "T" and  snakemake.config["pickRep"]["m"] != "swarm" and  snakemake.config["pickRep"]["m"] != "usearch":
+if  snakemake.config["derep"]["dereplicate"] == "T" and  snakemake.config["pickOTU"]["m"] != "swarm" and  snakemake.config["pickOTU"]["m"] != "usearch":
     try:
         totd = subprocess.run( ["grep \"^>\" " +  snakemake.wildcards.PROJECT+ "/runs/" + snakemake.wildcards.run+ "/derep/seqs_fw_rev_combined_derep.fasta" + " | wc -l"], stdout=subprocess.PIPE, shell=True)
         intDerep = int(totd.stdout.decode('utf-8').strip())
@@ -149,10 +149,10 @@ if  snakemake.config["derep"]["dereplicate"] == "T" and  snakemake.config["pickR
 intOtus = 1
 try:
     otu_file=""
-    if (snakemake.config["derep"]["dereplicate"] == "T" and snakemake.config["pickRep"]["m"] != "swarm" and snakemake.config["pickRep"]["m"] != "usearch"):
+    if (snakemake.config["derep"]["dereplicate"] == "T" and snakemake.config["pickOTU"]["m"] != "swarm" and snakemake.config["pickOTU"]["m"] != "usearch"):
         otu_file = snakemake.wildcards.PROJECT+ "/runs/" + snakemake.wildcards.run+ "/otu/seqs_fw_rev_combined_remapped_otus.txt"
     else:
-        otu_file = snakemake.wildcards.PROJECT+ "/runs/" + snakemake.wildcards.run+ "/otu/seqs_fw_rev_filtered_otus.txt"
+        otu_file = snakemake.wildcards.PROJECT+ "/runs/" + snakemake.wildcards.run+ "/otu/seqs_fw_rev_combined_otus.txt"
     totus = subprocess.run( ["cat " +  otu_file + " | wc -l"], stdout=subprocess.PIPE, shell=True)
     intOtus = int(totus.stdout.decode('utf-8').strip())
     #print("Total OTUS" + str(intOtus))
@@ -227,7 +227,7 @@ data.append("100%")
 fileData.append(data)
 data=[]
 #derep
-if  snakemake.config["derep"]["dereplicate"] == "T" and  snakemake.config["pickRep"]["m"] != "swarm" and  snakemake.config["pickRep"]["m"] != "usearch":
+if  snakemake.config["derep"]["dereplicate"] == "T" and  snakemake.config["pickOTU"]["m"] != "swarm" and  snakemake.config["pickOTU"]["m"] != "usearch":
 	data.append("Dereplicated reads")
 	data.append(snakemake.wildcards.PROJECT+ "/runs/" + snakemake.wildcards.run+ "/derep/seqs_fw_rev_combined_derep.fasta")
 	data.append(str(intDerep))
@@ -275,7 +275,7 @@ labels=["Combined\nreads"];
 prcs=[]
 
 prcs.append("100%")
-if  snakemake.config["derep"]["dereplicate"] == "T" and  snakemake.config["pickRep"]["m"] != "swarm" and  snakemake.config["pickRep"]["m"] != "usearch":
+if  snakemake.config["derep"]["dereplicate"] == "T" and  snakemake.config["pickOTU"]["m"] != "swarm" and  snakemake.config["pickOTU"]["m"] != "usearch":
     numbers.append(intDerep)
     labels.append("Derep.")
     prcs.append("{:.2f}".format(float((intDerep/intTotalReads)*100))+"%")
@@ -344,7 +344,8 @@ elif snakemake.config["assignTaxonomy"]["tool"] == "vsearch":
         assignTaxoStr += "After vsearch assignation, **results were mapped to their LCA using stampa_merge.py** script\n\n"
 
 #Dereplication report
-if  snakemake.config["derep"]["dereplicate"] == "T" and  snakemake.config["pickRep"]["m"] != "swarm" and  snakemake.config["pickRep"]["m"] != "usearch":
+dereplicateReport=""
+if  snakemake.config["derep"]["dereplicate"] == "T" and  snakemake.config["pickOTU"]["m"] != "swarm" and  snakemake.config["pickOTU"]["m"] != "usearch":
     dereplicateReport="Dereplicate reads\n"
     dereplicateReport+="---------------------\n\n"
     dereplicateReport+="Clusterize the reads with an identity threshold of 100%.\n\n"

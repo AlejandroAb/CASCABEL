@@ -1,13 +1,11 @@
-#https://stackoverflow.com/questions/11347505/what-are-some-approaches-to-outputting-a-python-data-structure-to-restructuredte
-#where grid: [['Name', 'Favorite Food', 'Favorite Subject'],['Joe', 'Hamburgers', 'Cars'], ['Jill', 'Salads', 'American Idol'], ['Sally', 'Tofu', 'Math']]
 import os
 import subprocess
 import math
 from functools import reduce
 
-#/**
-#* Method
-#*/
+
+#https://stackoverflow.com/questions/11347505/what-are-some-approaches-to-outputting-a-python-data-structure-to-restructuredte
+#where grid: [['Name', 'Favorite Food', 'Favorite Subject'],['Joe', 'Hamburgers', 'Cars'], ['Jill', 'Salads', 'American Idol'], ['Sally', 'Tofu', 'Math']]
 def make_table(grid):
     cell_width = 2+max(reduce(lambda x,y: x+y, [[len(item) for item in row] for row in grid], []))
     num_cols = len(grid[0])
@@ -27,7 +25,6 @@ def table_div(num_cols, col_width, header_flag):
 
 def normalize_cell(string, length):
     return string + ((length - len(string)) * ' ')
-
 
 def readBenchmark( benchFile ):
     try:

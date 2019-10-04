@@ -38,7 +38,8 @@ else:
     #print("\033[92mYou can run again this step with the flag \"--retain_unassigned_reads\" in order to retain sequences with uncertain barcodes \033[0m")
     print("\033[93mDo you want to continue y/n? \033[0m")
     user_input = stdin.readline() #READS A LINE
-    user_input = user_input[:-1]
+    user_input = " ".join(user_input.split())
+    #user_input = user_input[:-1]
     if user_input.upper() == "Y" or user_input.upper() == "YES":
         print("\033[92m" +"The flow goes on!"+ "\033[0m")
         with open(snakemake.output[0], "w") as tmplog:
@@ -47,6 +48,7 @@ else:
     else:
         print("Aborting workflow...")
         print("Cleaning files...")
-        shutil.rmtree(snakemake.params[0])
-        shutil.rmtree(snakemake.params[1])
+        print("Your input"+user_input)
+        #shutil.rmtree(snakemake.params[0])
+        #shutil.rmtree(snakemake.params[1])
         exit(1)
