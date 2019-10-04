@@ -169,3 +169,7 @@ Optionally you can specify the same parameters* via --config flag, rather than w
 ### Configure pipeline
 
 For a complete guide on how to setup and use CASCABEL please visit the official project [wiki](https://github.com/AlejandroAb/CASCABEL/wiki)
+
+### Test data
+
+In order to test the pipeline we also sugest to try running it with [CASCABEL's test data](https://github.com/AlejandroAb/CASCABEL-Test)
