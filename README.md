@@ -173,3 +173,11 @@ For a complete guide on how to setup and use CASCABEL please visit the official 
 ### Test data
 
 In order to test the pipeline we also sugest to try running it with [CASCABEL's test data](https://github.com/AlejandroAb/CASCABEL-Test)
+
+### Citing
+
+For the moment Cascabel's prepint is available for citing at [www.biorxiv.org](https://www.biorxiv.org/content/early/2019/10/17/809384)
+
+Cascabel: a flexible, scalable and easy-to-use amplicon sequence data analysis pipeline
+Alejandro Abdala Asbun, Marc A Besseling, Sergio Balzano, Judith van Bleijswijk, Harry Witte, Laura Villanueva, Julia C Engelmann
+bioRxiv 809384; doi: https://doi.org/10.1101/809384 
