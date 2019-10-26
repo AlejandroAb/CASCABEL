@@ -6,7 +6,7 @@ meaningful way, as well as facilitate downstream analysis, based on the generate
 
 CASCABEL was designed for short read high-throughput sequence data. It covers quality control on the fastq files, assembling paired-end reads to fragments (it can also handle single end data), splitting the libraries into samples (optional), OTU picking and taxonomy assignment. Besides other output files, it will return an OTU table.
 
-Our pipeline is implemented with Snakeme as workflow management engine and allows customizing the analyses by offering several choices for most of the steps. The pipeline can make use of multiple computing nodes and scales from personal computers to computing servers. The analyses and results are fully reproducible and documented in an html and optional pdf report.
+Our pipeline is implemented with Snakemake as workflow management engine and allows customizing the analyses by offering several choices for most of the steps. The pipeline can make use of multiple computing nodes and scales from personal computers to computing servers. The analyses and results are fully reproducible and documented in an html and optional pdf report.
 
 ## Installation
 
