@@ -133,7 +133,7 @@ metadata: ""
 #                            to supply the quality character, to merge the     #
 #                            reads.                                            #   
 #------------------------------------------------------------------------------#
-UNPAIRED_DATA_PIPELINE: "T"
+UNPAIRED_DATA_PIPELINE: "F"
 CHAR_TO_PAIR: "N"
 QUALITY_CHAR: "#"
 
