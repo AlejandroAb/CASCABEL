@@ -109,6 +109,34 @@ rv_reads: ""
 metadata: ""
 
 
+#------------------------------------------------------------------------------#
+#                             UNPAIRED FLOW                                    #
+#------------------------------------------------------------------------------#
+# A regular workflow for marker gene analysis using paired-end data,           #
+# comprehends the assembly of forward and reverse reads, prior to continuing   #
+# with downstream analysis, behavior, that is implemented within this pipeline.# 
+# However, primers can potentially amplify fragments larger than the expected  #
+# ones, therefore, there is no overlap between FR and RV reads, thus discarding# 
+# all those "un-paired" reads during the assembly. For this scenario, Cascabel #
+# implements an alternative flow, where instead of continue downstream analyses#
+# with assembled reads, un-assembled reads are concatenated together with a    #
+# degenerated base 'N' between the FW reads and the reverse complemented RV    #
+# reads (which does not significantly influence k-mer based classification     #
+# such as RDP).                                                                #
+#                                                                              #
+# UNPAIRED_DATA_PIPELINE:    If you want to run this special WF set this flag  #
+#                            to "T" [default: "F"]                             #
+# CHAR_TO_PAIR:              Char or charcters to merge FW nad RV read.        #
+#                            [default: "N"]                                    #
+# QUALITY_CHAR:              Within this pipeline, assembled reads are still   #
+#                            represented in fastq files, therefore it is need  #
+#                            to supply the quality character, to merge the     #
+#                            reads.                                            #   
+#------------------------------------------------------------------------------#
+UNPAIRED_DATA_PIPELINE: "T"
+CHAR_TO_PAIR: "N"
+QUALITY_CHAR: "#"
+
 ################################################################################
 #                          REPORT PARAMETER SECTION                            #
 #------------------------------------------------------------------------------#
@@ -230,6 +258,7 @@ pear:
   extra_params: ""
   prcpear: 90
 
+UNPAIRED_DATA_PIPELINE: "F"
 #------------------------------------------------------------------------------#
 #                  FastQC on merged/assembled fragments                        #
 # rule: fastQCPear                                                             #
