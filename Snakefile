@@ -88,8 +88,7 @@ rule pear:
         "{PROJECT}/runs/{run}/{sample}_data/peared/seqs.assembled.fastq" if config["UNPAIRED_DATA_PIPELINE"] != "T" else
         "{PROJECT}/runs/{run}/{sample}_data/peared/seqs.unassembled.forward.fastq",
         "{PROJECT}/runs/{run}/{sample}_data/peared/pear.log",
-	"{PROJECT}/runs/{run}/{sample}_data/peared/seqs.assembled.fastq" if config["UNPAIRED_DATA_PIPELINE"] != "T" else
-        "{PROJECT}/runs/{run}/{sample}_data/peared/seqs.unassembled.reverse.fastq"
+        "{PROJECT}/runs/{run}/{sample}_data/peared/seqs.unassembled.reverse.fastq" 
      benchmark:
         "{PROJECT}/runs/{run}/{sample}_data/peared/pear.benchmark"
      params:
