@@ -13,7 +13,7 @@ import java.util.logging.Logger;
 /**
  *
  * @author aabdala
- * @version 1.0
+ * @version 1.2
  */
 public class DemultiplexQiime {
 
@@ -27,6 +27,10 @@ public class DemultiplexQiime {
     private String paired = "";
     private boolean fastq = true;
     private boolean raw_fastq = true;
+    private String orientation = "fw_rv";
+    int bc_length = 0;
+    private boolean removeHeader = false;
+    private boolean overWrite = false;
 
     public static void main(String args[]) {
         DemultiplexQiime dmx = null;
@@ -107,12 +111,37 @@ public class DemultiplexQiime {
 
                 }
 
+            } else if (args[i].equals("-a") || args[i].equals("--assignation")) {
+                try {
+                    i++;
+                    dmx.setOrientation(args[i]);
+                } catch (ArrayIndexOutOfBoundsException aoie) {
+                    System.err.println("Argument expected for -s --strand \nNeed help? use DemultiplexQiime -h | --help");
+
+                }
+
+            } else if (args[i].equals("-b") || args[i].equals("--barcodes")) {
+                try {
+                    i++;
+                    dmx.setBc_length(Integer.parseInt(args[i]));
+                } catch (ArrayIndexOutOfBoundsException aoie) {
+                    System.err.println("Argument expected for -b --barcodes \nNeed help? use DemultiplexQiime -h | --help");
+
+                } catch (NumberFormatException nfe) {
+                    System.err.println("Numerical argument expected for -b --barcodes. Found: " + args[i] + "\nNeed help? use DemultiplexQiime -h | --help");
+
+                }
+
             } else if (args[i].equals("--fasta")) {
                 dmx.setFastq(false);
             } else if (args[i].equals("--out-fasta")) {
                 dmx.setRaw_fastq(false);
             } else if (args[i].equals("-v") || args[i].equals("--verbose")) {
                 dmx.setDebug(true);
+            } else if (args[i].equals("--remove-header")) {
+                dmx.setRemoveHeader(true);
+            } else if (args[i].equals("--over-write")) {
+                dmx.setOverWrite(true);
             } else {
                 System.err.println("Unknown option: " + args[i] + "\nNeed help? use DemultiplexQiime -h | --help");
                 System.exit(1);
@@ -183,7 +212,9 @@ public class DemultiplexQiime {
                     sample = linea.substring(1, linea.indexOf("_"));
                     currentWriter = writers.get(sample);
                     if (currentWriter == null) {
-                        currentWriter = new FileWriter(outDir + preffix + sample + suffix + "." + file_extenssion);
+                        // currentWriter = new FileWriter(outDir + preffix + sample + suffix + "." + file_extenssion);
+                        currentWriter = new FileWriter(outDir + preffix + sample + suffix + "_" + orientation + ".txt");
+
                         writers.put(sample, currentWriter);
                         counts.put(sample, 1);
                     } else {
@@ -240,7 +271,7 @@ public class DemultiplexQiime {
                         raw_header = raw_header.substring(0, raw_header.indexOf(" ")); //the only keep the raw acc
                         currentWriter = writers.get(sample);
                         if (currentWriter == null) {
-                            currentWriter = new FileWriter(outDir + preffix + sample + suffix + ".txt");
+                            currentWriter = new FileWriter(outDir + preffix + sample + suffix + "_" + orientation + ".txt");
                             writers.put(sample, currentWriter);
                             counts.put(sample, 1);
                         } else {
@@ -256,6 +287,7 @@ public class DemultiplexQiime {
                     numL++;
                 } catch (Exception ex) {
                     System.err.println("Error processing line: " + numL++);
+                    ex.printStackTrace();
                     System.exit(1);
                     reader.close();
                 }
@@ -263,7 +295,8 @@ public class DemultiplexQiime {
             reader.close();
             for (String key : writers.keySet()) {
                 writers.get(key).close();
-                String file = outDir + preffix + key + suffix + ".txt";
+                //String file = outDir + preffix + key + suffix + ".txt";
+                String file = outDir + preffix + key + suffix + "_" + orientation + ".txt";
                 if (forward.length() > 0) {
                     createFastq(key, file, forward, "_1");
                 }
@@ -274,7 +307,8 @@ public class DemultiplexQiime {
                     createFastq(key, file, paired, "");
                 }
             }
-            FileWriter writer = new FileWriter(outDir + "summary.txt");
+            FileWriter writer = new FileWriter(outDir + "summary_" + orientation + ".txt");
+            writer.write("#Samples assigned in " + orientation + " orientation \n");
             writer.write("#Sample\tCounts\tFile(s)\n");
             String file_extenssion = raw_fastq ? "fastq" : "fasta";
             for (String key : counts.keySet()) {
@@ -318,8 +352,22 @@ public class DemultiplexQiime {
     public String createFastq(String sample, String ids, String raw_file, String extra) {
         String command = "";
         String file_extenssion = raw_fastq ? "fastq" : "fasta";
+        int start_idx = bc_length + 1;
+        String header = removeHeader ? "$1" : "$0";//all the header
+        String append = overWrite ? ">" : ">>";
         try {
-            command = "seqtk subseq  " + raw_file + " " + ids + " | gzip > " + outDir + preffix + sample + suffix + extra + "." + file_extenssion + ".gz";
+            if (start_idx > 1 && raw_fastq) {
+                command = "seqtk subseq  " + raw_file + " " + ids
+                        + " | awk '{if(NR%4==2 || NR%4==0){print substr($0," + start_idx + ")}else if(NR%4==1){print " + header + "}else{print $0}}' "
+                        + " | gzip " + append + " " + outDir + preffix + sample + suffix + extra + "." + file_extenssion + ".gz";
+            } else if (start_idx > 1) { //is fasta file
+                command = "seqtk subseq  " + raw_file + " " + ids
+                        + " | awk '{if(NR%2==0){print substr($0," + start_idx + ")}else if(NR%4==1){print " + header + "}else{print $0}}' "
+                        + " | gzip " + append + " " + outDir + preffix + sample + suffix + extra + "." + file_extenssion + ".gz";
+            } else { //no bc removal 
+                command = "seqtk subseq  " + raw_file + " " + ids
+                        + " | gzip " + append + " " + outDir + preffix + sample + suffix + extra + "." + file_extenssion + ".gz";
+            }
 
             if (debug) {
                 System.out.println("command: " + command);
@@ -362,8 +410,8 @@ public class DemultiplexQiime {
      */
     private static void printHelp() {
         String helpHeader = "\n#################################################################\n"
-                + "###                     Sequence Demultiplexer                ###\n"
-                + "###                            v 1.0                          ###\n"
+                + "###                      Sequence Demultiplexer               ###\n"
+                + "###                            v 1.1                          ###\n"
                 + "###                                       @company       NIOZ ###\n"
                 + "###                                       @author   A. Abdala ###\n"
                 + "#################################################################\n";
@@ -373,26 +421,38 @@ public class DemultiplexQiime {
                 + "@NIOZ80.39_5 M01102:251:000000000-B8LBW:1:1101:17625:1850\n\n"
                 + "Usage:\n\tjava DemultiplexQiime [options] -d <demultiplexed_file>\n"
                 + "The program will write individual demultiplexed files into -o <output_dir>\n"
-                + "And a tab delimited file at <output_dir>/summary.txt  with the following columns:\n"
+                + "And a tab delimited file at <output_dir>/summary_<orientation>.txt  with the following columns:\n"
                 + "#Sample<tab>Counts<tab>File(s)\n\n"
                 + "Options:\n";
 
         String help = ""
-                + "\t-d\t--dmx-file\tFastq/Fasta file with the the sequences already demultiplexed on sequences header. \n"
-                + "\t\t--fasta\t\tIf the input file (-d) is on fasta format pass this flag (defult input is fastq)\n"
-                + "\t-o\t--out\t\tBase directory to write the demultiplexed files\n"
-                + "\t\t--out-fasta\tIf the output will be on fasta format pass this flag to use propper extension\n"
-                + "\t-s\t--sufix\t\tSufix to output file names. Default <blank> no sufix\n"
-                + "\t-p\t--prefix\tPrefix to output file names. Default <blank> no prefix\n"
-                + "\t\t\t\t*The final output demultiplexed files will been called:\n"
-                + "\t\t\t\t\t<base_directory>/<prefix><sample><sufix>.<fastq|fasta>.gz\n"
-                + "\t-r1\t--forward\t\tForward raw reads to extract the sequences according to the demultiplexed file (-d)\n"
-                + "\t-r2\t--reverse\t\tReverse raw reads to extract the sequences according to the demultiplexed file (-d)\n"
-                + "\t-r\t--single\t\tSingle paired raw reads to extract the sequences according to the demultiplexed file (-d)\n"
-                + "\t\t\t\t*Specify -r1 <fw.reads> -r2 <rv.reads> for paired end data.\n"
-                + "\t\t\t\t*Specify -r <single.reads> for single end data.\n"
-                + "\t\t\t\t*Dont specify any reads and the demultiplex will be performed only with the input file (-d)\n"
-                + "\t-v\t--verbose\tOutput details during processing\n\n";
+                + "  -d  --dmx-file <file>    Fastq/Fasta file with the the sequences already demultiplexed on sequences header. \n"
+                + "      --fasta              If the input file (-d) is on fasta format pass this flag (defult input is fastq)\n"
+                + "  -o  --out <dir>          Base directory to write the demultiplexed files\n"
+                + "      --out-fasta          If the output will be on fasta format pass this flag to use propper extension\n"
+                + "      --over-write         Overwrite generated files if exists at output directory. Default False\n"
+                + "  -s  --sufix <str>        Sufix to output file names. Default <blank> no sufix\n"
+                + "  -p  --prefix <str>       Prefix to output file names. Default <blank> no prefix\n"
+                + "                           *The individual demultiplexed files will be called:\n"
+                + "                           <base_directory>/<prefix><sample><sufix>.<fastq|fasta>.gz\n"
+                + "  -r1 --forward <file>     Forward raw reads to extract the sequences according to the demultiplexed file (-d)\n"
+                + "  -r2 --reverse <file>     Reverse raw reads to extract the sequences according to the demultiplexed file (-d)\n"
+                + "  -r  --single <file>      Single raw reads to extract the sequences according to the demultiplexed file (-d)\n"
+                + "                           ----------------------\n"
+                + "                           *Specify -r1 <fw.reads> -r2 <rv.reads> for paired end data.\n"
+                + "                           *Specify -r <single.reads> for single end data.\n"
+                + "                           *Do not specify any reads and the demultiplexing will be performed only with the input file (-d)\n"
+                + "                           ----------------------\n"
+                + "  -b  --barcodes <num>     Remove barcodes from raw reads. Default 0 -removes 0 bases-\n"
+                + "  -a  --assignation <str>  This option refers to the orientation of the reads at the moment of its assignation.\n"
+                + "                           This value would be used only on the summary file and it is used to distinguish between strand\n"
+                + "                           specific configurations. Default fw_rev\n"
+                + "      --remove-header      Pass this flag to only keep the first part of the header.\n"
+                + "                            i.e., @M01102:251:000000000-B8LBW:1:2110:14503:27454 1:N:0:ATTCCT\n"
+                + "                            to    @M01102:251:000000000-B8LBW:1:2110:14503:27454\n"
+                + "                            This option is useful when the reads FW and RV are interchanged between raw and demultiplexed\n"
+                + "                            files, in order to have all of them in the correct strand.\n"
+                + "  -v  --verbose            Output details during processing\n";
 
         System.out.println(helpHeader + description + help);
     }
@@ -496,5 +556,36 @@ public class DemultiplexQiime {
         this.raw_fastq = raw_fastq;
     }
 
-}
+    public String getOrientation() {
+        return orientation;
+    }
 
+    public void setOrientation(String orientation) {
+        this.orientation = orientation;
+    }
+
+    public int getBc_length() {
+        return bc_length;
+    }
+
+    public void setBc_length(int bc_length) {
+        this.bc_length = bc_length;
+    }
+
+    public boolean isRemoveHeader() {
+        return removeHeader;
+    }
+
+    public void setRemoveHeader(boolean removeHeader) {
+        this.removeHeader = removeHeader;
+    }
+
+    public boolean isOverWrite() {
+        return overWrite;
+    }
+
+    public void setOverWrite(boolean overWrite) {
+        this.overWrite = overWrite;
+    }
+
+}

@@ -1,6 +1,6 @@
 channels:
   - bioconda
-  - defaults
+  - conda-forge
   - r
 dependencies:
   - fastqc
@@ -17,3 +17,6 @@ dependencies:
   - krona
   - matplotlib
   - blast
+  - seqtk
+  - rdp_classifier
+

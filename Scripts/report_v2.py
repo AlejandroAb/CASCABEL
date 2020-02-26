@@ -118,7 +118,7 @@ prcPeared = "{:.2f}".format(float((pearedCounts/rawCounts)*100))
 #-dumultiplex
 if snakemake.config["demultiplexing"]["demultiplex"] != "F":
     fwAssignedCounts = countFasta(snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/splitLibs/seqs.assigned.fna", False)
-    rvAssignedCounts = countFasta(snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/splitLibsRC/seqs.fna", False)
+    rvAssignedCounts = countFasta(snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/splitLibsRC/seqs.assigned.fna", False)
     prcFwAssigned = "{:.2f}".format(float((fwAssignedCounts/pearedCounts)*100))
     prcRvAssigned = "{:.2f}".format(float((rvAssignedCounts/pearedCounts)*100))
     totalAssigned = fwAssignedCounts + rvAssignedCounts
@@ -324,14 +324,15 @@ if snakemake.config["demultiplexing"]["demultiplex"] != "F":
     splitStr +=splitLibsBench+"\n\n"
 
     splitStr +="**Output files:**\n\n"
-    splitStr +=":green:`- FW reads fasta file with new header:` "+snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/splitLibs/seqs.assigned.fna\n\n"
+   # splitStr +=":green:`- FW reads fasta file with new header:` "+snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/splitLibs/seqs.assigned.fna\n\n"
     splitStr +=":green:`- Text histogram with the length of the fw reads:` "+snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/splitLibs/histograms.txt\n\n"
     splitStr +=":green:`- Log file for the fw reads:` "+snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/splitLibs/split_library_log.txt\n\n"
-    splitStr +=":green:`- RV reads fasta file with new header:` "+snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/splitLibsRC/seqs.fna\n\n"
+   # splitStr +=":green:`- RV reads fasta file with new header:` "+snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/splitLibsRC/seqs.assigned.fna\n\n"
     splitStr +=":green:`- Text histogram with the length of the rv reads:` "+snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/splitLibsRC/histograms.txt\n\n"
     splitStr +=":green:`- Log file for the rv reads:` "+snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/splitLibsRC/split_library_log.txt\n\n"
+    splitStr +=":green:`- Fasta file with unassigned reads:` "+snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/splitLibsRC/seqs.unassigned.fna\n\n"
     splitStr +=":red:`Number of reads assigned on FW:` "+str(fwAssignedCounts)+" = "+str(prcFwAssigned)+"% of the peared reads\n\n"
-    splitStr +=":red:`Number of reads assigned on RV:` "+str(rvAssignedCounts)+" = "+str(prcRvAssigned)+"% of the peared reads\n\n"
+    splitStr +=":red:`Number of reads assigned on RVC:` "+str(rvAssignedCounts)+" = "+str(prcRvAssigned)+"% of the peared reads\n\n"
 
 ################################################################################
 #                           Single FastQ creation                              #
@@ -361,7 +362,7 @@ if snakemake.config["demultiplexing"]["demultiplex"] != "F":
     combineFR = "Combine reads\n---------------------------------\n\n" # title
     combineFR += "Concatenate forward and reverse reads.\n\n"
     combineFR += "**Command:**\n\n"
-    combineFR += ":commd:`cat "+snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/splitLibs/seqs.assigned.fna "+snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/splitLibsRC/seqs.fna > "+snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/seqs_fw_rev_accepted.fna`\n\n"
+    combineFR += ":commd:`cat "+snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/splitLibs/seqs.assigned.fna "+snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/splitLibsRC/seqs.assigned.fna > "+snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/seqs_fw_rev_accepted.fna`\n\n"
     combineFR +="**Output files:**\n\n"
     combineFR +=":green:`- Fasta file with combined reads:` "+snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/seqs_fw_rev_accepted.fna\n\n"
     combineFR +=":red:`- Total number of acepted reads:` " +str(totalAssigned)+ " = "+ str(prcPearedAssigned)+ "% of the peared reads or "+str(prcRawAssigned)+"% of the raw reads.\n\n"

@@ -131,7 +131,7 @@ if config["UNPAIRED_DATA_PIPELINE"] == "T":
         shell:
             #"cat {input.fw} | awk -v char={config[CHAR_TO_PAIR]} 'NR==FNR{h[$1]=$2;next}{print \">\"$1\"\\n\"$2 char h[$1]}' - {input.rv} > {output}
             "cat {input.fw} | awk -v ch=\"{config[CHAR_TO_PAIR]}\" 'BEGIN{{for(i=1;i<=length(ch);i++){{chq=chq \"{config[QUALITY_CHAR]}\"}}}} "
-            "NR==FNR{{seqs[$1]=$2;qa[$1]=$3;next}}{{print $1\"\\n\"seqs[$1] char $2\"\\n+\\n\"qa[$1] chq $3}}' - {input.rv} > {output}"
+            "NR==FNR{{seqs[$1]=$2;qa[$1]=$3;next}}{{print $1\"\\n\"seqs[$1] ch $2\"\\n+\\n\"qa[$1] chq $3}}' - {input.rv} > {output}"
 
 
 
@@ -244,7 +244,7 @@ if config["demultiplexing"]["demultiplex"] == "T":
             bcFile="{PROJECT}/runs/{run}/{sample}_data/barcodes/barcodes.fastq_corrected" if config["bc_mismatch"] else "{PROJECT}/runs/{run}/{sample}_data/barcodes/barcodes.fastq",
             #tmp3="{PROJECT}/metadata/bc_validation/{sample}/validation.log"
         output:
-            seqs="{PROJECT}/runs/{run}/{sample}_data/splitLibs/seqs.fna", #marc as tmp
+            seqs=temp("{PROJECT}/runs/{run}/{sample}_data/splitLibs/seqs.fna"),
             spliLog="{PROJECT}/runs/{run}/{sample}_data/splitLibs/split_library_log.txt",
         params:
             outDir="{PROJECT}/runs/{run}/{sample}_data/splitLibs",
@@ -262,7 +262,7 @@ if config["demultiplexing"]["demultiplex"] == "T":
        	    "{PROJECT}/runs/{run}/{sample}_data/peared/seqs.assembled.UNPAIRED.fastq"
 
         output:
-            "{PROJECT}/runs/{run}/{sample}_data/splitLibs/unassigned.fastq"
+            temp("{PROJECT}/runs/{run}/{sample}_data/splitLibs/unassigned.fastq")
         shell:
             "cat {input.split} | grep \"^>Unassigned\" |  sed 's/>Unassigned_[0-9]* /@/g' | "
             "sed 's/ .*//' | grep -F -w -A3  -f - {input.assembly} |  sed '/^--$/d' > {output}"
@@ -270,7 +270,7 @@ if config["demultiplexing"]["demultiplex"] == "T":
         input:
             "{PROJECT}/runs/{run}/{sample}_data/splitLibs/unassigned.fastq"
         output:
-            "{PROJECT}/runs/{run}/{sample}_data/splitLibs/unassigned.reversed.fastq"
+            temp("{PROJECT}/runs/{run}/{sample}_data/splitLibs/unassigned.reversed.fastq")
         shell:
             "vsearch --fastx_revcomp {input} --fastqout {output}"
     rule extract_barcodes_unassigned:
@@ -323,7 +323,7 @@ if config["demultiplexing"]["demultiplex"] == "T":
             bcFile="{PROJECT}/runs/{run}/{sample}_data/barcodes_unassigned/barcodes.fastq_corrected" if config["bc_mismatch"]
             else "{PROJECT}/runs/{run}/{sample}_data/barcodes_unassigned/barcodes.fastq"
         output:
-            seqsRC="{PROJECT}/runs/{run}/{sample}_data/splitLibsRC/seqs.fna", #marc as tmp
+            seqsRC=temp("{PROJECT}/runs/{run}/{sample}_data/splitLibsRC/seqs.fna"), #marc as tmp
             spliLog="{PROJECT}/runs/{run}/{sample}_data/splitLibsRC/split_library_log.txt"
         params:
             outDirRC="{PROJECT}/runs/{run}/{sample}_data/splitLibsRC"
@@ -331,13 +331,32 @@ if config["demultiplexing"]["demultiplex"] == "T":
             "{PROJECT}/runs/{run}/{sample}_data/splitLibsRC/splitLibs.benchmark"
         script:
             "Scripts/splitRC.py"
+
+    rule remove_unassigned_rv:
+        input:
+            splitRC="{PROJECT}/runs/{run}/{sample}_data/splitLibsRC/seqs.fna"
+        output:
+            "{PROJECT}/runs/{run}/{sample}_data/splitLibsRC/seqs.assigned.fna"
+        shell:
+            "cat {input} | grep -P -A1 \"(?!>Unass)^>\" | sed '/^--$/d' > {output}"
+
+    rule create_unassigned_file:
+        input:
+            splitRC="{PROJECT}/runs/{run}/{sample}_data/splitLibsRC/seqs.fna"
+        output:
+            "{PROJECT}/runs/{run}/{sample}_data/seqs.unassigned.fna"
+        shell:
+            "cat {input} | grep -A1 --no-group-separator \"^>Unassigned\"  > {output}"
+
+
     rule validateDemultiplex:
         input:
             split="{PROJECT}/runs/{run}/{sample}_data/splitLibs/seqs.assigned.fna",
-            splitRC="{PROJECT}/runs/{run}/{sample}_data/splitLibsRC/seqs.fna",
+            splitRC="{PROJECT}/runs/{run}/{sample}_data/splitLibsRC/seqs.assigned.fna",
             logSplit="{PROJECT}/runs/{run}/{sample}_data/splitLibs/split_library_log.txt",
             logSplitRC="{PROJECT}/runs/{run}/{sample}_data/splitLibsRC/split_library_log.txt",
-            allreads="{PROJECT}/runs/{run}/{sample}_data/barcodes/reads.fastq"
+            allreads="{PROJECT}/runs/{run}/{sample}_data/barcodes/reads.fastq",
+            unassigned="{PROJECT}/runs/{run}/{sample}_data/seqs.unassigned.fna"
         output:
             "{PROJECT}/runs/{run}/{sample}_data/splitLibs/split_library_log.txt.validation"
         params:
@@ -349,7 +368,7 @@ if config["demultiplexing"]["demultiplex"] == "T":
     rule combine_accepted_reads:
         input:
             seqs="{PROJECT}/runs/{run}/{sample}_data/splitLibs/seqs.assigned.fna", #marc as tmp
-            seqsRC="{PROJECT}/runs/{run}/{sample}_data/splitLibsRC/seqs.fna", #marc as
+            seqsRC="{PROJECT}/runs/{run}/{sample}_data/splitLibsRC/seqs.assigned.fna", #marc as
             tmpFlow="{PROJECT}/runs/{run}/{sample}_data/splitLibs/split_library_log.txt.validation"
         output:
             "{PROJECT}/runs/{run}/{sample}_data/seqs_fw_rev_accepted.fna"
@@ -359,20 +378,50 @@ if config["demultiplexing"]["demultiplex"] == "T":
             "cat {input.seqs} {input.seqsRC}  > {output}"
 
     if config["demultiplexing"]["create_fastq_files"] == "T":
-        rule write_dmx_files:
+        rule write_dmx_files_fw:
             input:
-                dmx="{PROJECT}/runs/{run}/{sample}_data/seqs_fw_rev_accepted.fna",
+                dmx="{PROJECT}/runs/{run}/{sample}_data/splitLibs/seqs.assigned.fna",
                 r1="{PROJECT}/samples/{sample}/rawdata/fw.fastq" if config["gzip_input"] == "F" else "{PROJECT}/samples/{sample}/rawdata/fw.fastq.gz",
                 r2="{PROJECT}/samples/{sample}/rawdata/rv.fastq" if config["gzip_input"] == "F" else "{PROJECT}/samples/{sample}/rawdata/rv.fastq.gz"
             params:
                 outdir="{PROJECT}/runs/{run}/{sample}_data/demultiplexed/"
             output:
-                "{PROJECT}/runs/{run}/{sample}_data/demultiplexed/summary.txt"
+                "{PROJECT}/runs/{run}/{sample}_data/demultiplexed/summary_fw.txt"
             benchmark:
                 "{PROJECT}/runs/{run}/{sample}_data/demultiplexed/demultiplex_fq.benchmark"
             shell:
-                "{config[java][command]}  -cp Scripts DemultiplexQiime  --fasta  -d {input.dmx} -o {params.outdir} "
+                "{config[java][command]}  -cp Scripts DemultiplexQiime --over-write --fasta -a fw -b {config[demultiplexing][remove_bc]}  -d {input.dmx} -o {params.outdir} "
                 "-r1 {input.r1} -r2 {input.r2} {config[demultiplexing][dmx_params]}"
+
+        rule write_dmx_files_rv:
+            """ 
+            We supply the input 'overw' because it force to run first the write_dmx_files_fw which is the 
+            one with the --over-write flag, so if the rule is re run, the generated files do not duplicate
+            entries.
+            """  
+            input:
+                dmx="{PROJECT}/runs/{run}/{sample}_data/splitLibsRC/seqs.assigned.fna",
+                overw="{PROJECT}/runs/{run}/{sample}_data/demultiplexed/summary_fw.txt",
+                r2="{PROJECT}/samples/{sample}/rawdata/fw.fastq" if config["gzip_input"] == "F" else "{PROJECT}/samples/{sample}/rawdata/fw.fastq.gz",
+                r1="{PROJECT}/samples/{sample}/rawdata/rv.fastq" if config["gzip_input"] == "F" else "{PROJECT}/samples/{sample}/rawdata/rv.fastq.gz"
+            params:
+                outdir="{PROJECT}/runs/{run}/{sample}_data/demultiplexed/"
+            output:
+                "{PROJECT}/runs/{run}/{sample}_data/demultiplexed/summary_rv.txt"
+            benchmark:
+                "{PROJECT}/runs/{run}/{sample}_data/demultiplexed/demultiplex_fq.benchmark"
+            shell:
+                "{config[java][command]}  -cp Scripts DemultiplexQiime  --fasta -a rv -b {config[demultiplexing][remove_bc]}  -d {input.dmx} -o {params.outdir} "
+                "-r1 {input.r1} -r2 {input.r2} {config[demultiplexing][dmx_params]}"
+        rule summary_write_dmx_files:
+            input:
+                fw="{PROJECT}/runs/{run}/{sample}_data/demultiplexed/summary_fw.txt",
+                rv="{PROJECT}/runs/{run}/{sample}_data/demultiplexed/summary_rv.txt"
+            output:
+                "{PROJECT}/runs/{run}/{sample}_data/demultiplexed/summary.txt"
+            shell:
+                "cat {input.fw} {input.rv} > {output}"
+
     else:
         rule skip_dmx_file_creation:
             params:

@@ -13,7 +13,7 @@
 # ignored by Snakemake.                                                        #
 #                                                                              #
 # @Author: Julia Engelmann and Alejandro Abdala                                #
-# @Last update: 04/10/2019                                                     #
+# @Last update: 14/02/2020                                                     #
 ################################################################################
 
 ################################################################################
@@ -258,7 +258,6 @@ pear:
   extra_params: ""
   prcpear: 90
 
-UNPAIRED_DATA_PIPELINE: "F"
 #------------------------------------------------------------------------------#
 #                  FastQC on merged/assembled fragments                        #
 # rule: fastQCPear                                                             #
@@ -323,16 +322,40 @@ java:
 # - create_fastq_files  "T" or "F". If 'demultiplex' = T and this is also T,   #
 #                       the pipeline will create demultiplexed fastq files per #
 #                       sample.                                                #
-# - dmx_params:         Parameters to pass on to the demultiplexing script.    #
+# - remove_bc           Remove barcodes for demultiplexed fastq files.         #
+#                       Default:"0" will not remove any barcode from raw reads #
+#                       i.e. For barcodes of 12 bases length pass "12". This   #
+#                       value, should correspond to the barcode length from    #
+#                       the extract barcodes section.                          #
+# - order_by_strand     "T" or "F". If true, it will interchange reads from    #
+#                       the FW and RV reads according to the FW barcode        #
+#                       identification. i.e., if the FW barcode is identified  #
+#                       on the RV reads, the RV read will be written into the  #
+#                       FW demultiplexed fastq file and the FW read into the   #
+#                       RV demultiplexed file. This way we end up with all the #
+#                       raw reads in the correct strand.                       #
+# - dmx_params:         Parameters to pass to the demultiplexing script.       #
 #                       For example, the user can change the prefix and suffix #
 #                       of the output files. To see the available parameters,  #
 #                       run: java -cp Scripts DemultiplexQiime                 #
+#                       If the order_by_strand option is set to "T", FW and RV #
+#                       reads can be interchanged between files, therefore the #
+#                       second part from the header of this generated fastq    #
+#                       files could be misleading, since it contains 1:N:...   #
+#                       or 2:N:... for identify reads from the forward or      #
+#                       reverse file respectively. In this sense, we suggest   #
+#                       (and leave by default) the use of the flag             #
+#                       "--remove-header" in order to remove this extra        #
+#                       information from the header.                           #
+#                       e.g., @M01102:251:00000-B8LBW:1:2:145:27454 1:N:0:ATTC #
+                         to   @M01102:251:00000-B8LBW:1:2:145:27454  
 #------------------------------------------------------------------------------#
-
 demultiplexing:
   demultiplex: "T"
   create_fastq_files: "T"
-  dmx_params: ""
+  order_by_strand: "T"
+  remove_bc: 0
+  dmx_params: "--remove-header"
 
 #------------------------------------------------------------------------------#
 #                           Extract barcodes                                   #
@@ -354,10 +377,9 @@ demultiplexing:
 #                 Where X and Y are the lengths of the barcodes.               #
 # - extra_params  Extra parameters. See extract_barcodes.py -help.             #
 #------------------------------------------------------------------------------#
-
 ext_bc:
-  c: "barcode_single_end"
-  bc_length: "--bc1_len 12"
+  c: "barcode_paired_stitched"
+  bc_length: "--bc1_len 12 --bc2_len 12"
   extra_params: ""
 
 #------------------------------------------------------------------------------#
@@ -394,7 +416,7 @@ bc_mismatch: 2
 split:
   q: "19"
   r: "5"
-  barcode_type:  "12"
+  barcode_type:  "24"
   extra_params: ""
 
 #------------------------------------------------------------------------------#

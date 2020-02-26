@@ -1,9 +1,7 @@
-# Aug 9, 2017
-# error correct barcodes with a levenstein distance up to 2
+# Feb, 2020
+# error correct barcodes with a levenstein distance up to args[4]
 # write corrected fastq of the bc to file for qiime
-# and demultiplexed read fastq for dada2.
-# Script by J. Engelmann
-#Parametrization by A. Abdala
+# Script by J. Engelmann & A. Abdala
 
 library(Biostrings)
 library(ShortRead)
@@ -19,13 +17,10 @@ setwd(args[1])
 ssheet   <- read.delim(paste('./',args[2], sep=''), stringsAsFactors=F)
 exp.bars <- ssheet$BarcodeSequence
 # rev complement of the barcodes, save as character string
-exp.barsRC <- as.character(reverseComplement(DNAStringSet(exp.bars)))
-all.bars <- c(exp.bars, exp.barsRC)
+#exp.barsRC <- as.character(reverseComplement(DNAStringSet(exp.bars)))
+all.bars <- c(exp.bars)
 
-# (check that the minimum distance b/w any expected barcode is larger 3 ->
-# don't need to do that bc same barcodes as NIOZ70-71)
-
-
+mismatch = strtoi(args[4], 10)
 ### error correction ###
 # read in barcodes with fastq streamer
 # first compute edit (levenshtein) distances of observed barcodes to expected ones
@@ -36,7 +31,7 @@ correctBC <- function(x, exp.barcodes, nreads){
            dists <- adist(sread(fq), all.bars)
 	   newBC <- as.vector(sread(fq))
 	   for(i in 1:nrow(dists)){
-	      if( min(dists[i,]) <= args[4]){  # if min dist small enough, correct barcode (no change on perfect barcodes)
+	      if( min(dists[i,]) <= mismatch  &&  length(which(dists == min(dists)))<2){  # if min dist small enough and no ties, correct barcode (no change on perfect barcodes)
 		  		newBC[i] <- exp.barcodes[which.min(dists[i,])]
 		  # I cannot use sread to set values, need to construct a fqout, filling in sread, qual, whatever ...
 
@@ -49,25 +44,5 @@ correctBC <- function(x, exp.barcodes, nreads){
 	 close(f)
 }
 
-
 correctBC(args[3], all.bars, 5000)
-# mv the filenames to corrected_barcodes.fastq on cmd line.
-# use fastq with corrected barcodes for split_libraries.py on merged files!
-
-##### demultiplex ### use for dada2 ### not yet run
-# writes one fq file for each barcode sequence. x is multiplexed file.
-# does so in chunks of nreads.
-demultiplex <- function(x, barcode, nreads) {
-    f <- FastqStreamer(x, nreads)
-    while(length(fq <- yield(f))) {
-        for(i in barcode) {
-           #  pattern <- paste("^", i, sep="")
-           #  fqsub <- fq[grepl(pattern, sread(fq))]
-
-	   fqsub <- fq[sread(fq)==barcode]
-	   if(length(fqsub) > 0) writeFastq(fqsub, paste(x, i, sep="_"), mode="a")
-        }
-    }
-    close(f)
-}
 
