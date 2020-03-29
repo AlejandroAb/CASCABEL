@@ -18,8 +18,16 @@ def selectInput():
 
 rule all:
     input:
-        expand("{PROJECT}/runs/{run}/report_{sample}_"+config["assignTaxonomy"]["tool"]+".pdf" if config["pdfReport"] == "T" else "{PROJECT}/runs/{run}/report_{sample}_"+config["assignTaxonomy"]["tool"]+".html", PROJECT=config["PROJECT"],sample=config["LIBRARY"], run=run),
+        expand("{PROJECT}/runs/{run}/report_{sample}_"+config["assignTaxonomy"]["tool"]+".pdf" if config["pdfReport"] == "T" else 
+               "{PROJECT}/runs/{run}/report_{sample}_"+config["assignTaxonomy"]["tool"]+".html", PROJECT=config["PROJECT"],sample=config["LIBRARY"], run=run)
+        if config["ANALYSIS_TYPE"]=="OTU" else
+         expand("{PROJECT}/runs/{run}/report_{sample}_dada2.pdf" if config["pdfReport"] == "T" else
+               "{PROJECT}/runs/{run}/report_{sample}_dada2.html", PROJECT=config["PROJECT"],sample=config["LIBRARY"], run=run),
         expand("{PROJECT}/runs/{run}/report_"+config["assignTaxonomy"]["tool"]+".zip",PROJECT=config["PROJECT"], run=run)
+        if config["ANALYSIS_TYPE"]=="OTU" else
+        expand("{PROJECT}/runs/{run}/report_dada2.zip",PROJECT=config["PROJECT"], run=run)
+
+
         #expand("{PROJECT}/runs/{run}/report_{sample}_"+config["assignTaxonomy"]["tool"]+".pdf" , PROJECT=config["PROJECT"],sample=config["LIBRARY"], run=run)
         #if (config["pdfReport"] == "T" and config["portableReport"] == "F") else
         #expand("{PROJECT}/runs/{run}/report_{sample}_"+config["assignTaxonomy"]["tool"]+".html", PROJECT=config["PROJECT"],sample=config["LIBRARY"], run=run)
@@ -85,7 +93,7 @@ rule pear:
          tmp1="{PROJECT}/samples/{sample}/qc/fq_fw_internal_validation.txt",
          tmp2="{PROJECT}/samples/{sample}/qc/fq_rv_internal_validation.txt"
      output:
-        "{PROJECT}/runs/{run}/{sample}_data/peared/seqs.assembled.fastq" if config["UNPAIRED_DATA_PIPELINE"] != "T" else
+        "{PROJECT}/runs/{run}/{sample}_data/peared/seqs.assembled.fastq",# if config["UNPAIRED_DATA_PIPELINE"] != "T" else
         "{PROJECT}/runs/{run}/{sample}_data/peared/seqs.unassembled.forward.fastq",
         "{PROJECT}/runs/{run}/{sample}_data/peared/pear.log",
         "{PROJECT}/runs/{run}/{sample}_data/peared/seqs.unassembled.reverse.fastq" 
@@ -96,16 +104,14 @@ rule pear:
      shell:
         "{config[pear][command]} -f {input.r1} -r {input.r2} -o {params[0]} "
         "-t {config[pear][t]} -v {config[pear][v]} -j {config[pear][j]} -p {config[pear][p]} {config[pear][extra_params]} > "
-        "{output[1]}"
+        "{output[2]}"
 
-if config["UNPAIRED_DATA_PIPELINE"] == "T":
+if config["UNPAIRED_DATA_PIPELINE"] == "T" or config["demultiplexing"]["add_unpair"] == "T":
     rule identify_unpaired_fw:
         input:
-            fw="{PROJECT}/runs/{run}/{sample}_data/peared/seqs.unassembled.forward.fastq",
-            #rv="{PROJECT}/runs/{run}/{sample}_data/peared/seqs.unassembled.reverse.fastq"
+            fw="{PROJECT}/runs/{run}/{sample}_data/peared/seqs.unassembled.forward.fastq"
         output:
-            fwo=temp("{PROJECT}/runs/{run}/{sample}_data/peared/seqs.unassembled.forward.out"),
-            #rvo=temp("{PROJECT}/runs/{run}/{sample}_data/peared/seqs.unassembled.reverse.out")
+            fwo=temp("{PROJECT}/runs/{run}/{sample}_data/peared/seqs.unassembled.forward.out")
         shell:
              "cat {input.fw} | awk '{{if((NR-1)%4==0){{header=$1}}else if((NR-2)%4==0){{seq=$0}}else if(NR%4==0){{print header\"\\t\"seq\"\\t\"$0}}}}' > {output.fwo}"
     rule identify_unpaired_rv:
@@ -117,10 +123,10 @@ if config["UNPAIRED_DATA_PIPELINE"] == "T":
         output:
             rvo=temp("{PROJECT}/runs/{run}/{sample}_data/peared/seqs.unassembled.reverse.out")
         shell:
-             "cat {input.rv} | awk 'BEGIN{{a[\"T\"]=\"A\";a[\"A\"]=\"T\";a[\"C\"]=\"G\";a[\"G\"]=\"C\";a[\"N\"]=\"N\"}}"
-             "{{if((NR-1)%4==0){{header=$1}}else if((NR-2)%4==0){{seq=$0}}else if(NR%4==0){{rc=\"\";rq=\"\";for(i=length(seq);i>0;i--){{k=substr(seq,i,1);rc=rc a[k];rq=rq substr($0,i,1)}} "
-             "printf \"%s\\t%s\\t%s\\n\",header,rc,rq}}}}' >   {output.rvo}"
-             #"{{if((NR-1)%4==0){{header=$1}}else if((NR-2)%4==0){{seq=$0}}else if(NR%4==0){{print header\"\\t\"seq\"\\t\"$0}}}}' > {output.rvo}"
+              "cat {input.rv} | awk '{{if((NR-1)%4==0){{header=$1}}else if((NR-2)%4==0){{seq=$0}}else if(NR%4==0){{print header\"\\t\"seq\"\\t\"$0}}}}' > {output.rvo}"
+             #"cat {input.rv} | awk 'BEGIN{{a[\"T\"]=\"A\";a[\"A\"]=\"T\";a[\"C\"]=\"G\";a[\"G\"]=\"C\";a[\"N\"]=\"N\"}}"
+             #"{{if((NR-1)%4==0){{header=$1}}else if((NR-2)%4==0){{seq=$0}}else if(NR%4==0){{rc=\"\";rq=\"\";for(i=length(seq);i>0;i--){{k=substr(seq,i,1);rc=rc a[k];rq=rq substr($0,i,1)}} "
+             #"printf \"%s\\t%s\\t%s\\n\",header,rc,rq}}}}' >   {output.rvo}"
 
     rule pair_unpaired:
         input:
@@ -132,8 +138,6 @@ if config["UNPAIRED_DATA_PIPELINE"] == "T":
             #"cat {input.fw} | awk -v char={config[CHAR_TO_PAIR]} 'NR==FNR{h[$1]=$2;next}{print \">\"$1\"\\n\"$2 char h[$1]}' - {input.rv} > {output}
             "cat {input.fw} | awk -v ch=\"{config[CHAR_TO_PAIR]}\" 'BEGIN{{for(i=1;i<=length(ch);i++){{chq=chq \"{config[QUALITY_CHAR]}\"}}}} "
             "NR==FNR{{seqs[$1]=$2;qa[$1]=$3;next}}{{print $1\"\\n\"seqs[$1] ch $2\"\\n+\\n\"qa[$1] chq $3}}' - {input.rv} > {output}"
-
-
 
 #Validate % of peared reds
 rule validatePear:
@@ -206,11 +210,22 @@ if config["demultiplexing"]["demultiplex"] == "T":
         script:
             "Scripts/validateBCV.py"
 
+    if config["demultiplexing"]["add_unpair"] == "T":
+        rule concat_assembly:
+            input: 
+                pair="{PROJECT}/runs/{run}/{sample}_data/peared/seqs.assembled.fastq",
+                unpair="{PROJECT}/runs/{run}/{sample}_data/peared/seqs.assembled.UNPAIRED.fastq"
+            output:
+                temp("{PROJECT}/runs/{run}/{sample}_data/peared/seqs.assembled.PAIRED_UNPAIRED.fastq")
+            shell:
+                "cat {input.pair} {input.unpair} > {output}" 
+
 #Extract bc from reads
     rule extract_barcodes:
         input:
             tmp2="{PROJECT}/runs/{run}/{sample}_data/peared/pear.log.validation",
-            assembly="{PROJECT}/runs/{run}/{sample}_data/peared/seqs.assembled.fastq" if config["UNPAIRED_DATA_PIPELINE"] != "T" else
+            assembly="{PROJECT}/runs/{run}/{sample}_data/peared/seqs.assembled.PAIRED_UNPAIRED.fastq" if config["UNPAIRED_DATA_PIPELINE"] != "T" and config["demultiplexing"]["add_unpair"] == "T"     
+            else "{PROJECT}/runs/{run}/{sample}_data/peared/seqs.assembled.fastq" if config["UNPAIRED_DATA_PIPELINE"] != "T" else
             "{PROJECT}/runs/{run}/{sample}_data/peared/seqs.assembled.UNPAIRED.fastq",
             tmpinput="{PROJECT}/runs/{run}/{sample}_data/peared/qc/fq_fw_internal_validation.txt",
             tmp3="{PROJECT}/metadata/bc_validation/{sample}/validation.log"
@@ -258,9 +273,9 @@ if config["demultiplexing"]["demultiplex"] == "T":
     rule get_unassigned:
         input:
             split="{PROJECT}/runs/{run}/{sample}_data/splitLibs/seqs.fna",
-            assembly="{PROJECT}/runs/{run}/{sample}_data/peared/seqs.assembled.fastq" if config["UNPAIRED_DATA_PIPELINE"] != "T" else
-       	    "{PROJECT}/runs/{run}/{sample}_data/peared/seqs.assembled.UNPAIRED.fastq"
-
+            assembly="{PROJECT}/runs/{run}/{sample}_data/peared/seqs.assembled.PAIRED_UNPAIRED.fastq" if config["UNPAIRED_DATA_PIPELINE"] != "T" and config["demultiplexing"]["add_unpair"] == "T"     
+            else "{PROJECT}/runs/{run}/{sample}_data/peared/seqs.assembled.fastq" if config["UNPAIRED_DATA_PIPELINE"] != "T" else
+            "{PROJECT}/runs/{run}/{sample}_data/peared/seqs.assembled.UNPAIRED.fastq"
         output:
             temp("{PROJECT}/runs/{run}/{sample}_data/splitLibs/unassigned.fastq")
         shell:
@@ -299,14 +314,6 @@ if config["demultiplexing"]["demultiplex"] == "T":
             shell:
                 "{config[Rscript][command]} Scripts/errorCorrectBarcodes.R $PWD {input.mapp} {input.bc} "  + str(config["bc_mismatch"])
 
-    rule remove_unassigned:
-        input:
-            "{PROJECT}/runs/{run}/{sample}_data/splitLibs/seqs.fna"
-        output:
-            "{PROJECT}/runs/{run}/{sample}_data/splitLibs/seqs.assigned.fna"
-        shell:
-            "cat {input} | grep -P -A1 \"(?!>Unass)^>\" | sed '/^--$/d' > {output}"
-
     rule split_libraries_rc:
         """
         This rule will call a script in order to execute the librarie splitting for the
@@ -332,13 +339,21 @@ if config["demultiplexing"]["demultiplex"] == "T":
         script:
             "Scripts/splitRC.py"
 
+    rule remove_unassigned_fw:
+        input:
+            "{PROJECT}/runs/{run}/{sample}_data/splitLibs/seqs.fna"
+        output:
+            "{PROJECT}/runs/{run}/{sample}_data/splitLibs/seqs.no_unassigneds.fna"
+        shell:
+            "cat {input} | grep -P -A1 '(?!>Unass)^>' | sed '/^--$/d' > {output}"
+
     rule remove_unassigned_rv:
         input:
             splitRC="{PROJECT}/runs/{run}/{sample}_data/splitLibsRC/seqs.fna"
         output:
-            "{PROJECT}/runs/{run}/{sample}_data/splitLibsRC/seqs.assigned.fna"
+            "{PROJECT}/runs/{run}/{sample}_data/splitLibsRC/seqs.no_unassigneds.fna"
         shell:
-            "cat {input} | grep -P -A1 \"(?!>Unass)^>\" | sed '/^--$/d' > {output}"
+            "cat {input} | grep -P -A1 '(?!>Unass)^>' | sed '/^--$/d' > {output}"
 
     rule create_unassigned_file:
         input:
@@ -348,11 +363,68 @@ if config["demultiplexing"]["demultiplex"] == "T":
         shell:
             "cat {input} | grep -A1 --no-group-separator \"^>Unassigned\"  > {output}"
 
+    if config["UNPAIRED_DATA_PIPELINE"] != "T" and config["demultiplexing"]["add_unpair"] == "T" :
+        rule find_unassembled_fw_ids:
+             """
+             This rule creates a file with all the new ids assigned to unassembled reads.
+             The file seqs.unassembled.forward.out is equivalent to the seqs.unassembled.reverse.out in this context
+             since we only need the fadstq ids which should be exactly the same in both files
+             """
+             input:
+                 fasta="{PROJECT}/runs/{run}/{sample}_data/splitLibs/seqs.no_unassigneds.fna",
+                 mapa="{PROJECT}/runs/{run}/{sample}_data/peared/seqs.unassembled.forward.out"
+             output:
+                 temp("{PROJECT}/runs/{run}/{sample}_data/splitLibs/seqs.unassembled_ids.txt")
+             shell: 
+                 "cat {input.mapa} | cut -f1 | sed 's/@//' | grep -F -w -f - {input.fasta} | cut -f1 -d\" \" | sed 's/>//' > {output} || true" 
+        rule find_unassembled_rv_ids:
+             """
+             Similar rule as find_unassembled_fw_ids. Here we can 
+             use either the reverse or forward, they should be the same
+             """
+             input:
+                 fasta="{PROJECT}/runs/{run}/{sample}_data/splitLibsRC/seqs.no_unassigneds.fna",
+                 mapa="{PROJECT}/runs/{run}/{sample}_data/peared/seqs.unassembled.reverse.out"
+             output:
+                 temp("{PROJECT}/runs/{run}/{sample}_data/splitLibsRC/seqs.unassembled_ids.txt")
+             shell: 
+                 "cat {input.mapa} | cut -f1 | sed 's/@//' | grep -F -w -f - {input.fasta} | cut -f1 -d\" \" | sed 's/>//' > {output} || true"
+        rule remove_unassembled_fw:
+             input:
+                 fasta="{PROJECT}/runs/{run}/{sample}_data/splitLibs/seqs.no_unassigneds.fna",
+                 ids="{PROJECT}/runs/{run}/{sample}_data/splitLibs/seqs.unassembled_ids.txt"
+             output:
+                 "{PROJECT}/runs/{run}/{sample}_data/splitLibs/seqs.assigned.fna"
+             shell: 
+                 "{config[qiime][path]}filter_fasta.py -f {input.fasta} -s {input.ids} -n -o {output}"
+        rule remove_unassembled_rv:
+             input:
+                 fasta="{PROJECT}/runs/{run}/{sample}_data/splitLibsRC/seqs.no_unassigneds.fna",
+                 ids="{PROJECT}/runs/{run}/{sample}_data/splitLibsRC/seqs.unassembled_ids.txt"
+             output:
+                 "{PROJECT}/runs/{run}/{sample}_data/splitLibsRC/seqs.assigned.fna"
+             shell: 
+                 "{config[qiime][path]}filter_fasta.py -f {input.fasta} -s {input.ids} -n -o {output}"
+    else:
+         rule rename_assembled_fw:
+             input:
+                 "{PROJECT}/runs/{run}/{sample}_data/splitLibs/seqs.no_unassigneds.fna"
+             output:
+                 "{PROJECT}/runs/{run}/{sample}_data/splitLibs/seqs.assigned.fna"
+             shell: 
+                 "mv {input} {output}"
+         rule rename_assembled_rv:
+             input:
+                 "{PROJECT}/runs/{run}/{sample}_data/splitLibsRC/seqs.no_unassigneds.fna"
+             output:
+                 "{PROJECT}/runs/{run}/{sample}_data/splitLibsRC/seqs.assigned.fna"
+             shell: 
+                 "mv {input} {output}"
 
     rule validateDemultiplex:
         input:
-            split="{PROJECT}/runs/{run}/{sample}_data/splitLibs/seqs.assigned.fna",
-            splitRC="{PROJECT}/runs/{run}/{sample}_data/splitLibsRC/seqs.assigned.fna",
+            split="{PROJECT}/runs/{run}/{sample}_data/splitLibs/seqs.assigned.fna", 
+            splitRC="{PROJECT}/runs/{run}/{sample}_data/splitLibsRC/seqs.assigned.fna", 
             logSplit="{PROJECT}/runs/{run}/{sample}_data/splitLibs/split_library_log.txt",
             logSplitRC="{PROJECT}/runs/{run}/{sample}_data/splitLibsRC/split_library_log.txt",
             allreads="{PROJECT}/runs/{run}/{sample}_data/barcodes/reads.fastq",
@@ -377,10 +449,11 @@ if config["demultiplexing"]["demultiplex"] == "T":
         shell:
             "cat {input.seqs} {input.seqsRC}  > {output}"
 
-    if config["demultiplexing"]["create_fastq_files"] == "T":
+    if config["demultiplexing"]["create_fastq_files"] == "T" or config["ANALYSIS_TYPE"] == "ASV":
         rule write_dmx_files_fw:
             input:
-                dmx="{PROJECT}/runs/{run}/{sample}_data/splitLibs/seqs.assigned.fna",
+                dmx= "{PROJECT}/runs/{run}/{sample}_data/splitLibs/seqs.no_unassigneds.fna" if config["UNPAIRED_DATA_PIPELINE"] != "T" and config["demultiplexing"]["add_unpair"] == "T"
+                else "{PROJECT}/runs/{run}/{sample}_data/splitLibs/seqs.assigned.fna",
                 r1="{PROJECT}/samples/{sample}/rawdata/fw.fastq" if config["gzip_input"] == "F" else "{PROJECT}/samples/{sample}/rawdata/fw.fastq.gz",
                 r2="{PROJECT}/samples/{sample}/rawdata/rv.fastq" if config["gzip_input"] == "F" else "{PROJECT}/samples/{sample}/rawdata/rv.fastq.gz"
             params:
@@ -398,9 +471,10 @@ if config["demultiplexing"]["demultiplex"] == "T":
             We supply the input 'overw' because it force to run first the write_dmx_files_fw which is the 
             one with the --over-write flag, so if the rule is re run, the generated files do not duplicate
             entries.
-            """  
+            """
             input:
-                dmx="{PROJECT}/runs/{run}/{sample}_data/splitLibsRC/seqs.assigned.fna",
+                dmx="{PROJECT}/runs/{run}/{sample}_data/splitLibsRC/seqs.no_unassigneds.fna" if config["UNPAIRED_DATA_PIPELINE"] != "T" and config["demultiplexing"]["add_unpair"] == "T"
+                else "{PROJECT}/runs/{run}/{sample}_data/splitLibsRC/seqs.assigned.fna",
                 overw="{PROJECT}/runs/{run}/{sample}_data/demultiplexed/summary_fw.txt",
                 r2="{PROJECT}/samples/{sample}/rawdata/fw.fastq" if config["gzip_input"] == "F" else "{PROJECT}/samples/{sample}/rawdata/fw.fastq.gz",
                 r1="{PROJECT}/samples/{sample}/rawdata/rv.fastq" if config["gzip_input"] == "F" else "{PROJECT}/samples/{sample}/rawdata/rv.fastq.gz"
@@ -413,14 +487,26 @@ if config["demultiplexing"]["demultiplex"] == "T":
             shell:
                 "{config[java][command]}  -cp Scripts DemultiplexQiime  --fasta -a rv -b {config[demultiplexing][remove_bc]}  -d {input.dmx} -o {params.outdir} "
                 "-r1 {input.r1} -r2 {input.r2} {config[demultiplexing][dmx_params]}"
-        rule summary_write_dmx_files:
-            input:
-                fw="{PROJECT}/runs/{run}/{sample}_data/demultiplexed/summary_fw.txt",
-                rv="{PROJECT}/runs/{run}/{sample}_data/demultiplexed/summary_rv.txt"
-            output:
-                "{PROJECT}/runs/{run}/{sample}_data/demultiplexed/summary.txt"
-            shell:
-                "cat {input.fw} {input.rv} > {output}"
+        if config["demultiplexing"]["primers"]["remove"] == "T":
+            rule remove_primers_dmx_files:
+                input:
+                    fw="{PROJECT}/runs/{run}/{sample}_data/demultiplexed/summary_fw.txt",
+                    rv="{PROJECT}/runs/{run}/{sample}_data/demultiplexed/summary_rv.txt"
+                params:
+                    "{PROJECT}/runs/{run}/{sample}_data/demultiplexed"    
+                output:
+                    "{PROJECT}/runs/{run}/{sample}_data/demultiplexed/summary.txt"
+                shell:
+                    "Scripts/removePrimersDemultiplex.sh {params} {config[demultiplexing][primers][fw_primer]} {config[demultiplexing][primers][rv_primer]} {config[demultiplexing][primers][min_overlap]} {config[demultiplexing][primers][extra_params]}"
+        else:
+            rule summary_write_dmx_files:
+                input:
+                    fw="{PROJECT}/runs/{run}/{sample}_data/demultiplexed/summary_fw.txt",
+                    rv="{PROJECT}/runs/{run}/{sample}_data/demultiplexed/summary_rv.txt"
+                output:
+                    "{PROJECT}/runs/{run}/{sample}_data/demultiplexed/summary.txt"
+                shell:
+                    "cat {input.fw} {input.rv} > {output}"
 
     else:
         rule skip_dmx_file_creation:
@@ -454,6 +540,75 @@ else:
             "{PROJECT}/runs/{run}/{sample}_data/demultiplexed/summary.txt"
         shell:
             "touch {output}"
+
+if config["ANALYSIS_TYPE"] == "ASV":
+    rule dada2Filter:
+        input:
+            expand("{PROJECT}/runs/{run}/{sample}_data/demultiplexed/summary.txt", PROJECT=config["PROJECT"],sample=config["LIBRARY"], run=run)
+        output:
+            "{PROJECT}/runs/{run}/asv/filter_summary.out"
+        benchmark:
+            "{PROJECT}/runs/{run}/asv/filter.benchmark"
+        shell:
+            "{config[Rscript][command]} Scripts/asvFilter.R $PWD " + str(config["dada2_filter"]["generateQAplots"]) + " " + str(config["dada2_filter"]["truncFW"]) + " " + str(config["dada2_filter"]["truncRV"]) + " "+str(config["dada2_filter"]["maxEE_FW"]) + " "+str(config["dada2_filter"]["maxEE_RV"]) + " " +str(config["dada2_filter"]["cpus"]) + " " +str(config["dada2_filter"]["extra_params"]) + " " + "{output} {input} " 
+
+    rule validate_dada2Filter:
+        input:
+            "{PROJECT}/runs/{run}/asv/filter_summary.out"
+        output:
+            "{PROJECT}/runs/{run}/asv/filter_summary.validation.txt"
+        script:
+            "Scripts/validateFilterASV.py"
+
+    rule run_dada2:
+        input:
+            expand("{PROJECT}/runs/{run}/{sample}_data/demultiplexed/summary.txt", PROJECT=config["PROJECT"],sample=config["LIBRARY"], run=run),
+             "{PROJECT}/runs/{run}/asv/filter_summary.validation.txt"
+        output:
+            "{PROJECT}/runs/{run}/asv/stats_dada2.txt",
+            "{PROJECT}/runs/{run}/asv/representative_seq_set.fasta",
+            "{PROJECT}/runs/{run}/asv/taxonomy_dada2/representative_seq_set_tax_assignments.txt",
+            temp("{PROJECT}/runs/{run}/asv/dada2_asv_table.txt") 
+        params:
+            "{PROJECT}/runs/{run}/asv/" #"{config[Rscript][command]} Scripts/asvDada2.R
+            #"$PWD " +str(config["dada2_asv"]["pool"]) + " "+str(config["dada2_asv"]["cpus"]) + " "+str(config["dada2_asv"]["generateErrPlots"]) + " "+str(config["dada2_asv"]["extra_params"]) + " {PROJECT}/runs/{run}/asv/ "  + " "+str(config["rm_reads"]["shorts"])  + " "+str(config["rm_reads"]["longs"]) + " "+str(config["rm_reads"]["offset"])  + " "+str(config["dada2_asv"]["chimeras"])  + " "+str(config["dada2_taxonomy"]["db"]) + " "+str(config["dada2_taxonomy"]["db_sps"])  + " "+str(config["dada2_taxonomy"]["add_sps"]) + " "+str(config["dada2_taxonomy"]["extra_params"]) 
+        benchmark:
+            "{PROJECT}/runs/{run}/asv/dada2.benchmark"
+        shell:
+            #"Scripts/asvDada2.R"
+            "{config[Rscript][command]} Scripts/asvDada2.R $PWD " +str(config["dada2_asv"]["pool"]) + " "+str(config["dada2_asv"]["cpus"])  + " "+str(config["dada2_asv"]["generateErrPlots"]) + " "+str(config["dada2_asv"]["extra_params"]) + " {params} "  + " "+str(config["rm_reads"]["shorts"])  + " "+str(config["rm_reads"]["longs"]) + " "+str(config["rm_reads"]["offset"])  + " "+str(config["dada2_asv"]["chimeras"])  + " "+str(config["dada2_taxonomy"]["db"]) + " "+str(config["dada2_taxonomy"]["db_sps"])  + " "+str(config["dada2_taxonomy"]["add_sps"]) + " "+str(config["dada2_taxonomy"]["extra_params"]) + " "+str(config["dada2_merge"]["minOverlap"]) +" "+str(config["dada2_merge"]["maxMismatch"]) + " " + "{input}" 
+
+
+    rule asv_table:
+        input:
+            "{PROJECT}/runs/{run}/asv/dada2_asv_table.txt" 
+        output:
+            "{PROJECT}/runs/{run}/asv/asv_table.txt"
+            # "{}" 
+        shell:
+            "cat {input} | awk '{{if(NR==1){{header=\"#OTU_ID\";for(i=1;i<=NF;i++){{header=header\"\\t\"$i}};print header}}else{{print $0}}}}'|   awk '{{ for (i=1; i<=NF; i++){{ a[NR,i] = $i }} }} NF>p {{ p = NF }} END {{ for(j=1; j<=p; j++) {{ str=a[1,j]; for(i=2; i<=NR; i++){{ str=str\"\\t\"a[i,j]; }} print str }} }}' > {output}"
+
+    rule asv_tax_table:
+        input:
+            "{PROJECT}/runs/{run}/asv/taxonomy_dada2/representative_seq_set_tax_assignments.txt",
+            "{PROJECT}/runs/{run}/asv/asv_table.txt" 
+        output:
+            "{PROJECT}/runs/{run}/asv/taxonomy_dada2/asvTable.txt"
+        benchmark:
+            "{PROJECT}/runs/{run}/asv/taxonomy_dada2/dada2.table.benchmark"
+        shell:
+            "cat {input[0]} | awk 'NR==FNR{{if(NR>1){{tax=$2;for(i=3;i<=NF;i++){{tax=tax\";\"$i}};h[$1]=tax;}}next;}} {{if(FNR==1){{print $0\"\\ttaxonomy\"}}else{{print $0\"\\t\"h[$1]}}}}' -  {input[1]} > {output}" 
+
+    rule asv_to_biom:
+        input:
+            "{PROJECT}/runs/{run}/asv/taxonomy_dada2/asvTable.txt" 
+        output:
+            "{PROJECT}/runs/{run}/asv/taxonomy_dada2/asvTable.biom"
+        benchmark:
+            "{PROJECT}/runs/{run}/asv/taxonomy_dada2/dada2.biom.benchmark"
+
+        shell:
+            "{config[biom][command]} convert -i {input[0]} -o {output} --table-type \"OTU table\" --to-hdf5 --process-obs-metadata taxonomy "
 
 if config["align_vs_reference"]["align"] == "T":
     rule align_vs_reference:
@@ -607,7 +762,7 @@ if config["chimera"]["search"] == "T":
             "Scripts/remove_chimera.py"
 
 
-if config["demultiplexing"]["demultiplex"] == "T":
+if config["demultiplexing"]["demultiplex"] == "T" and  config["ANALYSIS_TYPE"] != "ASV":
     rule count_samples_final:
         input:
             fasta="{PROJECT}/runs/{run}/{sample}_data/seqs_fw_rev_filtered_nc.fasta" if config["chimera"]["search"] == "T"
@@ -619,6 +774,18 @@ if config["demultiplexing"]["demultiplex"] == "T":
             "cat {input.fasta} | grep '^>' |  cut -d'_' -f1 | sed 's/>//g' "
             "| sort | uniq -c | sort -nr | awk '{{print $1\"\\t\"$2}}' "
             "| awk 'NR==FNR{{h[$2]=$1; next}} {{print $1\"\\t\"h[$1]}}' - {input.metadata} | grep -v \"#\" > {output}"
+elif config["ANALYSIS_TYPE"] == "ASV":
+
+    rule count_samples_final:
+        input:
+            "{PROJECT}/runs/{run}/asv/filter_summary.out",
+            "{PROJECT}/metadata/sampleList_mergedBarcodes_{sample}.txt"
+        output:
+            "{PROJECT}/runs/{run}/{sample}_data/seqs_fw_rev_filtered.dist.txt"
+        shell:
+            "cat {input[0]} | awk 'NR==FNR{{if(NR>1){{h[$1]=$2;}}next}}{{if(FNR>1){{print $1\"\t\"h[$1]}}}}' - {input[1]} > {output}"
+ 
+
 else:
    rule count_samples_final:
         input:
@@ -640,11 +807,22 @@ rule distribution_chart:
     script:
         "Scripts/sampleDist.py"
 
-rule combine_filtered_samples:
+if config["ANALYSIS_TYPE"]=="ASV":
+    rule create_sample_log:
+        input:
+            ff=expand("{PROJECT}/runs/{run}/{sample}_data/seqs_fw_rev_filtered.dist.txt",PROJECT=config["PROJECT"],sample=config["LIBRARY"], run=run) 
+        output:
+            "{PROJECT}/runs/{run}/samples.log"
+        script:
+            "Scripts/combineAllReads_asv.py"
+
+else:
+    rule combine_filtered_samples:
         input:
             allFiltered = expand("{PROJECT}/runs/{run}/{sample}_data/seqs_fw_rev_filtered_nc.fasta" if config["chimera"]["search"] == "T" else  "{PROJECT}/runs/{run}/{sample}_data/seqs_fw_rev_filtered.fasta",PROJECT=config["PROJECT"],sample=config["LIBRARY"], run=run)
         output:
-            "{PROJECT}/runs/{run}/seqs_fw_rev_combined.fasta"
+            "{PROJECT}/runs/{run}/seqs_fw_rev_combined.fasta",
+            "{PROJECT}/runs/{run}/samples.log"
         benchmark:
             "{PROJECT}/runs/{run}/combine_seqs_fw_rev.benchmark"
         script:
@@ -895,10 +1073,16 @@ rule make_otu_table:
 rule summarize_taxa:
     input:
         "{PROJECT}/runs/{run}/otu/taxonomy_"+config["assignTaxonomy"]["tool"]+"/otuTable.biom"
+        if config["ANALYSIS_TYPE"] == "OTU" else
+        "{PROJECT}/runs/{run}/asv/taxonomy_dada2/asvTable.biom"
     output:
         "{PROJECT}/runs/{run}/otu/taxonomy_"+config["assignTaxonomy"]["tool"]+"/summary/otuTable_L6.txt"
+        if config["ANALYSIS_TYPE"] == "OTU" else
+        "{PROJECT}/runs/{run}/asv/taxonomy_dada2/summary/asvTable_L6.txt"
     params:
         "{PROJECT}/runs/{run}/otu/taxonomy_"+config["assignTaxonomy"]["tool"]+"/summary/"
+        if config["ANALYSIS_TYPE"] == "OTU" else
+        "{PROJECT}/runs/{run}/asv/taxonomy_dada2/summary/" 
     benchmark:
         "{PROJECT}/runs/{run}/otu/taxonomy_"+config["assignTaxonomy"]["tool"]+"/summary/summarize_taxa.benchmark"
     shell:
@@ -927,6 +1111,7 @@ rule filter_otu:
         "{PROJECT}/runs/{run}/otu/taxonomy_"+config["assignTaxonomy"]["tool"]+"/otuTable_nosingletons.bio.benchmark"
     shell:
         "{config[qiime][path]}filter_otus_from_otu_table.py -i {input} -o {output} -n {config[filterOtu][n]} {config[filterOtu][extra_params]}"
+
 #Convert to/from the BIOM table format.
 rule convert_filter_otu:
     input:
@@ -939,17 +1124,47 @@ rule convert_filter_otu:
         "{config[biom][command]} convert -i {input} -o {output} {config[biom][tableType]} "
         "{config[biom][headerKey]} {config[biom][outFormat]} {config[biom][extra_params]}"
 
+#filter asv table
+rule filter_asv:
+    input:
+        "{PROJECT}/runs/{run}/asv/taxonomy_dada2/asvTable.biom"
+    output:
+        "{PROJECT}/runs/{run}/asv/taxonomy_dada2/asvTable_noSingletons.biom"
+    benchmark:
+        "{PROJECT}/runs/{run}/asv/taxonomy_dada2/asvTable_nosingletons.bio.benchmark"
+    shell:
+        "{config[qiime][path]}filter_otus_from_otu_table.py -i {input} -o {output} -n {config[filterOtu][n]} {config[filterOtu][extra_params]}"
+
+#Convert to/from the BIOM table format.
+rule convert_filter_asv:
+    input:
+        "{PROJECT}/runs/{run}/asv/taxonomy_dada2/asvTable_noSingletons.biom"
+    output:
+        "{PROJECT}/runs/{run}/asv/taxonomy_dada2/asvTable_noSingletons.txt"
+    benchmark:
+        "{PROJECT}/runs/{run}/asv/taxonomy_dada2/asvTable_nosingletons.txt.benchmark"
+    shell:
+        "{config[biom][command]} convert -i {input} -o {output} {config[biom][tableType]} "
+        "{config[biom][headerKey]} {config[biom][outFormat]} {config[biom][extra_params]}"
+
 if  config["krona"]["report"].casefold() == "t" or config["krona"]["report"].casefold() == "true":
     rule krona_report:
         input:
-            "{PROJECT}/runs/{run}/otu/taxonomy_"+config["assignTaxonomy"]["tool"]+"/otuTable_noSingletons.txt" if config["krona"]["otu_table"].casefold() != "singletons"
+            "{PROJECT}/runs/{run}/asv/taxonomy_dada2/asvTable_noSingletons.txt" if config["ANALYSIS_TYPE"] == "ASV" and config["krona"]["otu_table"].casefold() != "singletons"  
+            else "{PROJECT}/runs/{run}/asv/taxonomy_dada2/asvTable.txt" 
+            if config["ANALYSIS_TYPE"] == "ASV"
+            else
+            "{PROJECT}/runs/{run}/otu/taxonomy_"+config["assignTaxonomy"]["tool"]+"/otuTable_noSingletons.txt" 
+            if config["krona"]["otu_table"].casefold() != "singletons"
             else "{PROJECT}/runs/{run}/otu/taxonomy_"+config["assignTaxonomy"]["tool"]+"/otuTable.txt"
         output:
+            "{PROJECT}/runs/{run}/report_files/krona_report.dada2.html"
+            if config["ANALYSIS_TYPE"] == "ASV" else
             "{PROJECT}/runs/{run}/report_files/krona_report."+config["assignTaxonomy"]["tool"]+".html"
         params:
             "{PROJECT}/runs/{run}/otu/taxonomy_"+config["assignTaxonomy"]["tool"]+"/"
         benchmark:
-            "{PROJECT}/runs/{run}/otu/taxonomy_"+config["assignTaxonomy"]["tool"]+"/krona_report.benchmark"
+              "{PROJECT}/runs/{run}/otu/taxonomy_"+config["assignTaxonomy"]["tool"]+"/krona_report.benchmark"
         script:
             "Scripts/otu2krona.py"
 else:
@@ -961,10 +1176,16 @@ else:
 #OTU map-based filtering: Keep all sequences that show up in an OTU map.
 rule filter_rep_seqs:
     input:
-        fastaRep="{PROJECT}/runs/{run}/otu/representative_seq_set.fasta",
-        otuNoSingleton="{PROJECT}/runs/{run}/otu/taxonomy_"+config["assignTaxonomy"]["tool"]+"/otuTable_noSingletons.biom"
+        fastaRep="{PROJECT}/runs/{run}/asv/representative_seq_set.fasta"
+        if config["ANALYSIS_TYPE"] == "ASV" else
+        "{PROJECT}/runs/{run}/otu/representative_seq_set.fasta",
+        otuNoSingleton="{PROJECT}/runs/{run}/asv/taxonomy_dada2/asvTable_noSingletons.biom"
+        if config["ANALYSIS_TYPE"] == "ASV" else
+        "{PROJECT}/runs/{run}/otu/taxonomy_"+config["assignTaxonomy"]["tool"]+"/otuTable_noSingletons.biom"
     output:
-        "{PROJECT}/runs/{run}/otu/taxonomy_"+config["assignTaxonomy"]["tool"]+"/representative_seq_set_noSingletons.fasta"
+        "{PROJECT}/runs/{run}/asv/taxonomy_dada2/representative_seq_set_noSingletons.fasta"
+         if config["ANALYSIS_TYPE"] == "ASV" else
+         "{PROJECT}/runs/{run}/otu/taxonomy_"+config["assignTaxonomy"]["tool"]+"/representative_seq_set_noSingletons.fasta"
     benchmark:
         "{PROJECT}/runs/{run}/otu/taxonomy_"+config["assignTaxonomy"]["tool"]+"/representative_seq_set_noSingletons.benchmark"
     shell:
@@ -1009,72 +1230,132 @@ if config["alignRep"]["align"] == "T":
         shell:
             "{config[qiime][path]}make_phylogeny.py -i {input} -o {output} -t {config[makeTree][method]} {config[makeTree][extra_params]}"
 
-rule report_all:
-   input:
-        a="{PROJECT}/runs/{run}/otu/taxonomy_"+config["assignTaxonomy"]["tool"]+"/otuTable.txt",
-        b="{PROJECT}/runs/{run}/otu/taxonomy_"+config["assignTaxonomy"]["tool"]+"/summary/otuTable_L6.txt",
-        c="{PROJECT}/runs/{run}/otu/taxonomy_"+config["assignTaxonomy"]["tool"]+"/otuTable_noSingletons.txt",
-        e="{PROJECT}/runs/{run}/otu/taxonomy_"+config["assignTaxonomy"]["tool"]+"/aligned/filtered/representative_seq_set_noSingletons_aligned_pfiltered.tre"
-        if config["alignRep"]["align"] == "T" else
-        "{PROJECT}/runs/{run}/otu/taxonomy_"+config["assignTaxonomy"]["tool"]+"/representative_seq_set_noSingletons.fasta",
-        f="{PROJECT}/runs/{run}/report_files/krona_report."+config["assignTaxonomy"]["tool"]+".html"
-        if config["krona"]["report"] == "T" else
-        "{PROJECT}/runs/{run}/otu/taxonomy_"+config["assignTaxonomy"]["tool"]+"/skip.krona"
-   output:
-        temp("{PROJECT}/runs/{run}/reporttmp_all.html")
-   benchmark:
-        "{PROJECT}/runs/{run}/report_all.benchmark"
-   script:
-        "Scripts/report_all_v2.py"
+if config["ANALYSIS_TYPE"] != "ASV": 
+    rule report_all:
+       input:
+            a="{PROJECT}/runs/{run}/otu/taxonomy_"+config["assignTaxonomy"]["tool"]+"/otuTable.txt"
+            if config["ANALYSIS_TYPE"] == "OTU" else
+            "{PROJECT}/runs/{run}/asv/asv_table.biom",
+            b="{PROJECT}/runs/{run}/otu/taxonomy_"+config["assignTaxonomy"]["tool"]+"/summary/otuTable_L6.txt"
+            if config["ANALYSIS_TYPE"] == "OTU" else
+            "{PROJECT}/runs/{run}/asv/summary/asv_table_L6.txt",
+            c="{PROJECT}/runs/{run}/otu/taxonomy_"+config["assignTaxonomy"]["tool"]+"/otuTable_noSingletons.txt"
+            if config["ANALYSIS_TYPE"] == "OTU" else 
+            "{PROJECT}/runs/{run}/asv/stats_dada2.txt",
+            e="{PROJECT}/runs/{run}/otu/taxonomy_"+config["assignTaxonomy"]["tool"]+"/aligned/filtered/representative_seq_set_noSingletons_aligned_pfiltered.tre"
+            if config["alignRep"]["align"] == "T"
+            else "{PROJECT}/runs/{run}/otu/taxonomy_"+config["assignTaxonomy"]["tool"]+"/representative_seq_set_noSingletons.fasta",
+            f="{PROJECT}/runs/{run}/report_files/krona_report."+config["assignTaxonomy"]["tool"]+".html"
+            if config["krona"]["report"] == "T" and config["ANALYSIS_TYPE"] != "ASV" else 
+            "{PROJECT}/runs/{run}/report_files/krona_report.dada2.html"
+            if config["krona"]["report"] == "T" and config["ANALYSIS_TYPE"] == "ASV" else
+            "{PROJECT}/runs/{run}/otu/taxonomy_"+config["assignTaxonomy"]["tool"]+"/skip.krona",
+            g="{PROJECT}/runs/{run}/samples.log"
+       output:
+            temp("{PROJECT}/runs/{run}/reporttmp_all.html")
+       benchmark:
+            "{PROJECT}/runs/{run}/report_all.benchmark"
+       script:
+            "Scripts/report_all_v2.py"
+else:
+    rule report_all_asv:
+       input:
+            a="{PROJECT}/runs/{run}/asv/taxonomy_dada2/asvTable.biom",
+            b="{PROJECT}/runs/{run}/asv/taxonomy_dada2/summary/asvTable_L6.txt",
+ #           c="{PROJECT}/runs/{run}/otu/taxonomy_"+config["assignTaxonomy"]["tool"]+"/otuTable_noSingletons.txt"
+ #           if config["ANALYSIS_TYPE"] == "OTU" else 
+ #           "{PROJECT}/runs/{run}/asv/stats_dada2.txt",
+            c="{PROJECT}/runs/{run}/asv/taxonomy_dada2/representative_seq_set_noSingletons.fasta",
+ #           if config["alignRep"]["align"] == "T"
+ #           else "{PROJECT}/runs/{run}/asv/dada2_representatives.fasta"
+ #           e="{PROJECT}/runs/{run}/asv/dada2_representatives.fasta",
+ #           if config["ANALYSIS_TYPE"] == "ASV"
+ #           else
+ #           "{PROJECT}/runs/{run}/otu/taxonomy_"+config["assignTaxonomy"]["tool"]+"/representative_seq_set_noSingletons.fasta",
+            f="{PROJECT}/runs/{run}/report_files/krona_report.dada2.html"
+            if config["krona"]["report"] == "T" else
+            "{PROJECT}/runs/{run}/otu/taxonomy_"+config["assignTaxonomy"]["tool"]+"/skip.krona",
+            g="{PROJECT}/runs/{run}/samples.log"
+       output:
+            temp("{PROJECT}/runs/{run}/reporttmp_all.html")
+       benchmark:
+            "{PROJECT}/runs/{run}/report_all.benchmark"
+       script:
+            "Scripts/report_all_asv.py"
+
 
 rule tune_report_all:
     input:
         "{PROJECT}/runs/{run}/reporttmp_all.html"
     output:
         "{PROJECT}/runs/{run}/otu_report_"+config["assignTaxonomy"]["tool"]+".html"
+        if config["ANALYSIS_TYPE"] == "OTU" else
+        "{PROJECT}/runs/{run}/asv_report_dada2.html"
     script:
         "Scripts/tuneReport.py"
 if config["pdfReport"].casefold() == "t":
     rule translate_to_pdf:
         input:
             "{PROJECT}/runs/{run}/otu_report_"+config["assignTaxonomy"]["tool"]+".html"
+             if config["ANALYSIS_TYPE"] == "OTU" else
+             "{PROJECT}/runs/{run}/asv_report_dada2.html"
         output:
             "{PROJECT}/runs/{run}/otu_report_"+config["assignTaxonomy"]["tool"]+".pdf"
+             if config["ANALYSIS_TYPE"] == "OTU" else
+             "{PROJECT}/runs/{run}/asv_report_dada2.pdf"
         shell:
-            "wkhtmltopdf {input} {output}"
+            "{config[wkhtmltopdf_command]}  {input} {output}"
 
 rule report:
     input:
-        report_all="{PROJECT}/runs/{run}/otu_report_"+config["assignTaxonomy"]["tool"]+".html",
+        report_all="{PROJECT}/runs/{run}/otu_report_"+config["assignTaxonomy"]["tool"]+".html"
+        if config["ANALYSIS_TYPE"] == "OTU" else
+        "{PROJECT}/runs/{run}/asv_report_dada2.html",
         dist_chart="{PROJECT}/runs/{run}/report_files/seqs_fw_rev_filtered.{sample}.dist.png",
         dmxFiles="{PROJECT}/runs/{run}/{sample}_data/demultiplexed/summary.txt"
     output:
         temp("{PROJECT}/runs/{run}/{sample}_data/report.html")
     script:
         "Scripts/report_v2.py"
+        if config["ANALYSIS_TYPE"] == "OTU" else
+        "Scripts/report_asv.py"
 rule tune_report:
     input:
         "{PROJECT}/runs/{run}/{sample}_data/report.html"
     output:
         "{PROJECT}/runs/{run}/report_{sample}_"+config["assignTaxonomy"]["tool"]+".html"
+        if config["ANALYSIS_TYPE"] == "OTU" else
+        "{PROJECT}/runs/{run}/report_{sample}_dada2.html"
     script:
         "Scripts/tuneReport.py"
 if config["pdfReport"].casefold() == "t":
     rule translate_pdf_final_report:
         input:
-            toTranslate="{PROJECT}/runs/{run}/report_{sample}_"+config["assignTaxonomy"]["tool"]+".html",
+            toTranslate="{PROJECT}/runs/{run}/report_{sample}_"+config["assignTaxonomy"]["tool"]+".html"
+            if config["ANALYSIS_TYPE"] == "OTU" else
+            "{PROJECT}/runs/{run}/report_{sample}_dada2.html",
             tmp="{PROJECT}/runs/{run}/otu_report_"+config["assignTaxonomy"]["tool"]+".pdf"
+            if config["ANALYSIS_TYPE"] == "OTU" else
+            "{PROJECT}/runs/{run}/asv_report_dada2.pdf"
         output:
             "{PROJECT}/runs/{run}/report_{sample}_"+config["assignTaxonomy"]["tool"]+".pdf"
+            if config["ANALYSIS_TYPE"] == "OTU" else
+            "{PROJECT}/runs/{run}/report_{sample}_dada2.pdf"
         shell:
             "{config[wkhtmltopdf_command]} {input.toTranslate} {output}"
 
 rule create_portable_report:
     input:
-        expand("{PROJECT}/runs/{run}/report_{sample}_"+config["assignTaxonomy"]["tool"]+".html", PROJECT=config["PROJECT"],sample=config["LIBRARY"], run=run),
+        expand("{PROJECT}/runs/{run}/report_{sample}_"+config["assignTaxonomy"]["tool"]+".html", PROJECT=config["PROJECT"],sample=config["LIBRARY"], run=run)
+        if config["ANALYSIS_TYPE"] == "OTU" else
+        expand("{PROJECT}/runs/{run}/report_{sample}_dada2.html", PROJECT=config["PROJECT"],sample=config["LIBRARY"], run=run),
         "{PROJECT}/runs/{run}/otu_report_"+config["assignTaxonomy"]["tool"]+".html"
+        if config["ANALYSIS_TYPE"] == "OTU" else
+        "{PROJECT}/runs/{run}/asv_report_dada2.html"
     output:
         "{PROJECT}/runs/{run}/report_"+config["assignTaxonomy"]["tool"]+".zip"
+        if config["ANALYSIS_TYPE"] == "OTU" else
+        "{PROJECT}/runs/{run}/report_dada2.zip"
     params:
         "{PROJECT}/runs/{run}/report_files"
     shell:

@@ -95,7 +95,9 @@ if snakemake.config["demultiplexing"]["demultiplex"] != "F":
     combineBench =readBenchmark(snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/combine_seqs_fw_rev.benchmark")
 else:
     combineBench=pearBench #THIS IS ONLY FOR TESTING REMOVE!!! 
-rmShorLongBench =readBenchmark(snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/filter.benchmark")
+rmShorLongBench = ""
+if snakemake.config["ANALYSIS_TYPE"] == "OTU": 
+    rmShorLongBench = readBenchmark(snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/filter.benchmark")
 demultiplexFQBench=""
 if snakemake.config["demultiplexing"]["demultiplex"] == "T" and snakemake.config["demultiplexing"]["create_fastq_files"] == "T":
     demultiplexFQBench =readBenchmark(snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/demultiplexed/demultiplex_fq.benchmark")
@@ -107,8 +109,8 @@ if snakemake.config["gzip_input"] == "F":
     rawCounts = countFasta(snakemake.wildcards.PROJECT+"/samples/"+snakemake.wildcards.sample+"/rawdata/fw.fastq", True);
 else:
     rawCounts = countFastaGZ(snakemake.wildcards.PROJECT+"/samples/"+snakemake.wildcards.sample+"/rawdata/fw.fastq.gz", True);
-#rawCountsStr= '{0:g}'.format(float(rawCounts))
 rawCountsStr= str(int(rawCounts))
+#rawCountsStr= '{0:g}'.format(float(rawCounts))
 #-peared
 pearedCounts = 0
 if snakemake.config["UNPAIRED_DATA_PIPELINE"] != "T":
@@ -116,13 +118,13 @@ if snakemake.config["UNPAIRED_DATA_PIPELINE"] != "T":
 else:
     pearedCounts = countFasta(snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/peared/seqs.assembled.UNPAIRED.fastq", True);
 
-#pearedCountsStr='{0:g}'.format(float(pearedCounts))
 pearedCountsStr=str(int(pearedCounts))
+#pearedCountsStr='{0:g}'.format(float(pearedCounts))
 prcPeared = "{:.2f}".format(float((pearedCounts/rawCounts)*100))
 #-dumultiplex
 if snakemake.config["demultiplexing"]["demultiplex"] != "F":
-    fwAssignedCounts = countFasta(snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/splitLibs/seqs.assigned.fna", False)
-    rvAssignedCounts = countFasta(snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/splitLibsRC/seqs.assigned.fna", False)
+    fwAssignedCounts = countFasta(snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/splitLibs/seqs.no_unassigneds.fna", False)
+    rvAssignedCounts = countFasta(snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/splitLibsRC/seqs.no_unassigneds.fna", False)
     prcFwAssigned = "{:.2f}".format(float((fwAssignedCounts/pearedCounts)*100))
     prcRvAssigned = "{:.2f}".format(float((rvAssignedCounts/pearedCounts)*100))
     totalAssigned = fwAssignedCounts + rvAssignedCounts
@@ -149,9 +151,11 @@ if removeChimeras:
     if cutSequences:
         prcChimCut = "{:.2f}".format(float((sequenceNoChimeras/sequenceNoAdapters)*100))
 #out="{PROJECT}/runs/{run}/{sample}_data/"
-trimmedCounts = countFasta(snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/seqs_fw_rev_filtered.fasta", False)
-prcTrimmedSplit ="{:.2f}".format(float((trimmedCounts/totalAssigned)*100))
-prcTrimmedRaw= "{:.2f}".format(float((trimmedCounts/rawCounts)*100))
+trimmedCounts=1;
+if snakemake.config["ANALYSIS_TYPE"] == "OTU":
+    trimmedCounts = countFasta(snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/seqs_fw_rev_filtered.fasta", False)
+    prcTrimmedSplit ="{:.2f}".format(float((trimmedCounts/totalAssigned)*100))
+    prcTrimmedRaw= "{:.2f}".format(float((trimmedCounts/rawCounts)*100))
 if cutSequences:
     prcTrimmedCut="{:.2f}".format(float((trimmedCounts/sequenceNoAdapters)*100))
 #if removeChimeras:
@@ -172,11 +176,12 @@ if snakemake.config["demultiplexing"]["demultiplex"] == "T":
 if snakemake.config["cutAdapters"] == "T":
     numbers.append(sequenceNoAdapters)
     labels.append("Cutadapt")
-numbers.append(trimmedCounts)
-labels.append("Length filtering")
-if snakemake.config["chimera"]["search"] == "T":
-    numbers.append(sequenceNoChimeras)
-    labels.append("No Chimera")
+#if snakemake.config["ANALYSIS_TYPE"] == "OTU":
+#    numbers.append(trimmedCounts)
+#    labels.append("Length filtering")
+#if snakemake.config["chimera"]["search"] == "T":
+#    numbers.append(sequenceNoChimeras)
+#    labels.append("No Chimera")
 createChart(numbers, tuple(labels),snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/report_files/sequence_numbers."+snakemake.wildcards.sample+".png")
 ################################################################################
 #                          Chimera check                                       #
@@ -393,11 +398,13 @@ if snakemake.config["cutAdapters"] == "T":
 #                          Counts for too long too shorts                      #
 ################################################################################
 #trimmedStr =  ":red:`Total number of reads after trimming:` "+str(trimmedCounts)+ "="+ str(prcTrimmedSplit)+"% of the demultiplexed reads or " + str(prcTrimmedRaw) + "% of the raw reads\n\n"
-trimmedStr =  ":red:`Total number of reads after length filtering:` "+str(trimmedCounts)+ "\n\n"
-trimmedStr += ":red:`Percentage of reads vs raw reads:` "+str(prcTrimmedRaw)+"%\n\n"
-trimmedStr+=":red:`Percentage of reads vs demultiplexed reads:` " + str(prcTrimmedSplit) + "%\n\n"
-if cutSequences:
-    trimmedStr+=":red:`Percentage of reads after cutadapt:` "+ str(prcTrimmedCut) + "%\n"
+trimmedStr = ""
+if snakemake.config["ANALYSIS_TYPE"] == "OTU":
+    trimmedStr =  ":red:`Total number of reads after length filtering:` "+str(trimmedCounts)+ "\n\n"
+    trimmedStr += ":red:`Percentage of reads vs raw reads:` "+str(prcTrimmedRaw)+"%\n\n"
+    trimmedStr+=":red:`Percentage of reads vs demultiplexed reads:` " + str(prcTrimmedSplit) + "%\n\n"
+    if cutSequences:
+        trimmedStr+=":red:`Percentage of reads after cutadapt:` "+ str(prcTrimmedCut) + "%\n"
 #if removeChimeras:
 #    trimmedStr+=":red:`Percentage of reads after remove chimeras vs trimmed reads:` "+ str(prcTrimmedChimera) + "%\n"
 
@@ -410,14 +417,15 @@ if cutSequences:
 #  minimun expected length for the reads followed by the maximun length tab    #
 #  separated (shorts <TAB> longs)                                              #
 ################################################################################
-shorts = str(snakemake.config["rm_reads"]["shorts"])
-longs = str(snakemake.config["rm_reads"]["longs"])
-with open(snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/filter.log") as trimlog:
-    for line in trimlog:
-        tokens = line.split("\t")
-        if len(tokens)>2:
-            shorts = tokens[1]
-            longs = tokens[2]
+if snakemake.config["ANALYSIS_TYPE"] == "OTU": 
+    shorts = str(snakemake.config["rm_reads"]["shorts"])
+    longs = str(snakemake.config["rm_reads"]["longs"])
+    with open(snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/filter.log") as trimlog:
+        for line in trimlog:
+            tokens = line.split("\t")
+            if len(tokens)>2:
+                shorts = tokens[1]
+                longs = tokens[2]
 ################################################################################
 #                       FInal Counts                              #
 ################################################################################
@@ -461,12 +469,13 @@ if snakemake.config["cutAdapters"] == "T":
     fileData.append(data)
     data=[]
 #length filtered
-data.append("Length filtered")
-data.append(snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/seqs_fw_rev_filtered.fasta")
-data.append(str(trimmedCounts))
-data.append("{:.2f}".format(float((trimmedCounts/rawCounts)*100))+"%")
-fileData.append(data)
-data=[]
+if snakemake.config["ANALYSIS_TYPE"] == "OTU":
+    data.append("Length filtered")
+    data.append(snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/seqs_fw_rev_filtered.fasta")
+    data.append(str(trimmedCounts))
+    data.append("{:.2f}".format(float((trimmedCounts/rawCounts)*100))+"%")
+    fileData.append(data)
+    data=[]
 #chimera
 if snakemake.config["chimera"]["search"] == "T":
     data.append("Non chimeric reads")
@@ -591,35 +600,6 @@ Align paired end reads and merge them into one single sequence in case they over
 {cutAdaptStr}
 
 
-Remove too long and too short reads
-------------------------------------
-Remove very short and long reads, with lengths more than some standard deviation below or above the mean to be short or long respectively
-
-:green:`- Minimun length expected (shorts):` {shorts}
-
-:green:`- Maximun length expected (longs):` {longs}
-
-**Command:**
-
-:commd:`awk '!/^>/ {{ next }} {{ getline seq }} length(seq) > shorts  && length(seq) < longs {{ print $0 \"\\n\" seq }}'  {snakemake.wildcards.PROJECT}/runs/{snakemake.wildcards.run}/{snakemake.wildcards.sample}_data/seqs_fw_rev_accepted.fna  >  {snakemake.wildcards.PROJECT}/runs/{snakemake.wildcards.run}/{snakemake.wildcards.sample}_data/seqs_fw_rev_filtered.fasta`
-
-**Sequence distribution before remove reads**
-
-.. image:: report_files/seqs_dist_hist.{snakemake.wildcards.sample}.png
-    :height: 400px
-    :width: 400px
-    :align: center
-
-
-**Output file:**
-
-:green:`- Fasta file with correct sequence length:` {snakemake.wildcards.PROJECT}/runs/{snakemake.wildcards.run}/{snakemake.wildcards.sample}_data/seqs_fw_rev_filtered.fasta
-
-{trimmedStr}
-
-{rmShorLongBench}
-
-
 {quimeraStr}
 
 
@@ -633,12 +613,12 @@ Final counts
 
 .. image:: report_files/sequence_numbers.{snakemake.wildcards.sample}.png
 
-OTU report
+ASV report
 ---------------------------
 
-Cascabel report on downstream analyses in combination with multiple libraries (if supplied), can be found at the following link: otu_report_ ({snakemake.wildcards.PROJECT}/runs/{snakemake.wildcards.run}/otu_report_{snakemake.config[assignTaxonomy][tool]}.html)
+Cascabel report on downstream analyses in combination with multiple libraries (if supplied), can be found at the following link: asv_report_ ({snakemake.wildcards.PROJECT}/runs/{snakemake.wildcards.run}/asv_report_dada2.html)
 
-    .. _otu_report: otu_report_{snakemake.config[assignTaxonomy][tool]}.html
+    .. _asv_report: asv_report_dada2.html
 
 References
 ------------------

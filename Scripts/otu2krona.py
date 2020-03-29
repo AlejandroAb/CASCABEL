@@ -11,7 +11,7 @@ if samples.strip() != "all":
 
 with open(snakemake.input[0]) as otuTxt:
     for line in otuTxt:
-        if "#OTU ID" in line:
+        if "#OTU" in line:
             allSamps = line.rstrip('\n').split('\t')
             for index, samp in enumerate(allSamps):
                 if index > 0 and index < len(allSamps)-1:

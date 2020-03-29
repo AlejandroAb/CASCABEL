@@ -15,7 +15,7 @@ else:
                 except ValueError:
                     print("Error trying to cast: "+ line[line.find("(")+1:line.find("%")])
 
-                if (peared < snakemake.config["pear"]["prcpear"]):
+                if (peared < float(snakemake.config["pear"]["prcpear"])):
                     print("\033[91m" + "Peared percentage is not good enough ("+str(peared)+"%) Minimum expected: "+str(snakemake.config["pear"]["prcpear"])+"%\nMore info: " + snakemake.input[0] + "\033[0m")
                     #print("We suggest to try with different parameters or with the FLASH program (info on config.yaml)")
                     print("\033[93m" +"Do you want to continue anyway y/n?"+ "\033[0m")

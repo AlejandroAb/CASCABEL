@@ -71,6 +71,11 @@ if snakemake.config["alignRep"]["align"] == "T":
 kronaBenchmark=""
 if snakemake.config["krona"]["report"].casefold() == "t" or snakemake.config["krona"]["report"].casefold() == "true":
     kronaBenchmark = readBenchmark(snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/otu/taxonomy_"+snakemake.config["assignTaxonomy"]["tool"]+"/krona_report.benchmark")
+
+#dada2FilterBenchmark = readBenchmark(snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/asv/filter.benchmark")
+#dada2Benchmark = readBenchmark(snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/asv/dada2.benchmark")
+#dada2BiomBenchmark = readBenchmark(snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/asv/dada2.biom.benchmark")
+
 ################################################################################
 #                         TOOLS VERSION SECTION                          #
 ################################################################################
@@ -101,11 +106,11 @@ filterFastaVersion = "**" + filterFastaV.stdout.decode('utf-8').replace('Version
 blastnV = subprocess.run([snakemake.config["assignTaxonomy"]["blast"]["command"], '-version'], stdout=subprocess.PIPE)
 blastnVersion = "**" + blastnV.stdout.decode('utf-8').split('\n', 1)[0].replace('blastn:','').strip() + "**"
 
-vsearchV2 = subprocess.run([snakemake.config["assignTaxonomy"]["vsearch"]["command"], '--version'], stdout=subprocess.PIPE)
+vsearchV2 = subprocess.run([snakemake.config["assignTaxonomy"]["vsearch"]["command"], '--version'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 vsearchVersion_tax = "**" + vsearchV2.stdout.decode('utf-8').split('\n', 1)[0].strip() + "**"
 
 if  snakemake.config["derep"]["dereplicate"] == "T" and  snakemake.config["pickOTU"]["m"] != "swarm" and  snakemake.config["pickOTU"]["m"] != "usearch":
-    vsearchV = subprocess.run([snakemake.config["derep"]["vsearch_cmd"], '--version'], stdout=subprocess.PIPE)
+    vsearchV = subprocess.run([snakemake.config["derep"]["vsearch_cmd"], '--version'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     vsearchVersion = "**" + vsearchV.stdout.decode('utf-8').split('\n', 1)[0].strip() + "**"
 
 if snakemake.config["alignRep"]["align"] == "T":
@@ -341,7 +346,7 @@ elif snakemake.config["assignTaxonomy"]["tool"] == "vsearch":
     assignTaxoStr += " --dbmask none --qmask none --rowlen 0 --id "+ str(snakemake.config["assignTaxonomy"]["vsearch"]["identity"])+" --iddef " + str(snakemake.config["assignTaxonomy"]["vsearch"]["identity_definition"])+" --userfields query+id" + str(snakemake.config["assignTaxonomy"]["vsearch"]["identity_definition"])+"+target "
     assignTaxoStr += " --maxaccepts "+ str(snakemake.config["assignTaxonomy"]["vsearch"]["max_target_seqs"]) + " --threads " + str(snakemake.config["assignTaxonomy"]["vsearch"]["jobs"]) + " "+ str(snakemake.config["assignTaxonomy"]["vsearch"]["extra_params"]) + " --output_no_hits --userout  representative_seq_set_tax_vsearch.out`\n\n"
     if (snakemake.config["assignTaxonomy"]["vsearch"]["max_target_seqs"]) != 1:
-        assignTaxoStr += "After vsearch assignation, **results were mapped to their LCA using stampa_merge.py** script\n\n"
+        assignTaxoStr += "After taxonomy assignation with vsearch, top hits with the same sequence identity but different taxonomy were mapped to their last common ancestor (LCA) using the script **stampa_merge.py** from https://github.com/frederic-mahe/stampa.\n\n"
 
 #Dereplication report
 dereplicateReport=""
@@ -459,7 +464,7 @@ report("""
     .. role:: red
     .. role:: green
 
-This report consists of the OTU creation and taxonomic assignment for all the combined accepted reads of given samples or libraries, if multiple.
+**CASCABEL** is designed to run amplicon sequence analysis across single or multiple read libraries. This report consists of the OTU creation and taxonomic assignment for all the combined accepted reads of given samples or libraries, if multiple.
 
 {txtDescription}
 

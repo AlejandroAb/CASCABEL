@@ -6,6 +6,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -13,7 +14,7 @@ import java.util.logging.Logger;
 /**
  *
  * @author aabdala
- * @version 1.2
+ * @version 1.0
  */
 public class DemultiplexQiime {
 
@@ -31,6 +32,7 @@ public class DemultiplexQiime {
     int bc_length = 0;
     private boolean removeHeader = false;
     private boolean overWrite = false;
+    private boolean writeSummaryFiles = false;
 
     public static void main(String args[]) {
         DemultiplexQiime dmx = null;
@@ -142,6 +144,8 @@ public class DemultiplexQiime {
                 dmx.setRemoveHeader(true);
             } else if (args[i].equals("--over-write")) {
                 dmx.setOverWrite(true);
+            } else if (args[i].equals("--write-summary")) {
+                dmx.setWriteSummaryFiles(true);
             } else {
                 System.err.println("Unknown option: " + args[i] + "\nNeed help? use DemultiplexQiime -h | --help");
                 System.exit(1);
@@ -254,6 +258,8 @@ public class DemultiplexQiime {
     public void processFastQMap2Raw() {
         HashMap<String, FileWriter> writers = new HashMap<>();
         HashMap<String, Integer> counts = new HashMap<>();
+        ArrayList<String> listFiles = new ArrayList<>();
+
         try {
             BufferedReader reader = new BufferedReader(new FileReader(fastqFile));
             String linea;
@@ -274,6 +280,7 @@ public class DemultiplexQiime {
                             currentWriter = new FileWriter(outDir + preffix + sample + suffix + "_" + orientation + ".txt");
                             writers.put(sample, currentWriter);
                             counts.put(sample, 1);
+                            listFiles.add(outDir + preffix + sample + suffix + "_" + orientation + ".txt");
                         } else {
                             Integer tmp = counts.get(sample);
                             tmp++;
@@ -306,6 +313,14 @@ public class DemultiplexQiime {
                 if (paired.length() > 0) {
                     createFastq(key, file, paired, "");
                 }
+            }
+            //Delete files unless --write-summary
+            if (!writeSummaryFiles) {
+                for (String fname : listFiles) {
+                    File f = new File(fname);
+                    f.delete();
+                }
+
             }
             FileWriter writer = new FileWriter(outDir + "summary_" + orientation + ".txt");
             writer.write("#Samples assigned in " + orientation + " orientation \n");
@@ -441,7 +456,7 @@ public class DemultiplexQiime {
                 + "                           ----------------------\n"
                 + "                           *Specify -r1 <fw.reads> -r2 <rv.reads> for paired end data.\n"
                 + "                           *Specify -r <single.reads> for single end data.\n"
-                + "                           *Do not specify any reads and the demultiplexing will be performed only with the input file (-d)\n"
+                + "                           *Dont specify any reads and the demultiplex will be performed only with the input file (-d)\n"
                 + "                           ----------------------\n"
                 + "  -b  --barcodes <num>     Remove barcodes from raw reads. Default 0 -removes 0 bases-\n"
                 + "  -a  --assignation <str>  This option refers to the orientation of the reads at the moment of its assignation.\n"
@@ -452,6 +467,8 @@ public class DemultiplexQiime {
                 + "                            to    @M01102:251:000000000-B8LBW:1:2110:14503:27454\n"
                 + "                            This option is useful when the reads FW and RV are interchanged between raw and demultiplexed\n"
                 + "                            files, in order to have all of them in the correct strand.\n"
+                + "     --write-summary       This option will generate one file per sample, per strand with the headers of the original fastq\n"
+                + "                           that belogns to such sample.\n"
                 + "  -v  --verbose            Output details during processing\n";
 
         System.out.println(helpHeader + description + help);
@@ -588,4 +605,13 @@ public class DemultiplexQiime {
         this.overWrite = overWrite;
     }
 
+    public boolean isWriteSummaryFiles() {
+        return writeSummaryFiles;
+    }
+
+    public void setWriteSummaryFiles(boolean writeSummaryFiles) {
+        this.writeSummaryFiles = writeSummaryFiles;
+    }
+
 }
+
