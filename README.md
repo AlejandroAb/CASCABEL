@@ -99,6 +99,12 @@ BiocManager::install("dada2", version = "3.10")
 
 *Please notice that BiocManager should be already installed, so you just need to execute previous command. You can also find more information at [dada2's installation guide.](https://benjjneb.github.io/dada2/dada-installation.html)
 
+### Singularity
+
+We are aware that this is not the easiest installation, therefore we are working on a singularity container, same that we hope to have available soon.
+
+Thanks for your understanding! 
+
 ## Getting started
 
 **Required input files:**
