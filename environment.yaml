@@ -3,6 +3,7 @@ channels:
   - conda-forge
   - r
 dependencies:
+  - r-base=3.6.1
   - fastqc
   - pyyaml=3.11
   - biom-format
@@ -14,9 +15,11 @@ dependencies:
   - pear
   - bioconductor-biostrings
   - bioconductor-shortread
+  - r-ggplot2
   - krona
-  - matplotlib
   - blast
   - seqtk
   - rdp_classifier
+  - java-jdk
+  - zip
 
