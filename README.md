@@ -79,7 +79,7 @@ After installing Snakemake and Matplotlib we can activate our new environment.
 conda activate cascabel
 </code></pre>
 
-_After activating the environment it is possible that Snakemake is not more in your PATH, in such case just export Snakemake's bin directory. i.e:_
+_After activating the environment it is possible that Snakemake is not in your PATH anymore, in such case just export Snakemake's bin directory. i.e:_
 
 <pre><code class="text">
 export PATH=$PATH:/path/to/miniconda3/bin
@@ -224,6 +224,12 @@ For a complete guide on how to setup and use CASCABEL please visit the official 
 ### Configuration files
 
 We supply some "pre-filled" configuration files for the main possible configurations like for double and single barcoded paired end reads for OTU and ASV analysis. We strongly advise to make informed choices about parameter settings matching the individual needs of the experiment and data set.
+
+* **config.otu.double_bc.yaml**. Configuration file for paired-end data, barcodes on both reads, OTU analysis.
+* **config.otu.single_bc.yaml**. Configuration file for paired-end data, barcodes only on one read, OTU analysis.
+* **config.asv.double_bc.yaml**. Configuration file for paired-end data, barcodes on both reads, ASV analysis.
+* **config.asv.single_bc.yaml**. Configuration file for paired-end data, barcodes only on one read, OTU analysis.
+* **config.otu.double_bc.unpaired.yaml**. Configuration file for paired-end data, barcodes on both reads, OTU analysis, [unpaired workflow](../../wiki#4-unpaired-workflow), taxonomy assignation with RDP 
 
 ### Test data
 
