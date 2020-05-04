@@ -623,18 +623,53 @@ if config["align_vs_reference"]["align"] == "T":
             "{config[align_vs_reference][mothur_cmd]} '#align.seqs(fasta=seqs_fw_rev_accepted.fna, reference={config[align_vs_reference][dbAligned]}, processors={config[align_vs_reference][cpus]})'"
 
 if config["cutAdapters"] == "T":
-    rule cutadapt:
-        input:
-            "{PROJECT}/runs/{run}/{sample}_data/seqs_fw_rev_accepted.align" if config["align_vs_reference"]["align"] == "T"
-            else "{PROJECT}/runs/{run}/{sample}_data/seqs_fw_rev_accepted.fna"
-        output:
-            out="{PROJECT}/runs/{run}/{sample}_data/seqs_fw_rev_accepted_no_adapters.fna",
-            log="{PROJECT}/runs/{run}/{sample}_data/seqs_fw_rev_accepted_no_adapters.log"
-        benchmark:
-           "{PROJECT}/runs/{run}/{sample}_data/cutadapt.benchmark"
-        shell:
-           "{config[cutadapt][command]} -f fasta {config[cutadapt][adapters]} "
-           "{config[cutadapt][extra_params]} -o {output.out} {input}  > {output.log}"
+    """
+    If we are going to remove primers/adapters and we do not came from our own
+    demultiplexing, it is lickly to have the sequences in both direction, FW and RV
+    thus, we need to rev com the sequences, concatenate them and then when we run cutadapt
+    always in this step, discard-untrimmed so this way we end up with the sequences in the correct orientation
+    """
+    if config["demultiplexing"]["demultiplex"] != "T" and config["align_vs_reference"]["align"] != "T":
+        rule rev_com_seqs:
+            input:
+                "{PROJECT}/runs/{run}/{sample}_data/seqs_fw_rev_accepted.fna"
+            output:
+                temp("{PROJECT}/runs/{run}/{sample}_data/seqs_revcomplement.fna")
+            shell:
+                "vsearch --fastx_revcomp {input} --fastaout {output}"
+        rule concat_seqs:
+            input:
+                sq="{PROJECT}/runs/{run}/{sample}_data/seqs_fw_rev_accepted.fna",
+                rc="{PROJECT}/runs/{run}/{sample}_data/seqs_revcomplement.fna"
+            output:
+                temp("{PROJECT}/runs/{run}/{sample}_data/seqs_revcomplement.concat.fna")
+            shell:
+                "cat {input.sq} {input.rc} > {output}"
+
+        rule cutadapt:
+            input:
+                "{PROJECT}/runs/{run}/{sample}_data/seqs_revcomplement.concat.fna"
+            output:
+                out="{PROJECT}/runs/{run}/{sample}_data/seqs_fw_rev_accepted_no_adapters.fna",
+                log="{PROJECT}/runs/{run}/{sample}_data/seqs_fw_rev_accepted_no_adapters.log"
+            benchmark:
+                "{PROJECT}/runs/{run}/{sample}_data/cutadapt.benchmark"
+            shell:
+                "{config[cutadapt][command]} -f fasta {config[cutadapt][adapters]}  --discard-untrimmed "
+                "{config[cutadapt][extra_params]} -o {output.out} {input}  > {output.log}"
+    else:
+        rule cutadapt:
+            input:
+                "{PROJECT}/runs/{run}/{sample}_data/seqs_fw_rev_accepted.align" if config["align_vs_reference"]["align"] == "T"
+                else "{PROJECT}/runs/{run}/{sample}_data/seqs_fw_rev_accepted.fna"
+            output:
+                out="{PROJECT}/runs/{run}/{sample}_data/seqs_fw_rev_accepted_no_adapters.fna",
+                log="{PROJECT}/runs/{run}/{sample}_data/seqs_fw_rev_accepted_no_adapters.log"
+            benchmark:
+                "{PROJECT}/runs/{run}/{sample}_data/cutadapt.benchmark"
+            shell:
+                "{config[cutadapt][command]} -f fasta {config[cutadapt][adapters]} "
+                "{config[cutadapt][extra_params]} -o {output.out} {input}  > {output.log}"
 
 if config["align_vs_reference"]["align"] == "T":
     rule degap_alignment:

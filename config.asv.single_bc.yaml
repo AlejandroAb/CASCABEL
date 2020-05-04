@@ -857,14 +857,15 @@ pickOTU:
 #-----------------------------       PARAMS       -----------------------------#
 #                                                                              #
 # - m             Method for picking representative sequences. Valid choices   #
-#                 are: random, longest, most_abundant, first [default: "first"]# 
+#                 are: random, longest, most_abundant, first.                  #
+#                 [default: "most_abundant"]                                   # 
 #                 Note: "first" chooses the cluster seed when picking otus with#
 #                 uclust.                                                      #
 # - extra_params  Any extra parameter. Run 'pick_rep_set.py -h' to see all     #
 #                 options.                                                     #
 #------------------------------------------------------------------------------#
 pickRep:
-  m: "longest"
+  m: "most_abundant"
   extra_params: ""
 
 ################################################################################
