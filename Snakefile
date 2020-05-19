@@ -1,8 +1,8 @@
 """
 CASCABEL
-Version: 4.0
+Version: 4.1
 Author: Julia Engelmann and Alejandro Abdala
-Last update: 30/07/2019
+Last update: 19/05/2020
 """
 run=config["RUN"]
 
