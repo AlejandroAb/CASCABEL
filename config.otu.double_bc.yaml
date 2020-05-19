@@ -92,16 +92,21 @@ gzip_input: "F"
 #------------------------------------------------------------------------------#
 #                             INPUT FILES                                      #
 #------------------------------------------------------------------------------#
-# There are two ways to initialize the required project structure in order to  #
-# run the pipeline. The first one is to use the script init_sample.sh before   #
-# running the pipeline; more info at:                                          #
-# https://github.com/AlejandroAb/CASCABEL/wiki#initialize-structure-for-multiple-libraries 
-# If you are planning to run the pipeline for one single library, you can      #
-# supply all the necessary input files directly into this section and avoid    #
-# running the previous mentioned script.                                       #
-# Here you have to enter the FULL PATH for both: the raw reads and the metadata# 
-# file (barcode mapping file). The metadata file is only needed if you want to #
-# perform demultiplexing.                                                      #
+# To run Cascabel for multiple libraries you can provide an input file, tab    #
+# separated with the following columns:                                        #
+# - Library: Name of the library (this have to match with the values entered   #
+#            in the LIBRARY variable described above).                         #  
+# - Forward reads: Full path to the forward reads.                             #
+# - Reverse reads: Full path to the reverse reads.                             #
+# - metadata:      Full path to the file with the information for              #
+#                  demultiplexing the samples (only if needed).                #
+# The full path of this file should be supplied in the input_files variable,   #
+# otherwise, you have to enter the FULL PATH for both: the raw reads and the   #
+# metadata file (barcode mapping file). The metadata file is only needed if    #
+# you want to perform demultiplexing.                                          #
+# If you want to avoid the creation of this file a third solution is available #
+# using the script init_sample.sh. More info at the project Wiki:              #
+# https://github.com/AlejandroAb/CASCABEL/wiki#21-input-files                  #
 #                                                                              #
 #-----------------------------       PARAMS       -----------------------------#
 #                                                                              #
@@ -109,10 +114,17 @@ gzip_input: "F"
 # - rw_reads:  Full path to the raw reads in reverse direction (R2)            #
 # - metadata:  Full path to the metadata file with barcodes for each sample    #
 #              to perform library demultiplexing                               #
+# - input_files: Full path to a file with the information for the library(s)   #
+#                                                                              #
+# ** Please supply only one of the following:                                  #
+#     - fw_reads, rv_reads and metadata                                        #
+#     - input_files                                                            #
+#     - or use init_sample.sh script directly                                  #
 #------------------------------------------------------------------------------#
 fw_reads: ""
 rv_reads: ""
 metadata: ""
+input_files: ""
 
 ################################################################################
 #                          REPORT PARAMETER SECTION                            #

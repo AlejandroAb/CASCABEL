@@ -35,7 +35,7 @@ rule all:
         #expand("{PROJECT}/runs/{run}/report_"+config["assignTaxonomy"]["tool"]+".zip", PROJECT=config["PROJECT"],sample=config["LIBRARY"], run=run)
 
 
-if len(config["LIBRARY"])==1 and config["demultiplexing"]["demultiplex"] == "T":
+if len(config["LIBRARY"])==1 and config["demultiplexing"]["demultiplex"] == "T" and len(config["input_files"])<2:
     rule init_structure:
         input:
             fw = config["fw_reads"],
@@ -47,7 +47,7 @@ if len(config["LIBRARY"])==1 and config["demultiplexing"]["demultiplex"] == "T":
             metadata="{PROJECT}/metadata/sampleList_mergedBarcodes_{sample}.txt"
         shell:
             "Scripts/init_sample.sh "+config["PROJECT"]+" "+config["LIBRARY"][0]+" {input.metadata} {input.fw} {input.rv}"
-elif len(config["LIBRARY"])==1 and config["demultiplexing"]["demultiplex"] == "F":
+elif len(config["LIBRARY"])==1 and config["demultiplexing"]["demultiplex"] == "F" and len(config["input_files"])<2:
     rule init_structure:
         input:
             fw = config["fw_reads"],
@@ -57,6 +57,27 @@ elif len(config["LIBRARY"])==1 and config["demultiplexing"]["demultiplex"] == "F
             r2="{PROJECT}/samples/{sample}/rawdata/rv.fastq" if config["gzip_input"] == "F" else "{PROJECT}/samples/{sample}/rawdata/rv.fastq.gz"
         shell:
             "Script/init_sample_dmx.sh "+config["PROJECT"]+" "+config["LIBRARY"][0]+"  {input.fw} {input.rv}"
+
+elif config["demultiplexing"]["demultiplex"] == "T":
+    rule init_structure:
+        input:
+            file_list = config["input_files"]
+        output:
+            r1="{PROJECT}/samples/{sample}/rawdata/fw.fastq"  if config["gzip_input"] == "F" else "{PROJECT}/samples/{sample}/rawdata/fw.fastq.gz",
+            r2="{PROJECT}/samples/{sample}/rawdata/rv.fastq"  if config["gzip_input"] == "F" else "{PROJECT}/samples/{sample}/rawdata/rv.fastq.gz",
+            metadata="{PROJECT}/metadata/sampleList_mergedBarcodes_{sample}.txt"
+        script:
+            "Scripts/init_sample.py"
+
+else: 
+    rule init_structure:
+        input:
+            file_list = config["input_files"]
+        output:
+            r1="{PROJECT}/samples/{sample}/rawdata/fw.fastq"  if config["gzip_input"] == "F" else "{PROJECT}/samples/{sample}/rawdata/fw.fastq.gz",
+            r2="{PROJECT}/samples/{sample}/rawdata/rv.fastq"  if config["gzip_input"] == "F" else "{PROJECT}/samples/{sample}/rawdata/rv.fastq.gz"
+        script:
+            "Scripts/init_sample.py"
 #First we run fastQC over the rawdata
 rule fast_qc:
     input:

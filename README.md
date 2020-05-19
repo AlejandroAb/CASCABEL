@@ -117,7 +117,7 @@ Thanks for your understanding!
 **Main expected output files for downstream analysis**
 
 + Demultiplexed and trimmed reads
-+ OTU table
++ OTU or ASV table
 + Representative sequences fasta file
 + Taxonomy OTU assignation
 + Taxonomy summary
@@ -151,17 +151,34 @@ LIBRARY: ["EXP1"]
 #------------------------------------------------------------------------------#
 #                             INPUT FILES                                      #
 #------------------------------------------------------------------------------#
-# Here you have to enter the FULL PATH for both: the raw reads and the metadata# 
-# file (barcode mapping file). The metadata file is only needed if you want to #
-# perform demultiplexing.                                                      #
+# To run Cascabel for multiple libraries you can provide an input file, tab    #
+# separated with the following columns:                                        #
+# - Library: Name of the library (this have to match with the values entered   #
+#            in the LIBRARY variable described above).                         #  
+# - Forward reads: Full path to the forward reads.                             #
+# - Reverse reads: Full path to the reverse reads.                             #
+# - metadata:      Full path to the file with the information for              #
+#                  demultiplexing the samples (only if needed).                #
+# The full path of this file should be supplied in the input_files variable,   #
+# otherwise, you have to enter the FULL PATH for both: the raw reads and the   #
+# metadata file (barcode mapping file). The metadata file is only needed if    #
+# you want to perform demultiplexing.                                          #
 # - fw_reads:  Full path to the raw reads in forward direction (R1)            #
 # - rw_reads:  Full path to the raw reads in reverse direction (R2)            #
 # - metadata:  Full path to the metadata file with barcodes for each sample    #
 #              to perform library demultiplexing                               #
+# - input_files: Full path to a file with the information for the library or   #
+#                multiple libraries                                            #
+#                                                                              #
+# ** Please supply only one of the following:                                  #
+#     - fw_reads, rv_reads and metadata                                        #
+#     - input_files                                                            #
 #------------------------------------------------------------------------------#
 fw_reads: "/full/path/to/forward.reads.fq"
 rv_reads: "/full/path/to/reverse.reads.fq"
 metadata: "/full/path/to/metadata.barcodes.txt"
+#or
+input_files: "/full/path/to/input_reference.txt"
 
 #------------------------------------------------------------------------------#
 #                               RUN                                            #
@@ -197,7 +214,7 @@ ANALYSIS_TYPE: "OTU"
 
 </code></pre>
 
-_If you need to run CASCABEL for multiple libraries please follow this [instructions](../../wiki#22-initialize-structure-for-multiple-libraries)_
+_For more information about how to supply  this [instructions](../../wiki#22-initialize-structure-for-multiple-libraries)_
 
 As you can see on the previous fragment of the configuration file (config.yaml), the required parameters for CASCABEL to start are: *PROJECT*, *LIBRARY*, *RUN*,  *fw_reads*, *rv_reads* and *metadata*. After entering these parameters, take some minutes and go through the rest of the config file and overwrite settings according to your needs. Most values are already pre-configured. The config file explains itself by using meaningful headers before each rule, explaining the aim of such rule and the different parameters the user can use. It is very important to keep the indentation of the file (don’t change the tabs
 and spaces), as well as the name of the parameters. Once that you have valid values for these entries, you are ready to run the pipeline (before start CASCABEL always is a good practice to make a ["dry run"](../../wiki#31-dry-run)):

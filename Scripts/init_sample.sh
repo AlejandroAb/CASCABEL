@@ -1,5 +1,5 @@
 #!/bin/bash
-#needs 3 arguments
+#needs 5 arguments
 #$1 name of the project
 #$2 name of the sample
 #$3 metadata
@@ -27,7 +27,7 @@ if [[ $5 == ../* ]]; then
     exit 1
 fi
 
-#-f para files
+#-f for files
 
 if [ ! -d "$1" ]; then
     mkdir $1
