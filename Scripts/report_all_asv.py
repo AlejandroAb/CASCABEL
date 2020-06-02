@@ -61,17 +61,17 @@ convertOtuBenchmark = readBenchmark(snakemake.wildcards.PROJECT+"/runs/"+snakema
 summTaxaBenchmark = readBenchmark(snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/otu/taxonomy_"+snakemake.config["assignTaxonomy"]["tool"]+"/summary/summarize_taxa.benchmark")
 asvNoSingletonsBenchmark = readBenchmark(snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/asv/taxonomy_dada2/asvTable_nosingletons.bio.benchmark")
 filterASVTableBenchmark =  readBenchmark(snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/asv/taxonomy_dada2/asvTable_nosingletons.txt.benchmark")
-#filterBenchmark = readBenchmark(snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/otu/taxonomy_"+snakemake.config["assignTaxonomy"]["tool"]+"/representative_seq_set_noSingletons.benchmark")
+filterBenchmark = readBenchmark(snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/asv/taxonomy_dada2/representative_seq_set_noSingletons.benchmark")
 deRepBenchmark=""
 #if  snakemake.config["derep"]["dereplicate"] == "T" and  snakemake.config["pickOTU"]["m"] != "swarm" and  snakemake.config["pickOTU"]["m"] != "usearch":
 #    deRepBenchmark = readBenchmark(snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/derep/derep.benchmark")
-#if snakemake.config["alignRep"]["align"] == "T":
+if snakemake.config["alignRep"]["align"] == "T":
     #align_seqs.py -m {config[alignRep][m]} -i {input} -o {params.outdir} {config[alignRep][extra_params]}
-#    alignBenchmark = readBenchmark(snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/otu/taxonomy_"+snakemake.config["assignTaxonomy"]["tool"]+"/aligned/align_rep_seqs.benchmark")
+    alignBenchmark = readBenchmark(snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/asv/taxonomy_dada2/aligned/align_rep_seqs.benchmark")
     #"filter_alignment.py -i {input} -o {params.outdir} {config[filterAlignment][extra_params]}"
-#    alignFilteredBenchmark = readBenchmark(snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/otu/taxonomy_"+snakemake.config["assignTaxonomy"]["tool"]+"/aligned/filtered/align_rep_seqs.benchmark")
+    alignFilteredBenchmark = readBenchmark(snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/asv/taxonomy_dada2/aligned/filtered/align_rep_seqs.benchmark")
     #"make_phylogeny.py -i {input} -o {output} {config[makeTree][extra_params]}"
- #   makePhyloBenchmark = readBenchmark(snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/otu/taxonomy_"+snakemake.config["assignTaxonomy"]["tool"]+"/aligned/filtered/representative_seq_set_noSingletons_aligned_pfiltered.benchmark")
+    makePhyloBenchmark = readBenchmark(snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/asv/taxonomy_dada2/aligned/filtered/representative_seq_set_noSingletons_aligned_pfiltered.benchmark")
 kronaBenchmark=""
 if snakemake.config["krona"]["report"].casefold() == "t" or snakemake.config["krona"]["report"].casefold() == "true":
     kronaBenchmark = readBenchmark(snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/otu/taxonomy_"+snakemake.config["assignTaxonomy"]["tool"]+"/krona_report.benchmark")
@@ -125,20 +125,20 @@ rscriptVersion = "**" + filterFastaV.stdout.decode('utf-8').strip() + "**"
 #    vsearchV = subprocess.run([snakemake.config["derep"]["vsearch_cmd"], '--version'], stdout=subprocess.PIPE)
 #    vsearchVersion = "**" + vsearchV.stdout.decode('utf-8').split('\n', 1)[0].strip() + "**"
 
-#if snakemake.config["alignRep"]["align"] == "T":
-#    alignFastaVersion="TBD"
-#    try:
-#        alignFastaV = subprocess.run([snakemake.config["qiime"]["path"]+'align_seqs.py', '--version'], stdout=subprocess.PIPE)
-#        if "Version" in alignFastaVersion:
-#            alignFastaVersion = "**" + alignFastaV.stdout.decode('utf-8').replace('Version: ','').strip() + "**"
-#    except Exception as e:
-#        alignFastaVersion = "**Problem retriving the version**"
+if snakemake.config["alignRep"]["align"] == "T":
+    alignFastaVersion="TBD"
+    try:
+        alignFastaV = subprocess.run([snakemake.config["qiime"]["path"]+'align_seqs.py', '--version'], stdout=subprocess.PIPE)
+        if "Version" in alignFastaVersion:
+            alignFastaVersion = "**" + alignFastaV.stdout.decode('utf-8').replace('Version: ','').strip() + "**"
+    except Exception as e:
+        alignFastaVersion = "**Problem retriving the version**"
 
-#    filterAlignmentV = subprocess.run([snakemake.config["qiime"]["path"]+'filter_alignment.py', '--version'], stdout=subprocess.PIPE)
- #   filterAlignmentVersion = "**" + filterAlignmentV.stdout.decode('utf-8').replace('Version:','').strip() + "**"
+    filterAlignmentV = subprocess.run([snakemake.config["qiime"]["path"]+'filter_alignment.py', '--version'], stdout=subprocess.PIPE)
+    filterAlignmentVersion = "**" + filterAlignmentV.stdout.decode('utf-8').replace('Version:','').strip() + "**"
 
- #   makePhyloV = subprocess.run([snakemake.config["qiime"]["path"]+'make_phylogeny.py', '--version'], stdout=subprocess.PIPE)
- #   makePhyloVersion = "**" + makePhyloV.stdout.decode('utf-8').replace('Version:','').strip() + "**"
+    makePhyloV = subprocess.run([snakemake.config["qiime"]["path"]+'make_phylogeny.py', '--version'], stdout=subprocess.PIPE)
+    makePhyloVersion = "**" + makePhyloV.stdout.decode('utf-8').replace('Version:','').strip() + "**"
 
 
 ################################################################################
@@ -512,18 +512,18 @@ elif snakemake.config["assignTaxonomy"]["tool"] == "vsearch":
 
 #Alignment report
 alignmentReport = ""
-if snakemake.config["alignRep"]["align"] == "NOT_NOW":
+if snakemake.config["alignRep"]["align"] == "T":
     alignmentReport = "\nAlign representative sequences\n-------------------------------\n\n"
     alignmentReport+="Align the sequences in a FASTA file to each other or to a template sequence alignment.\n\n"
     alignmentReport+=":red:`Tool:` [QIIME]_ - align_seqs.py\n\n"
     alignmentReport+=":red:`Version:` "+alignFastaVersion +"\n\n"
     alignmentReport+=":green:`Method:` ["+ snakemake.config["alignRep"]["m"] + "]_\n\n"
     alignmentReport+="**Command:**\n\n"
-    alignmentReport+=":commd:`align_seqs.py -m "+snakemake.config["alignRep"]["m"] +" -i "+ snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/otu/"+snakemake.config["assignTaxonomy"]["tool"]+"/representative_seq_set_noSingletons.fasta "+ snakemake.config["alignRep"]["extra_params"] + " -o "
-    alignmentReport+=snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/otu/taxonomy_"+snakemake.config["assignTaxonomy"]["tool"]+"/aligned/representative_seq_set_noSingletons_aligned.fasta`\n\n"
+    alignmentReport+=":commd:`align_seqs.py -m "+snakemake.config["alignRep"]["m"] +" -i "+ snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/asv/dada2/representative_seq_set_noSingletons.fasta "+ snakemake.config["alignRep"]["extra_params"] + " -o "
+    alignmentReport+=snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/asv/taxonomy_dada2/aligned/representative_seq_set_noSingletons_aligned.fasta`\n\n"
     alignmentReport+="**Output files:**\n\n"
-    alignmentReport+=":green:`- Aligned fasta file:` "+snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/otu/taxonomy_"+snakemake.config["assignTaxonomy"]["tool"]+"/aligned/representative_seq_set_noSingletons_aligned.fasta\n\n"
-    alignmentReport+=":green:`- Log file:` "+snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/otu/taxonomy_"+snakemake.config["assignTaxonomy"]["tool"]+"/aligned/representative_seq_set_noSingletons_log.txt\n\n"
+    alignmentReport+=":green:`- Aligned fasta file:` "+snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/asv/taxonomy_dada2/aligned/representative_seq_set_noSingletons_aligned.fasta\n\n"
+    alignmentReport+=":green:`- Log file:` "+snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/asv/taxonomy_dada2/aligned/representative_seq_set_noSingletons_log.txt\n\n"
     alignmentReport+=alignBenchmark+"\n\n"
 
     alignmentReport+="Filter alignment\n-----------------\n\n"
@@ -531,10 +531,10 @@ if snakemake.config["alignRep"]["align"] == "NOT_NOW":
     alignmentReport+=":red:`Tool:` [QIIME]_ - filter_alignment.py\n\n"
     alignmentReport+=":red:`Version:` "+filterAlignmentVersion +"\n\n"
     alignmentReport+="**Command:**\n\n"
-    alignmentReport+=":commd:`filter_alignment.py -i  "+snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/otu/taxonomy_"+snakemake.config["assignTaxonomy"]["tool"]+"/aligned/representative_seq_set_noSingletons_aligned.fasta " +snakemake.config["filterAlignment"]["extra_params"]
-    alignmentReport+=" -o  "+snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/otu/taxonomy_"+snakemake.config["assignTaxonomy"]["tool"]+"/aligned/filtered/`\n\n"
+    alignmentReport+=":commd:`filter_alignment.py -i  "+snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/asv/taxonomy_dada2/aligned/representative_seq_set_noSingletons_aligned.fasta " +snakemake.config["filterAlignment"]["extra_params"]
+    alignmentReport+=" -o  "+snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/asv/taxonomy_dada2/aligned/filtered/`\n\n"
     alignmentReport+="**Output file:**\n\n"
-    alignmentReport+=":green:`- Aligned fasta file:` "+snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/otu/taxonomy_"+snakemake.config["assignTaxonomy"]["tool"]+"/aligned/representative_seq_set_noSingletons_aligned_pfiltered.fasta\n\n"
+    alignmentReport+=":green:`- Aligned fasta file:` "+snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/asv/taxonomy_dada2/aligned/representative_seq_set_noSingletons_aligned_pfiltered.fasta\n\n"
     alignmentReport+=alignFilteredBenchmark+"\n\n"
 
     alignmentReport+="Make tree\n-----------\n\n"
@@ -543,9 +543,9 @@ if snakemake.config["alignRep"]["align"] == "NOT_NOW":
     alignmentReport+=":red:`Version:` "+makePhyloVersion +"\n\n"
     alignmentReport+=":green:`Method:` ["+ snakemake.config["makeTree"]["method"] + "]_\n\n"
     alignmentReport+="**Command:**\n\n"
-    alignmentReport+=":commd:`make_phylogeny.py -i "+snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/otu/taxonomy_"+snakemake.config["assignTaxonomy"]["tool"]+"/aligned/representative_seq_set_noSingletons_aligned.fasta -o representative_seq_set_noSingletons_aligned_pfiltered.tre "+ snakemake.config["makeTree"]["extra_params"]+ " -t " + snakemake.config["makeTree"]["method"]+"`\n\n"
+    alignmentReport+=":commd:`make_phylogeny.py -i "+snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/asv/taxonomy_dada2/aligned/representative_seq_set_noSingletons_aligned.fasta -o representative_seq_set_noSingletons_aligned_pfiltered.tre "+ snakemake.config["makeTree"]["extra_params"]+ " -t " + snakemake.config["makeTree"]["method"]+"`\n\n"
     alignmentReport+="**Output file:**\n\n"
-    alignmentReport+=":green:`- Taxonomy tree:` "+snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/otu/taxonomy_"+snakemake.config["assignTaxonomy"]["tool"]+"/aligned/representative_seq_set_noSingletons_aligned.tre\n\n"
+    alignmentReport+=":green:`- Taxonomy tree:` "+snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/asv/taxonomy_dada2/aligned/representative_seq_set_noSingletons_aligned.tre\n\n"
     alignmentReport+=makePhyloBenchmark+"\n\n"
 #KRONA REPORT
 kronaReport = ""
@@ -582,19 +582,20 @@ if  snakemake.config["krona"]["report"].casefold() == "t" or snakemake.config["k
 variable_refs+= ".. [dada2] Callahan BJ, McMurdie PJ, Rosen MJ, Han AW, Johnson AJA, Holmes SP (2016). DADA2: High-resolution sample inference from Illumina amplicon data. Nature Methods, 13, 581-583. doi: 10.1038/nmeth.3869.\n\n"
 
 #ALIGNMENT
-#if snakemake.config["alignRep"]["m"] == "pynast":
-#    variable_refs+= ".. [pynast] Caporaso JG, Bittinger K, Bushman FD, DeSantis TZ, Andersen GL, Knight R. 2010. PyNAST: a flexible tool for aligning sequences to a template alignment. Bioinformatics 26:266-267.\n\n"
-#elif snakemake.config["alignRep"]["m"] == "infernal":
-#    variable_refs+= ".. [infernal] Nawrocki EP, Kolbe DL, Eddy SR. 2009. Infernal 1.0: Inference of RNA alignments. Bioinformatics 25:1335-1337.\n\n"
+if snakemake.config["alignRep"]["align"] == "T":
+    if snakemake.config["alignRep"]["m"] == "pynast":
+        variable_refs+= ".. [pynast] Caporaso JG, Bittinger K, Bushman FD, DeSantis TZ, Andersen GL, Knight R. 2010. PyNAST: a flexible tool for aligning sequences to a template alignment. Bioinformatics 26:266-267.\n\n"
+    elif snakemake.config["alignRep"]["m"] == "infernal":
+        variable_refs+= ".. [infernal] Nawrocki EP, Kolbe DL, Eddy SR. 2009. Infernal 1.0: Inference of RNA alignments. Bioinformatics 25:1335-1337.\n\n"
 
-#if snakemake.config["makeTree"]["method"] == "fasttree":
-#    variable_refs+= ".. [fasttree] Price MN, Dehal PS, Arkin AP. 2010. FastTree 2-Approximately Maximum-Likelihood Trees for Large Alignments. Plos One 5(3).\n\n"
-#elif snakemake.config["makeTree"]["method"] == "raxml":
-#    variable_refs+= "..[raxml] Stamatakis A. 2006. RAxML-VI-HPC: Maximum Likelihood-based Phylogenetic Analyses with Thousands of Taxa and Mixed Models. Bioinformatics 22(21):2688-2690.\n\n"
-#elif snakemake.config["makeTree"]["method"] == "clearcut":
-#    variable_refs+= "..[clearcut] Evans J, Sheneman L, Foster JA. 2006. Relaxed Neighbor-Joining: A Fast Distance-Based Phylogenetic Tree Construction Method. J Mol Evol 62:785-792.\n\n"
-#elif snakemake.config["makeTree"]["method"] == "clustalw":
-#    variable_refs+= "..[clustalw] Larkin MA, Blackshields G, Brown NP, Chenna R, McGettigan PA, McWilliam H, Valentin F, Wallace IM, Wilm A, Lopez R, Thompson JD, Gibson TJ, Higgins DG. 2007. Clustal W and Clustal X version 2.0. Bioinformatics 23:2947-2948.\n\n"
+    if snakemake.config["makeTree"]["method"] == "fasttree":
+        variable_refs+= ".. [fasttree] Price MN, Dehal PS, Arkin AP. 2010. FastTree 2-Approximately Maximum-Likelihood Trees for Large Alignments. Plos One 5(3).\n\n"
+    elif snakemake.config["makeTree"]["method"] == "raxml":
+        variable_refs+= "..[raxml] Stamatakis A. 2006. RAxML-VI-HPC: Maximum Likelihood-based Phylogenetic Analyses with Thousands of Taxa and Mixed Models. Bioinformatics 22(21):2688-2690.\n\n"
+    elif snakemake.config["makeTree"]["method"] == "clearcut":
+        variable_refs+= "..[clearcut] Evans J, Sheneman L, Foster JA. 2006. Relaxed Neighbor-Joining: A Fast Distance-Based Phylogenetic Tree Construction Method. J Mol Evol 62:785-792.\n\n"
+    elif snakemake.config["makeTree"]["method"] == "clustalw":
+        variable_refs+= "..[clustalw] Larkin MA, Blackshields G, Brown NP, Chenna R, McGettigan PA, McWilliam H, Valentin F, Wallace IM, Wilm A, Lopez R, Thompson JD, Gibson TJ, Higgins DG. 2007. Clustal W and Clustal X version 2.0. Bioinformatics 23:2947-2948.\n\n"
 
 ########
 # EXTRA
@@ -852,6 +853,8 @@ Remove sequences according to the filtered OTU biom table.
 
 :green:`- Filtered fasta file:` {snakemake.wildcards.PROJECT}/samples/{snakemake.wildcards.run}/asv/taxonomy_dada2/representative_seq_set_noSingletons.fasta
 
+
+{alignmentReport}
 
 {kronaReport}
 

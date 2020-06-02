@@ -1130,9 +1130,8 @@ filterFasta:
   extra_params: ""
 
 #------------------------------------------------------------------------------#
-# OTU_WF:                      Align representative sequences                  #
+# BOTH_WF:                     Align representative sequences                  #
 # rule: align_rep_seqs                                                         #
-# To be implemented within ASV_WF                                              #
 #------------------------------------------------------------------------------#
 # This rule aligns sequences in a fasta file to each other or to a template    #
 # sequence alignment, depending on the method chosen.                          #
@@ -1148,20 +1147,19 @@ filterFasta:
 #                  options.                                                    #
 #------------------------------------------------------------------------------#
 alignRep:
-  align: "F"
+  align: "T"
   m: "pynast"
   extra_params: ""
 
 #------------------------------------------------------------------------------#
-# OTU_WF:                   Filter Alignment                                   #
+# BOTH_WF:                   Filter Alignment                                  #
 # rule: filter_alignment                                                       #
-# To be implemented within ASV_WF                                              #
 #------------------------------------------------------------------------------#
 # This rule will remove positions which are gaps in every sequence.            #
 # Additionally, the user can supply a lanemask file, that defines which        #
 # positions should be included when building the tree, and which should be     #
 # ignored.                                                                     #
-#                                                                              #
+# This rule, only runs if [alignRep][align] is equal to true "T"               #
 #-----------------------------       PARAMS       -----------------------------#
 #                                                                              #
 # - extra_params: Any extra desired parameter. Run 'filter_alignment.py --help'# 
@@ -1171,11 +1169,11 @@ filterAlignment:
   extra_params: ""
 
 #------------------------------------------------------------------------------#
-# OTU_WF:                   make phylogeny                                     #
+# BOTH_WF:                  make phylogeny                                     #
 # rule: make_tree                                                              #
-# To be implemented within ASV_WF                                              #
 #------------------------------------------------------------------------------#
 # This rule produces a phylogenetic tree from a multiple sequence alignment.   # 
+# This rule, only runs if [alignRep][align] is equal to true "T"               #
 #                                                                              #
 #-----------------------------       PARAMS       -----------------------------#
 #                                                                              #

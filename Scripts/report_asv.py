@@ -187,43 +187,43 @@ createChart(numbers, tuple(labels),snakemake.wildcards.PROJECT+"/runs/"+snakemak
 #                          Chimera check                                       #
 ################################################################################
 variable_refs=""
-if snakemake.config["chimera"]["search"] == "T" and snakemake.config["chimera"]["method"] == "usearch61":
-    variable_refs+= ".. [usearch61] Edgar RC. 2010. Search and clustering orders of magnitude faster than BLAST. Bioinformatics 26(19):2460-2461.\n\n"
-else: 
-    variable_refs+= ".. [uchime] Edgar RC, Haas BJ, Clemente JC, Quince C, Knight R (2011) UCHIME improves sensitivity and speed of chimera detection. Bioinformatics, 27 (16): 2194-2200. doi:10.1093/bioinformatics/btr381. \n\n"
+#if snakemake.config["chimera"]["search"] == "T" and snakemake.config["chimera"]["method"] == "usearch61":
+#    variable_refs+= ".. [usearch61] Edgar RC. 2010. Search and clustering orders of magnitude faster than BLAST. Bioinformatics 26(19):2460-2461.\n\n"
+#else: 
+#    variable_refs+= ".. [uchime] Edgar RC, Haas BJ, Clemente JC, Quince C, Knight R (2011) UCHIME improves sensitivity and speed of chimera detection. Bioinformatics, 27 (16): 2194-2200. doi:10.1093/bioinformatics/btr381. \n\n"
 quimeraStr = ""
-if snakemake.config["chimera"]["search"] == "T":
-    quimeraStr="Identify Chimera\n-------------------\n\n"
-    quimeraStr+="Identify possible chimeric sequences (sequences generated due to the PCR amplification of multiple templates or parent sequences).\n\n"
-    if snakemake.config["chimera"]["method"] == "usearch61":
-        quimeraStr += ":red:`Tool:` [QIIME]_ - identify_chimeric_seqs.py\n\n"
-        quimeraStr += ":red:`Version:` "+ icVersion +"\n\n"
-        quimeraStr += ":red:`Method:` [usearch61]_ \n\n"
-    else:
-        quimeraStr += ":red:`Tool:` [Vsearch]_ - vsearch\n\n"
-        quimeraStr += ":red:`Version:` "+ vsearchVersion +"\n\n"        
-        quimeraStr += ":red:`Method:` "+ str(snakemake.config["chimera"]["method"]) +" - uses [uchime]_ \n\n"    
-    quimeraStr += "**Command:**\n\n"
-    if snakemake.config["chimera"]["method"] == "usearch61":
-         quimeraStr+=":commd:`identify_chimeric_seqs.py -m "+ str(snakemake.config["chimera"]["method"])+" -i "+ str(snakemake.wildcards.PROJECT)+"/runs/"+str(snakemake.wildcards.run)+"/"+str(snakemake.wildcards.sample)+"_data/seqs_fw_rev_accepted.fna "+str(snakemake.config["chimera"]["extra_params"])
-         quimeraStr+=" -o "+ str(snakemake.wildcards.PROJECT)+"/runs/"+str(snakemake.wildcards.run)+"/"+str(snakemake.wildcards.sample)+"_data/chimera/` \n\n"
-    else:
-         quimeraStr+=":commd:`vsearch --"+ str(snakemake.config["chimera"]["method"])+" "+ str(snakemake.wildcards.PROJECT)+"/runs/"+str(snakemake.wildcards.run)+"/"+str(snakemake.wildcards.sample)+"_data/seqs_fw_rev_accepted.fna --threads "+ str(snakemake.config["chimera"]["threads"]) +" " +str(snakemake.config["chimera"]["extra_params"])   
-         quimeraStr+=" --uchimeout "+ str(snakemake.wildcards.PROJECT)+"/runs/"+str(snakemake.wildcards.run)+"/"+str(snakemake.wildcards.sample)+"_data/chimera/chimeras.summary.txt` \n\n"
-    quimeraStr+="**Output files:**\n\n"
-    if snakemake.config["chimera"]["method"] == "usearch61":
-        quimeraStr+=":green:`- File with the possible chimeric sequences:` "+str(snakemake.wildcards.PROJECT)+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/chimera/chimeras.txt\n\n"
-    else:
-        quimeraStr+=":green:`- File with the possible chimeric sequences:` "+str(snakemake.wildcards.PROJECT)+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/chimera/chimeras.summary.txt\n\n"
-    identifyChimeraBench=readBenchmark(snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/chimera/chimera.benchmark")
-    quimeraStr+=identifyChimeraBench
-    quimeraStr+=chimera_log
-    if removeChimeras:
-        quimeraStr+=":red:`Reads after remove chimeric sequences:` "+ str(sequenceNoChimeras)+"\n\n"
-        quimeraStr+=":red:`Percentage of reads vs raw reads:` "+ str(prcChimRaw) + "%\n\n"
-        quimeraStr+=":red:`Percentage of reads vs demultiplexed reads:` "+ str(prcChim) + "%\n\n"
-        if cutSequences:
-            quimeraStr+=":red:`Percentage of reads vs cutadapt:` "+ str(prcChimRaw) + "%\n\n"
+#if snakemake.config["chimera"]["search"] == "T":
+#    quimeraStr="Identify Chimera\n-------------------\n\n"
+#    quimeraStr+="Identify possible chimeric sequences (sequences generated due to the PCR amplification of multiple templates or parent sequences).\n\n"
+#    if snakemake.config["chimera"]["method"] == "usearch61":
+#        quimeraStr += ":red:`Tool:` [QIIME]_ - identify_chimeric_seqs.py\n\n"
+#        quimeraStr += ":red:`Version:` "+ icVersion +"\n\n"
+#        quimeraStr += ":red:`Method:` [usearch61]_ \n\n"
+#    else:
+#        quimeraStr += ":red:`Tool:` [Vsearch]_ - vsearch\n\n"
+#        quimeraStr += ":red:`Version:` "+ vsearchVersion +"\n\n"        
+#        quimeraStr += ":red:`Method:` "+ str(snakemake.config["chimera"]["method"]) +" - uses [uchime]_ \n\n"    
+#    quimeraStr += "**Command:**\n\n"
+#    if snakemake.config["chimera"]["method"] == "usearch61":
+#         quimeraStr+=":commd:`identify_chimeric_seqs.py -m "+ str(snakemake.config["chimera"]["method"])+" -i "+ str(snakemake.wildcards.PROJECT)+"/runs/"+str(snakemake.wildcards.run)+"/"+str(snakemake.wildcards.sample)+"_data/seqs_fw_rev_accepted.fna "+str(snakemake.config["chimera"]["extra_params"])
+#         quimeraStr+=" -o "+ str(snakemake.wildcards.PROJECT)+"/runs/"+str(snakemake.wildcards.run)+"/"+str(snakemake.wildcards.sample)+"_data/chimera/` \n\n"
+#    else:
+#         quimeraStr+=":commd:`vsearch --"+ str(snakemake.config["chimera"]["method"])+" "+ str(snakemake.wildcards.PROJECT)+"/runs/"+str(snakemake.wildcards.run)+"/"+str(snakemake.wildcards.sample)+"_data/seqs_fw_rev_accepted.fna --threads "+ str(snakemake.config["chimera"]["threads"]) +" " +str(snakemake.config["chimera"]["extra_params"])   
+#         quimeraStr+=" --uchimeout "+ str(snakemake.wildcards.PROJECT)+"/runs/"+str(snakemake.wildcards.run)+"/"+str(snakemake.wildcards.sample)+"_data/chimera/chimeras.summary.txt` \n\n"
+#    quimeraStr+="**Output files:**\n\n"
+#    if snakemake.config["chimera"]["method"] == "usearch61":
+#        quimeraStr+=":green:`- File with the possible chimeric sequences:` "+str(snakemake.wildcards.PROJECT)+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/chimera/chimeras.txt\n\n"
+#    else:
+#        quimeraStr+=":green:`- File with the possible chimeric sequences:` "+str(snakemake.wildcards.PROJECT)+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/chimera/chimeras.summary.txt\n\n"
+#    identifyChimeraBench=readBenchmark(snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/chimera/chimera.benchmark")
+#    quimeraStr+=identifyChimeraBench
+#    quimeraStr+=chimera_log
+#    if removeChimeras:
+#        quimeraStr+=":red:`Reads after remove chimeric sequences:` "+ str(sequenceNoChimeras)+"\n\n"
+#        quimeraStr+=":red:`Percentage of reads vs raw reads:` "+ str(prcChimRaw) + "%\n\n"
+#        quimeraStr+=":red:`Percentage of reads vs demultiplexed reads:` "+ str(prcChim) + "%\n\n"
+#        if cutSequences:
+#            quimeraStr+=":red:`Percentage of reads vs cutadapt:` "+ str(prcChimRaw) + "%\n\n"
 
 
 

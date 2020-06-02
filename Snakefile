@@ -1,8 +1,8 @@
 """
 CASCABEL
-Version: 4.1
+Version: 4.2
 Author: Julia Engelmann and Alejandro Abdala
-Last update: 19/05/2020
+Last update: 28/05/2020
 """
 run=config["RUN"]
 
@@ -886,6 +886,7 @@ else:
 
 #Dereplicate
 if config["derep"]["dereplicate"] == "T" and config["pickOTU"]["m"] != "swarm" and config["pickOTU"]["m"] != "usearch":
+#here make two steps
     rule dereplicate:
         input:
             "{PROJECT}/runs/{run}/seqs_fw_rev_combined.fasta"
@@ -1243,6 +1244,8 @@ rule filter_rep_seqs:
          if config["ANALYSIS_TYPE"] == "ASV" else
          "{PROJECT}/runs/{run}/otu/taxonomy_"+config["assignTaxonomy"]["tool"]+"/representative_seq_set_noSingletons.fasta"
     benchmark:
+        "{PROJECT}/runs/{run}/asv/taxonomy_dada2/representative_seq_set_noSingletons.benchmark"
+        if config["ANALYSIS_TYPE"] == "ASV" else
         "{PROJECT}/runs/{run}/otu/taxonomy_"+config["assignTaxonomy"]["tool"]+"/representative_seq_set_noSingletons.benchmark"
     shell:
         "{config[qiime][path]}filter_fasta.py -f {input.fastaRep} -o {output} -b {input.otuNoSingleton} {config[filterFasta][extra_params]}"
@@ -1250,27 +1253,36 @@ if config["alignRep"]["align"] == "T":
 #Align representative sequences
     rule align_rep_seqs:
         input:
-            "{PROJECT}/runs/{run}/otu/taxonomy_"+config["assignTaxonomy"]["tool"]+"/representative_seq_set_noSingletons.fasta"
+            "{PROJECT}/runs/{run}/asv/taxonomy_dada2/representative_seq_set_noSingletons.fasta" if config["ANALYSIS_TYPE"] == "ASV" 
+            else "{PROJECT}/runs/{run}/otu/taxonomy_"+config["assignTaxonomy"]["tool"]+"/representative_seq_set_noSingletons.fasta"
         output:
-            aligned="{PROJECT}/runs/{run}/otu/taxonomy_"+config["assignTaxonomy"]["tool"]+"/aligned/representative_seq_set_noSingletons_aligned.fasta",
-            log="{PROJECT}/runs/{run}/otu/taxonomy_"+config["assignTaxonomy"]["tool"]+"/aligned/representative_seq_set_noSingletons_log.txt"
+            aligned="{PROJECT}/runs/{run}/asv/taxonomy_dada2/aligned/representative_seq_set_noSingletons_aligned.fasta" if config["ANALYSIS_TYPE"] == "ASV"
+            else "{PROJECT}/runs/{run}/otu/taxonomy_"+config["assignTaxonomy"]["tool"]+"/aligned/representative_seq_set_noSingletons_aligned.fasta",
+            log="{PROJECT}/runs/{run}/asv/taxonomy_dada2/aligned/representative_seq_set_noSingletons_log.txt" if config["ANALYSIS_TYPE"] == "ASV"
+            else "{PROJECT}/runs/{run}/otu/taxonomy_"+config["assignTaxonomy"]["tool"]+"/aligned/representative_seq_set_noSingletons_log.txt"
         params:
-            outdir="{PROJECT}/runs/{run}/otu/taxonomy_"+config["assignTaxonomy"]["tool"]+"/aligned/"
+            outdir="{PROJECT}/runs/{run}/asv/taxonomy_dada2/aligned/" if config["ANALYSIS_TYPE"] == "ASV" 
+            else "{PROJECT}/runs/{run}/otu/taxonomy_"+config["assignTaxonomy"]["tool"]+"/aligned/"
         benchmark:
-            "{PROJECT}/runs/{run}/otu/taxonomy_"+config["assignTaxonomy"]["tool"]+"/aligned/align_rep_seqs.benchmark"
+            "{PROJECT}/runs/{run}/asv/taxonomy_dada2/aligned/align_rep_seqs.benchmark" if config["ANALYSIS_TYPE"] == "ASV"
+            else "{PROJECT}/runs/{run}/otu/taxonomy_"+config["assignTaxonomy"]["tool"]+"/aligned/align_rep_seqs.benchmark"
         shell:
             "{config[qiime][path]}align_seqs.py -m {config[alignRep][m]} -i {input} -o {params.outdir} {config[alignRep][extra_params]}"
 
 #This step should be applied to generate a useful tree when aligning against a template alignment (e.g., with PyNAST)
     rule filter_alignment:
         input:
-            "{PROJECT}/runs/{run}/otu/taxonomy_"+config["assignTaxonomy"]["tool"]+"/aligned/representative_seq_set_noSingletons_aligned.fasta"
+            "{PROJECT}/runs/{run}/asv/taxonomy_dada2/aligned/representative_seq_set_noSingletons_aligned.fasta" if config["ANALYSIS_TYPE"] == "ASV"
+            else "{PROJECT}/runs/{run}/otu/taxonomy_"+config["assignTaxonomy"]["tool"]+"/aligned/representative_seq_set_noSingletons_aligned.fasta"
         output:
-            "{PROJECT}/runs/{run}/otu/taxonomy_"+config["assignTaxonomy"]["tool"]+"/aligned/filtered/representative_seq_set_noSingletons_aligned_pfiltered.fasta"
+            "{PROJECT}/runs/{run}/asv/taxonomy_dada2/aligned/filtered/representative_seq_set_noSingletons_aligned_pfiltered.fasta" if config["ANALYSIS_TYPE"] == "ASV"
+            else "{PROJECT}/runs/{run}/otu/taxonomy_"+config["assignTaxonomy"]["tool"]+"/aligned/filtered/representative_seq_set_noSingletons_aligned_pfiltered.fasta"
         params:
-            outdir="{PROJECT}/runs/{run}/otu/taxonomy_"+config["assignTaxonomy"]["tool"]+"/aligned/filtered/"
+            outdir="{PROJECT}/runs/{run}/asv/taxonomy_dada2/aligned/filtered/" if config["ANALYSIS_TYPE"] == "ASV"
+            else "{PROJECT}/runs/{run}/otu/taxonomy_"+config["assignTaxonomy"]["tool"]+"/aligned/filtered/"
         benchmark:
-            "{PROJECT}/runs/{run}/otu/taxonomy_"+config["assignTaxonomy"]["tool"]+"/aligned/filtered/align_rep_seqs.benchmark"
+            "{PROJECT}/runs/{run}/asv/taxonomy_dada2/aligned/filtered/align_rep_seqs.benchmark"  if config["ANALYSIS_TYPE"] == "ASV"
+            else "{PROJECT}/runs/{run}/otu/taxonomy_"+config["assignTaxonomy"]["tool"]+"/aligned/filtered/align_rep_seqs.benchmark"
         shell:
             "{config[qiime][path]}filter_alignment.py -i {input} -o {params.outdir} {config[filterAlignment][extra_params]}"
 
@@ -1278,26 +1290,29 @@ if config["alignRep"]["align"] == "T":
 #The script make_phylogeny.py produces this tree from a multiple sequence alignment
     rule make_tree:
         input:
-            "{PROJECT}/runs/{run}/otu/taxonomy_"+config["assignTaxonomy"]["tool"]+"/aligned/filtered/representative_seq_set_noSingletons_aligned_pfiltered.fasta"
+            "{PROJECT}/runs/{run}/asv/taxonomy_dada2/aligned/filtered/representative_seq_set_noSingletons_aligned_pfiltered.fasta" if config["ANALYSIS_TYPE"] == "ASV"
+            else "{PROJECT}/runs/{run}/otu/taxonomy_"+config["assignTaxonomy"]["tool"]+"/aligned/filtered/representative_seq_set_noSingletons_aligned_pfiltered.fasta"
         output:
-            "{PROJECT}/runs/{run}/otu/taxonomy_"+config["assignTaxonomy"]["tool"]+"/aligned/filtered/representative_seq_set_noSingletons_aligned_pfiltered.tre"
+            "{PROJECT}/runs/{run}/asv/taxonomy_dada2/aligned/filtered/representative_seq_set_noSingletons_aligned_pfiltered.tre" if config["ANALYSIS_TYPE"] == "ASV"
+            else "{PROJECT}/runs/{run}/otu/taxonomy_"+config["assignTaxonomy"]["tool"]+"/aligned/filtered/representative_seq_set_noSingletons_aligned_pfiltered.tre"
         benchmark:
-            "{PROJECT}/runs/{run}/otu/taxonomy_"+config["assignTaxonomy"]["tool"]+"/aligned/filtered/representative_seq_set_noSingletons_aligned_pfiltered.benchmark"
+            "{PROJECT}/runs/{run}/asv/taxonomy_dada2/aligned/filtered/representative_seq_set_noSingletons_aligned_pfiltered.benchmark"  if config["ANALYSIS_TYPE"] == "ASV"
+            else "{PROJECT}/runs/{run}/otu/taxonomy_"+config["assignTaxonomy"]["tool"]+"/aligned/filtered/representative_seq_set_noSingletons_aligned_pfiltered.benchmark"
         shell:
             "{config[qiime][path]}make_phylogeny.py -i {input} -o {output} -t {config[makeTree][method]} {config[makeTree][extra_params]}"
 
 if config["ANALYSIS_TYPE"] != "ASV": 
     rule report_all:
        input:
-            a="{PROJECT}/runs/{run}/otu/taxonomy_"+config["assignTaxonomy"]["tool"]+"/otuTable.txt"
-            if config["ANALYSIS_TYPE"] == "OTU" else
-            "{PROJECT}/runs/{run}/asv/asv_table.biom",
-            b="{PROJECT}/runs/{run}/otu/taxonomy_"+config["assignTaxonomy"]["tool"]+"/summary/otuTable_L6.txt"
-            if config["ANALYSIS_TYPE"] == "OTU" else
-            "{PROJECT}/runs/{run}/asv/summary/asv_table_L6.txt",
-            c="{PROJECT}/runs/{run}/otu/taxonomy_"+config["assignTaxonomy"]["tool"]+"/otuTable_noSingletons.txt"
-            if config["ANALYSIS_TYPE"] == "OTU" else 
-            "{PROJECT}/runs/{run}/asv/stats_dada2.txt",
+            a="{PROJECT}/runs/{run}/otu/taxonomy_"+config["assignTaxonomy"]["tool"]+"/otuTable.txt",
+#            if config["ANALYSIS_TYPE"] == "OTU" else
+#            "{PROJECT}/runs/{run}/asv/asv_table.biom",
+            b="{PROJECT}/runs/{run}/otu/taxonomy_"+config["assignTaxonomy"]["tool"]+"/summary/otuTable_L6.txt",
+#            if config["ANALYSIS_TYPE"] == "OTU" else
+#            "{PROJECT}/runs/{run}/asv/summary/asv_table_L6.txt",
+            c="{PROJECT}/runs/{run}/otu/taxonomy_"+config["assignTaxonomy"]["tool"]+"/otuTable_noSingletons.txt",
+#            if config["ANALYSIS_TYPE"] == "OTU" else 
+#            "{PROJECT}/runs/{run}/asv/stats_dada2.txt",
             e="{PROJECT}/runs/{run}/otu/taxonomy_"+config["assignTaxonomy"]["tool"]+"/aligned/filtered/representative_seq_set_noSingletons_aligned_pfiltered.tre"
             if config["alignRep"]["align"] == "T"
             else "{PROJECT}/runs/{run}/otu/taxonomy_"+config["assignTaxonomy"]["tool"]+"/representative_seq_set_noSingletons.fasta",
@@ -1318,10 +1333,9 @@ else:
        input:
             a="{PROJECT}/runs/{run}/asv/taxonomy_dada2/asvTable.biom",
             b="{PROJECT}/runs/{run}/asv/taxonomy_dada2/summary/asvTable_L6.txt",
- #           c="{PROJECT}/runs/{run}/otu/taxonomy_"+config["assignTaxonomy"]["tool"]+"/otuTable_noSingletons.txt"
- #           if config["ANALYSIS_TYPE"] == "OTU" else 
- #           "{PROJECT}/runs/{run}/asv/stats_dada2.txt",
-            c="{PROJECT}/runs/{run}/asv/taxonomy_dada2/representative_seq_set_noSingletons.fasta",
+            c="{PROJECT}/runs/{run}/asv/taxonomy_dada2/aligned/filtered/representative_seq_set_noSingletons_aligned_pfiltered.tre"
+            if config["alignRep"]["align"] == "T"
+            else "{PROJECT}/runs/{run}/asv/taxonomy_dada2/representative_seq_set_noSingletons.fasta",
  #           if config["alignRep"]["align"] == "T"
  #           else "{PROJECT}/runs/{run}/asv/dada2_representatives.fasta"
  #           e="{PROJECT}/runs/{run}/asv/dada2_representatives.fasta",
