@@ -124,6 +124,7 @@ gzip_input: "F"
 fw_reads: ""
 rv_reads: ""
 metadata: ""
+#OR
 input_files: ""
 
 
@@ -1026,8 +1027,8 @@ assignTaxonomy:
     extra_params: "--top_hits_only --maxrejects 32"
   qiime:
     method: "rdp"
-    mapFile: "/{FULL_PATH}/pr2_version_4.12.0_18S_UTAX_8l.tax.tsv"
-    dbFile: "/{FULL_PATH}/pr2_version_4.12.0_18S_mothur.fasta"
+    mapFile: "/{FULL_PATH}/pr2_version_4.12.0_18S_UTAX_8l.tax.tsv" #available at https://github.com/pr2database/pr2database/releases
+    dbFile: "/{FULL_PATH}/pr2_version_4.12.0_18S_mothur.fasta" #available at https://github.com/pr2database/pr2database/releases
     dbType: "-r"
     jobs: 10
     extra_params: ""
@@ -1066,7 +1067,7 @@ filterOtu:
   extra_params: ""
 
 #------------------------------------------------------------------------------#
-# OTU_WF:                       Biom convert                                   #
+# BOTH_WF:                      Biom convert                                   #
 # rule: convert_table                                                          #
 #------------------------------------------------------------------------------#
 # This rule converts the OTU biom table into a tab separated OTU table.        #

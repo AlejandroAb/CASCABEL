@@ -3,9 +3,28 @@ import subprocess
 from sys import stdin
 import shutil
 
+sample_counts="#samples\treads.in\treads.out\n"
+
+with open(snakemake.input[0]) as filter_summary:
+    l=0
+    summ=0
+    samples=0
+    for line in filter_summary:
+        l+=1
+        tmpLine = line.split('\t')
+        if len(tmpLine) > 2:              
+            try:
+              summ+=(float(tmpLine[2])/float(tmpLine[1]))*100
+              sample_counts += line
+              samples+=1
+            except ValueError:
+              summ+=0
+    avg=float(summ/samples)
+filter_summary.close()
+
 if snakemake.config["interactive"] == "F":
     print("\033[93m" +"Interactive mode off \033[0m")
-    print("\033[93m" + "Total number of samples: " + str(l) + "\033[0m")
+    print("\033[93m" + "Total number of samples: " + str(samples) + "\033[0m")
     print("\033[93m" + "Average percentage of reads passing filters: " + "{0:.2f}".format(avg) + "% \033[0m")
     print("\033[93m" +"We suggest to review the filter log at: "+ snakemake.input[0]+ "\033[0m")
     with open(snakemake.output[0], "w") as tmplog:
@@ -15,24 +34,6 @@ if snakemake.config["interactive"] == "F":
         tmplog.close()
     exit(0)
 else:
-    sample_counts="#samples\treads.in\treads.out\n"
-
-    with open(snakemake.input[0]) as filter_summary:
-        l=0
-        summ=0
-        samples=0
-        for line in filter_summary:
-            l+=1
-            tmpLine = line.split('\t')
-            if len(tmpLine) > 2: 
-              try:
-                  summ+=(float(tmpLine[2])/float(tmpLine[1]))*100
-                  sample_counts += line
-                  samples+=1
-              except ValueError:
-                  summ+=0
-        avg=float(summ/samples)
-    filter_summary.close()
 
     if avg > 90:
         print("\033[92m" + "Total number of samples: " + str(samples) + "\033[0m")

@@ -124,6 +124,7 @@ gzip_input: "F"
 fw_reads: ""
 rv_reads: ""
 metadata: ""
+#OR
 input_files: ""
 
 ################################################################################
@@ -1015,8 +1016,8 @@ assignTaxonomy:
     extra_params: ""
   vsearch:
     command: "vsearch"
-    db_file: "silva132_99.fna"
-    mapFile: "taxonomy_7_levels.txt"
+    db_file: "/{FULL_PATH}/silva132_99.fna" #available at https://www.arb-silva.de/fileadmin/silva_databases/qiime/Silva_132_release.zip
+    mapFile: "/{FULL_PATH}/taxonomy_7_levels.txt" #available at https://www.arb-silva.de/fileadmin/silva_databases/qiime/Silva_132_release.zip
     identity: 0.8
     taxo_separator: "';'" 
     max_target_seqs: 5 
@@ -1065,7 +1066,7 @@ filterOtu:
   extra_params: ""
 
 #------------------------------------------------------------------------------#
-# OTU_WF:                       Biom convert                                   #
+# BOTH_WF:                      Biom convert                                   #
 # rule: convert_table                                                          #
 #------------------------------------------------------------------------------#
 # This rule converts the OTU biom table into a tab separated OTU table.        #
