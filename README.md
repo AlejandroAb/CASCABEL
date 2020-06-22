@@ -157,8 +157,9 @@ LIBRARY: ["EXP1"]
 #            in the LIBRARY variable described above).                         #  
 # - Forward reads: Full path to the forward reads.                             #
 # - Reverse reads: Full path to the reverse reads.                             #
-# - metadata:      Full path to the file with the information for              #
-#                  demultiplexing the samples (only if needed).                #
+# - metadata:      Full path to the barcode mapping file with the information  #
+#                  for demultiplexing the samples (only if needed).            #
+#                  For details, see section 2.2 from the project's wiki.       #
 # The full path of this file should be supplied in the input_files variable,   #
 # otherwise, you have to enter the FULL PATH for both: the raw reads and the   #
 # metadata file (barcode mapping file). The metadata file is only needed if    #
@@ -214,7 +215,7 @@ ANALYSIS_TYPE: "OTU"
 
 ```
 
-_For more information about how to supply  this [instructions](../../wiki#21-input-files)_
+_For more information about how to supply this data, please follow the link for detailed [instructions](../../wiki#21-input-files)_
 
 As you can see on the previous fragment of the configuration file (config.yaml), the required parameters for CASCABEL to start are: *PROJECT*, *LIBRARY*, *RUN*,  *fw_reads*, *rv_reads* and *metadata*. After entering these parameters, take some minutes and go through the rest of the config file and overwrite settings according to your needs. Most values are already pre-configured. The config file explains itself by using meaningful headers before each rule, explaining the aim of such rule and the different parameters the user can use. It is very important to keep the indentation of the file (don’t change the tabs
 and spaces), as well as the name of the parameters. Once that you have valid values for these entries, you are ready to run the pipeline (before start CASCABEL always is a good practice to make a ["dry run"](../../wiki#31-dry-run)):
@@ -251,6 +252,8 @@ We supply some "pre-filled" configuration files for the main possible configurat
 ### Test data
 
 In order to test the pipeline we also sugest to try running it with [CASCABEL's test data](https://github.com/AlejandroAb/CASCABEL-Test)
+
+[Barcode mapping file example](https://github.com/AlejandroAb/CASCABEL-Test/blob/master/rawdata/sampleList_mergedBarcodes_summer.txt)
 
 ### Citing
 
