@@ -34,8 +34,8 @@ with open(snakemake.input[0]) as hist:
         print("\033[92m                       "+str(minm) + "       "+str(firstq) + "       "+str(median) + "       "+str(mean) + "       "+str(mode) + "       "+str(thirdq) + "       "+str(maxm) + " \033[0m" )
         print("\033[93m You can see the histogram chart at: " + snakemake.input[1] + " \033[0m")
         print("\033[93m Please enter the option which fits better for your data: \033[0m")
-        print("\033[93m 1. Use values from the configuration file: length < "+str(snakemake.config["rm_reads"]["shorts"])+" and length > "+str(snakemake.config["rm_reads"]["longs"])+ "\033[0m")
-        print("\033[93m 2. Use values from median + /-"+str(snakemake.config["rm_reads"]["offset"])+": length < " + str(int(median)-snakemake.config["rm_reads"]["offset"]) + " and length > "+ str(int(median)+snakemake.config["rm_reads"]["offset"])  +" \033[0m")
+        print("\033[93m 1. Use values from the configuration file: length > "+str(snakemake.config["rm_reads"]["shorts"])+" and length < "+str(snakemake.config["rm_reads"]["longs"])+ "\033[0m")
+        print("\033[93m 2. Use values from median + /-"+str(snakemake.config["rm_reads"]["offset"])+": length > " + str(int(median)-snakemake.config["rm_reads"]["offset"]) + " and length < "+ str(int(median)+snakemake.config["rm_reads"]["offset"])  +" \033[0m")
         print("\033[93m 3. Specify new values! \033[0m")
         print("\033[93m 4. Print sequence length histogram \033[0m")
         print("\033[93m 5. Do not remove any sequence \033[0m")
@@ -44,6 +44,18 @@ with open(snakemake.input[0]) as hist:
         while (user_input != "1" and user_input !=  "2" and user_input != "3" and  user_input != "5" and user_input != "6"):
             if user_input == "4":
                 print(histogram_txt)
+                print("\n\033[91m This step can remove too short and too long reads \033[0m")
+                print("\033[92m LIBRARY: "+snakemake.wildcards.sample+" \033[0m")
+                print("\033[93m Sequence distribution: Min.       1st Qu.       Median       Mean       Mode       3rd Qu.       Max.  \033[0m")
+                print("\033[92m                       "+str(minm) + "       "+str(firstq) + "       "+str(median) + "       "+str(mean) + "       "+str(mode) + "       "+str(thirdq) + "       "+str(maxm) + " \033[0m" )
+                print("\033[93m You can see the histogram chart at: " + snakemake.input[1] + " \033[0m")
+                print("\033[93m Please enter the option which fits better for your data: \033[0m")
+                print("\033[93m 1. Use values from the configuration file: length > "+str(snakemake.config["rm_reads"]["shorts"])+" and length < "+str(snakemake.config["rm_reads"]["longs"])+ "\033[0m")
+                print("\033[93m 2. Use values from median + /-"+str(snakemake.config["rm_reads"]["offset"])+": length > "+ str(int(median)-snakemake.config["rm_reads"]["offset"]) + " and length < "+ str(int(median)+snakemake.config["rm_reads"]["offset"])  +" \033[0m")
+                print("\033[93m 3. Specify new values! \033[0m")
+                print("\033[93m 4. Print sequence length histogram \033[0m")
+                print("\033[93m 5. Do not remove any sequence \033[0m")
+                print("\033[93m 6. Interrupt workflow \033[0m")
             print("\033[92m Enter your option: \033[0m")
             user_input = stdin.readline() #READS A LINE
             user_input = user_input[:-1]
@@ -83,7 +95,7 @@ with open(snakemake.input[0]) as hist:
             print("Aborting workflow...")
             exit(1)
 
-        os.system("awk '!/^>/ { next } { getline seq } length(seq) > " + str(shorts) + " && length(seq) < " + str(longs) + " { print $0 \"\\n\" seq }' " + snakemake.input[3] + " > " + snakemake.output[0])
+        os.system("awk '!/^>/ { next } { getline seq } length(seq) >= " + str(shorts) + " && length(seq) <= " + str(longs) + " { print $0 \"\\n\" seq }' " + snakemake.input[3] + " > " + snakemake.output[0])
         with open(snakemake.output[1], "a") as tmplog:
             tmplog.write(snakemake.input[0] + "\t" + str(shorts) + "\t" + str(longs) + "\n")
             tmplog.close()
@@ -105,14 +117,14 @@ with open(snakemake.input[0]) as hist:
             print("\033[92m" +"Valid options are: AVG or GFG \033[0m")
             print("Aborting workflow...")
             exit(1)
-        os.system("awk '!/^>/ { next } { getline seq } length(seq) > " + str(shorts) + " && length(seq) < " + str(longs) + " { print $0 \"\\n\" seq }' " + snakemake.input[3] + " > " + snakemake.output[0])
+        os.system("awk '!/^>/ { next } { getline seq } length(seq) >= " + str(shorts) + " && length(seq) <= " + str(longs) + " { print $0 \"\\n\" seq }' " + snakemake.input[3] + " > " + snakemake.output[0])
         print("\033[93m" +"Interactive mode off \033[0m")
         print("\033[92m LIBRARY: "+snakemake.wildcards.sample+" \033[0m")
         print("\033[93m Sequence distribution: Min.       1st Qu.       Median       Mean       Mode       3rd Qu.       Max.  \033[0m")
         print("\033[92m                       "+str(minm) + "       "+str(firstq) + "       "+str(median) + "       "+str(mean) + "       "+str(mode) + "       "+str(thirdq) + "       "+str(maxm) + " \033[0m" )
         print("\033[93m You can see the histogram chart at: " + snakemake.input[1] + " \033[0m")
         if snakemake.config["rm_reads"]["non_interactive_behaviour"] == "AVG":
-            print("\033[93m" +"Removing sequences based on median ("+str(median)+") + / - "+str(snakemake.config["rm_reads"]["offset"])+": length > " + str(int(median)-snakemake.config["rm_reads"]["offset"]) + " and length < "+ str(int(median)+snakemake.config["rm_reads"]["offset"]) + "\033[0m")
+            print("\033[93m" +"Removing sequences based on median ("+str(median)+") + / - "+str(snakemake.config["rm_reads"]["offset"])+": length >= " + str(int(median)-snakemake.config["rm_reads"]["offset"]) + " and length <= "+ str(int(median)+snakemake.config["rm_reads"]["offset"]) + "\033[0m")
             with open(snakemake.output[1], "a") as tmplog:
                 tmplog.write("Interactive mode. remove short & long\n")
                 tmplog.write(snakemake.input[0] + "\t" + str(shorts) + "\t" + str(longs) + "\n")
@@ -124,8 +136,8 @@ with open(snakemake.input[0]) as hist:
                 tmplog.write(snakemake.input[0] + "\t0\tAll\n")
                 tmplog.close()
         else:
-            print("\033[93m" +"Removing sequences based on configuration file values: length > " + str(snakemake.config["rm_reads"]["shorts"]) + " and length < "+ str(snakemake.config["rm_reads"]["longs"]) + "\033[0m")
+            print("\033[93m" +"Removing sequences based on configuration file values: length >= " + str(snakemake.config["rm_reads"]["shorts"]) + " and length <= "+ str(snakemake.config["rm_reads"]["longs"]) + "\033[0m")
             with open(snakemake.output[1], "a") as tmplog:
                 tmplog.write("Interactive mode. remove short & long\n")
-                tmplog.write("Removing sequences based on configuration file values: length > " + str(snakemake.config["rm_reads"]["shorts"]) + " and length < "+ str(snakemake.config["rm_reads"]["longs"])+ "\n")
+                tmplog.write("Removing sequences based on configuration file values: length >= " + str(snakemake.config["rm_reads"]["shorts"]) + " and length <= "+ str(snakemake.config["rm_reads"]["longs"])+ "\n")
                 tmplog.close()

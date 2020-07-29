@@ -9,6 +9,17 @@ library(dada2)
 library(Biostrings)
 
 args <- commandArgs(trailingOnly = T)
+#args<-c("/export/lv3/scratch/projects_AA/ITS_benchmark/CASCABEL","pseudo","5","F",
+#        "selfConsist=FALSE","ITS_Benchmark/runs/config_14/asv/","200", 
+#        "450","10","T","/export/data01/databases/unite/general_fastas/unite_fungi.dynamic.fasta",
+#        "nop","F","minBoot=45",12,0,
+#        "ITS_Benchmark/runs/config_14/SRR5838515_data/demultiplexed/summary.txt",
+#        "ITS_Benchmark/runs/config_14/asv/filter_summary.validation.txt")
+###or
+      #  "ITS_Benchmark/runs/config_14/SRR5838515_data/demultiplexed/summary.txt",
+      #  "ITS_Benchmark/runs/config_14/SRR5838516_data/demultiplexed/summary.txt",
+      #  "ITS_Benchmark/runs/config_14/SRR5838522_data/demultiplexed/summary.txt",
+      #  "ITS_Benchmark/runs/config_14/asv/filter_summary.validation.txt")
 #params <- snakemake@params
 #args <- unlist((strsplit(unlist(params), split=" ")))
 
@@ -51,7 +62,7 @@ paths <-NULL
 for(i in 17:(length(args)-1)) {
   paths <- c(paths,gsub("/summary.txt", '',args[i]))
 }
-print(paths)
+#print(paths)
 #with params
 #inputs <- unlist((strsplit(unlist(snakemake@input[[2]]), split=" ")))
 #print(inputs)
@@ -157,7 +168,7 @@ createMenuConsole <- function()
   cat("\nPlease enter the option which fits better for your data:\n")
   cat(paste("1. Use values from configuration file: length > ", shorts," and length < ", longs,"\n"))
   cat(paste("2. Use values from median + /- the offset: length > ", (m-offset)," and length < ", (m+offset),"\n"))
-  cat("3. Specify new values!\n")
+  cat("3. Specify new values\n")
   cat("4. Print sequence length histogram.\n")
   cat("5. Interrupt workflow.\n")
   cat("Enter your option:\n")
@@ -229,23 +240,52 @@ if (args[10] == "T" || args[10] == "TRUE" ){
   seqtab.nochim <- removeBimeraDenovo(seqtab2, method="consensus", multithread=cpus, verbose=TRUE)  
   #dim(seqtab.nochim)
   #sum(seqtab.nochim)/sum(seqtab)
-  new_names <- c(paste("asv.",1:length(colnames(seqtab.nochim)),sep=""))
+  #matrix(1:9, nrow = 3, ncol = 3)
   seqs <- getSequences(seqtab.nochim)
+  #new_names <- c(paste("asv.",1:length(colnames(seqtab.nochim)),sep=""))
+  new_names <- c(paste("asv.",1:length(seqs),sep=""))
   #estos son equivalentes colnames(seqtab.nochim) == seqs
   #names(seqs) <- seqs
+  original_names<-seqs
   names(seqs) <- new_names
-  original_names<-colnames(seqtab.nochim)
-  colnames(seqtab.nochim)<-new_names
+  #original_names<-colnames(seqtab.nochim)
+  getN <- function(x) sum(getUniques(x))
+  
+  if(is.null(dim(seqtab.nochim))){
+    tmp_seqtab.nochim <- matrix(as.list(seqtab.nochim),nrow=1)
+    colnames(tmp_seqtab.nochim)<-new_names
+    rownames(tmp_seqtab.nochim)<-sample.names
+    write.table(tmp_seqtab.nochim, file=paste0(args[6],'dada2_asv_table.txt'), sep='\t', quote=FALSE, row.names=TRUE, col.names=NA)
+    
+    #The normal output is a list with named elements, but working
+    #with only one sample, this is no more a list and then we have
+    #errors, following we re create the lists:
+    tmp_dadaFs <- list(dadaFs)
+    names(tmp_dadaFs) <- sample.names 
+    tmp_dadaRs <- list(dadaRs)
+    names(tmp_dadaRs) <- sample.names 
+    tmp_mergers <- list(mergers)
+    names(tmp_mergers) <- sample.names
+    tmp_seqtab2 <- matrix(seqtab2,nrow=1)
+    row.names(tmp_seqtab2) <-  sample.names
+    tmp_seqtab.nochim2 <- matrix(seqtab.nochim,nrow=1)
+    rownames(tmp_seqtab.nochim2)<-sample.names
+    track <- cbind(sapply(tmp_dadaFs, getN), sapply(tmp_dadaRs, getN), sapply(tmp_mergers, getN), rowSums(tmp_seqtab2), rowSums(tmp_seqtab.nochim2))
+    seqtab2 <- tmp_seqtab.nochim2
+    
+  }else{
+    colnames(seqtab.nochim)<-new_names
+    write.table(seqtab.nochim, file=paste0(args[6],'dada2_asv_table.txt'), sep='\t', quote=FALSE, row.names=TRUE, col.names=NA)
+    track <- cbind(sapply(dadaFs, getN), sapply(dadaRs, getN), sapply(mergers, getN), rowSums(seqtab2), rowSums(seqtab.nochim))
+    seqtab2 <- seqtab.nochim
+    
+  }
   # also write to file
-  write.table(seqtab.nochim, file=paste0(args[6],'dada2_asv_table.txt'), sep='\t', quote=FALSE, row.names=TRUE, col.names=NA)
   seq.out <- DNAStringSet(x=seqs, start=NA, end=NA, width=NA, use.names=TRUE)
   writeXStringSet(seq.out, filepath=paste(args[6],'representative_seq_set.fasta',sep=""), append=FALSE, compress=FALSE, compression_level=NA, format="fasta")
-  getN <- function(x) sum(getUniques(x))
-  track <- cbind(sapply(dadaFs, getN), sapply(dadaRs, getN), sapply(mergers, getN), rowSums(seqtab2), rowSums(seqtab.nochim))
   colnames(track) <- c( "denoisedF", "denoisedR", "merged","length", "nonchim")
   rownames(track) <- sample.names
   write.table(track, file=paste0(args[6],'stats_dada2.txt'), sep='\t', quote=FALSE, row.names=TRUE, col.names=NA)
-  seqtab2 <- seqtab.nochim
   #colnames(seqtab.nochim) == rownames(taxa) ! before changing -->  colnames(seqtab.nochim)<-new_names
  # taxa <- assignTaxonomy(seqtab.nochim, "/export/data01/databases/silva/r132/dada2/silva_nr_v132_train_set.fa.gz", multithread=15)
 #  taxa2 <- addSpecies(taxa, "/export/data01/databases/silva/r132/dada2/silva_species_assignment_v132.fa.gz")
@@ -260,9 +300,26 @@ if (args[10] == "T" || args[10] == "TRUE" ){
   write.table(seqtab2, file=paste(args[6],'dada2_asv_table.txt',sep=""), sep='\t', quote=FALSE, row.names=TRUE, col.names=NA)
   seq.out <- DNAStringSet(x=seqs, start=NA, end=NA, width=NA, use.names=TRUE)
   writeXStringSet(seq.out, filepath=paste(args[6],'representative_seq_set.fasta',sep=""), append=FALSE, compress=FALSE, compression_level=NA, format="fasta")
-  
   getN <- function(x) sum(getUniques(x))
-  track <- cbind(sapply(dadaFs, getN), sapply(dadaRs, getN), sapply(mergers, getN), rowSums(seqtab2))
+  
+  ####
+  if(is.null(dim(seqtab2))){
+    tmp_dadaFs <- list(dadaFs)
+    names(tmp_dadaFs) <- sample.names 
+    tmp_dadaRs <- list(dadaRs)
+    names(tmp_dadaRs) <- sample.names 
+    tmp_mergers <- list(mergers)
+    names(tmp_mergers) <- sample.names
+    tmp_seqtab2 <- matrix(seqtab2,nrow=1)
+    row.names(tmp_seqtab2) <-  sample.names
+  track <- cbind(sapply(tmp_dadaFs, getN), sapply(tmp_dadaRs, getN), sapply(tmp_mergers, getN), rowSums(tmp_seqtab2))
+  }else{
+    
+    track <- cbind(sapply(dadaFs, getN), sapply(dadaRs, getN), sapply(mergers, getN), rowSums(seqtab2))
+    
+  }
+  ###
+  
   colnames(track) <- c( "denoisedF", "denoisedR", "merged", "variants")
   rownames(track) <- sample.names
   write.table(track, file=paste0(args[6],'stats_dada2.txt'), sep='\t', quote=FALSE, row.names=TRUE, col.names=NA)
@@ -271,7 +328,7 @@ if (args[10] == "T" || args[10] == "TRUE" ){
 #  taxa2 <- addSpecies(taxa, "/export/data01/databases/silva/r132/dada2/silva_species_assignment_v132.fa.gz")
 #  rownames(taxa2) <- new_names
   
-  }
+}
 #taxa.print <- taxa # Removing sequence rownames for display only
 #rownames(taxa.print) <- NULL
 #head(taxa.print)
@@ -291,7 +348,7 @@ if (args[13] == "T" || args[13] == "TRUE" ){
   
 }else{
   rownames(taxa) <- new_names
-  write.table(taxa2, file=paste0(args[6],'taxonomy_dada2.txt'), sep='\t', quote=FALSE, row.names=TRUE, col.names=NA)
+  write.table(taxa, file=paste0(args[6],'taxonomy_dada2/representative_seq_set_tax_assignments.txt'), sep='\t', quote=FALSE, row.names=TRUE, col.names=NA)
   
 }
 

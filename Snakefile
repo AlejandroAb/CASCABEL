@@ -554,13 +554,26 @@ else:
             #"sed -n '1~4s/^@/>/p;2~4p' {input.extended_reads} >  {output}"
             "sed -n '1~4s/^@/>/p;2~4p' {input.extended_reads} | "
             "awk  '{{if($0 ~ \"^>\"){{seq=seq+1;print \">{wildcards.sample}_\"seq\" \"substr($1,2)}}else{{print $0}}}}' > {output}"
-    rule skip_dmx_file_creation:
-        params:
-            "{PROJECT}/runs/{run}/{sample}_data/demultiplexed/"
-        output:
-            "{PROJECT}/runs/{run}/{sample}_data/demultiplexed/summary.txt"
-        shell:
-            "touch {output}"
+    if config["ANALYSIS_TYPE"] == "ASV":
+        rule skip_dmx_file_creation:
+            input:
+                r1="{PROJECT}/samples/{sample}/rawdata/fw.fastq" if config["gzip_input"] == "F" else "{PROJECT}/samples/{sample}/rawdata/fw.fastq.gz",
+                r2="{PROJECT}/samples/{sample}/rawdata/rv.fastq" if config["gzip_input"] == "F" else "{PROJECT}/samples/{sample}/rawdata/rv.fastq.gz"
+            params:
+                "{PROJECT}/runs/{run}/{sample}_data/demultiplexed/"
+            output:
+                "{PROJECT}/runs/{run}/{sample}_data/demultiplexed/summary.txt"
+            shell:
+                "touch {output} &&  ln -s $PWD/{input.r1} {params}{wildcards.sample}_1.fastq.gz "
+                " && ln -s $PWD/{input.r2} {params}{wildcards.sample}_2.fastq.gz"
+    else:
+        rule skip_dmx_file_creation:
+            params:
+                "{PROJECT}/runs/{run}/{sample}_data/demultiplexed/"
+            output:
+                "{PROJECT}/runs/{run}/{sample}_data/demultiplexed/summary.txt"
+            shell:
+                "touch {output}" 
 
 if config["ANALYSIS_TYPE"] == "ASV":
     rule dada2Filter:
@@ -596,7 +609,7 @@ if config["ANALYSIS_TYPE"] == "ASV":
         benchmark:
             "{PROJECT}/runs/{run}/asv/dada2.benchmark"
         shell:
-            #"Scripts/asvDada2.R"
+            #"Scripts/asvDada2_fix.R"
             "{config[Rscript][command]} Scripts/asvDada2.R $PWD " +str(config["dada2_asv"]["pool"]) + " "+str(config["dada2_asv"]["cpus"])  + " "+str(config["dada2_asv"]["generateErrPlots"]) + " "+str(config["dada2_asv"]["extra_params"]) + " {params} "  + " "+str(config["rm_reads"]["shorts"])  + " "+str(config["rm_reads"]["longs"]) + " "+str(config["rm_reads"]["offset"])  + " "+str(config["dada2_asv"]["chimeras"])  + " "+str(config["dada2_taxonomy"]["db"]) + " "+str(config["dada2_taxonomy"]["db_sps"])  + " "+str(config["dada2_taxonomy"]["add_sps"]) + " "+str(config["dada2_taxonomy"]["extra_params"]) + " "+str(config["dada2_merge"]["minOverlap"]) +" "+str(config["dada2_merge"]["maxMismatch"]) + " " + "{input}" 
 
 
@@ -830,7 +843,8 @@ if config["demultiplexing"]["demultiplex"] == "T" and  config["ANALYSIS_TYPE"] !
             "cat {input.fasta} | grep '^>' |  cut -d'_' -f1 | sed 's/>//g' "
             "| sort | uniq -c | sort -nr | awk '{{print $1\"\\t\"$2}}' "
             "| awk 'NR==FNR{{h[$2]=$1; next}} {{print $1\"\\t\"h[$1]}}' - {input.metadata} | grep -v \"#\" > {output}"
-elif config["ANALYSIS_TYPE"] == "ASV":
+
+elif config["ANALYSIS_TYPE"] == "ASV" and config["demultiplexing"]["demultiplex"] == "T":
 
     rule count_samples_final:
         input:
@@ -840,7 +854,7 @@ elif config["ANALYSIS_TYPE"] == "ASV":
             "{PROJECT}/runs/{run}/{sample}_data/seqs_fw_rev_filtered.dist.txt"
         shell:
             "cat {input[0]} | awk 'NR==FNR{{if(NR>1){{h[$1]=$2;}}next}}{{if(FNR>1){{print $1\"\t\"h[$1]}}}}' - {input[1]} > {output}"
- 
+
 
 else:
    rule count_samples_final:
@@ -860,8 +874,9 @@ rule distribution_chart:
         "{PROJECT}/runs/{run}/report_files/seqs_fw_rev_filtered.{sample}.dist.png"
     params:
         "{PROJECT}/runs/{run}/report_files/"
-    script:
-        "Scripts/sampleDist.py"
+    shell:
+        #"Scripts/sampleDist.py"
+        "python  Scripts/sampleDist.manual.py {input} {output}"
 
 if config["ANALYSIS_TYPE"]=="ASV":
     rule create_sample_log:
@@ -918,6 +933,9 @@ rule cluster_OTUs:
     shell:
         "{config[qiime][path]}pick_otus.py -m {config[pickOTU][m]} -i {input} "
         "-o {params.trieDir}  -s {config[pickOTU][s]} --threads {config[pickOTU][cpus]} {config[pickOTU][extra_params]} "
+        if config["pickOTU"]["m"] != "swarm" else
+        "{config[qiime][path]}pick_otus.py -m {config[pickOTU][m]} -i {input} "
+        "-o {params.trieDir}  --threads {config[pickOTU][cpus]} {config[pickOTU][extra_params]} "
 
 if config["derep"]["dereplicate"] == "T" and config["pickOTU"]["m"] != "swarm"  and config["pickOTU"]["m"] != "usearch":
     rule remap_clusters:
@@ -1204,6 +1222,25 @@ rule convert_filter_asv:
         "{config[biom][command]} convert -i {input} -o {output} {config[biom][tableType]} "
         "{config[biom][headerKey]} {config[biom][outFormat]} {config[biom][extra_params]}"
 
+#Summarize singletons
+rule summarize_taxa_singletons:
+    input:
+        "{PROJECT}/runs/{run}/otu/taxonomy_"+config["assignTaxonomy"]["tool"]+"/otuTable_noSingletons.biom"
+        if config["ANALYSIS_TYPE"] == "OTU" else
+        "{PROJECT}/runs/{run}/asv/taxonomy_dada2/asvTable_noSingletons.biom"
+    output:
+        "{PROJECT}/runs/{run}/otu/taxonomy_"+config["assignTaxonomy"]["tool"]+"/summary_singletons/otuTable_noSingletons_L6.txt"
+        if config["ANALYSIS_TYPE"] == "OTU" else
+        "{PROJECT}/runs/{run}/asv/taxonomy_dada2/summary_singletons/asvTable_noSingletons_L6.txt"
+    params:
+        "{PROJECT}/runs/{run}/otu/taxonomy_"+config["assignTaxonomy"]["tool"]+"/summary_singletons/"
+        if config["ANALYSIS_TYPE"] == "OTU" else
+        "{PROJECT}/runs/{run}/asv/taxonomy_dada2/summary_singletons/"
+    benchmark:
+        "{PROJECT}/runs/{run}/otu/taxonomy_"+config["assignTaxonomy"]["tool"]+"/summary/summarize_taxa.benchmark"
+    shell:
+        "{config[qiime][path]}summarize_taxa.py -i {input} -o {params} {config[summTaxa][extra_params]}"
+
 if  config["krona"]["report"].casefold() == "t" or config["krona"]["report"].casefold() == "true":
     rule krona_report:
         input:
@@ -1311,6 +1348,7 @@ if config["ANALYSIS_TYPE"] != "ASV":
 #            if config["ANALYSIS_TYPE"] == "OTU" else
 #            "{PROJECT}/runs/{run}/asv/summary/asv_table_L6.txt",
             c="{PROJECT}/runs/{run}/otu/taxonomy_"+config["assignTaxonomy"]["tool"]+"/otuTable_noSingletons.txt",
+            d="{PROJECT}/runs/{run}/otu/taxonomy_"+config["assignTaxonomy"]["tool"]+"/summary_singletons/otuTable_noSingletons_L6.txt",
 #            if config["ANALYSIS_TYPE"] == "OTU" else 
 #            "{PROJECT}/runs/{run}/asv/stats_dada2.txt",
             e="{PROJECT}/runs/{run}/otu/taxonomy_"+config["assignTaxonomy"]["tool"]+"/aligned/filtered/representative_seq_set_noSingletons_aligned_pfiltered.tre"
@@ -1333,6 +1371,7 @@ else:
        input:
             a="{PROJECT}/runs/{run}/asv/taxonomy_dada2/asvTable.biom",
             b="{PROJECT}/runs/{run}/asv/taxonomy_dada2/summary/asvTable_L6.txt",
+            d="{PROJECT}/runs/{run}/asv/taxonomy_dada2/summary_singletons/asvTable_noSingletons_L6.txt",
             c="{PROJECT}/runs/{run}/asv/taxonomy_dada2/aligned/filtered/representative_seq_set_noSingletons_aligned_pfiltered.tre"
             if config["alignRep"]["align"] == "T"
             else "{PROJECT}/runs/{run}/asv/taxonomy_dada2/representative_seq_set_noSingletons.fasta",
