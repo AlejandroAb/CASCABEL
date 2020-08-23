@@ -27,7 +27,7 @@
 #                                Execution mode                                #
 #------------------------------------------------------------------------------#
 # This parameter allows the user to inspect intermediate files in order to     #
-# finetune some downstream analises, re-do previous steps or exit the workflow.#
+# finetune some downstream analysis, re-do previous steps or exit the workflow.#
 #                                                                              #
 #-----------------------------       PARAMS       -----------------------------#
 #                                                                              #	            
@@ -176,7 +176,7 @@ portableReport: "T"
 #                                                                              #
 # - report        Indicate with "T"/"F" if CASCABEL should generate a Krona    #
 #                 chart.                                                       #
-# - ktImportText  Name of the command to invoque this krona utility.           #
+# - ktImportText  Name of the command to invoke this krona utility.            #
 # - samples       Indicate the samples to be included in the chart, use comma  #
 #                 separated values of samples (same name as the ones supplied  #
 #                 at the metadata barcode file). Or "all" to include all the   #
@@ -236,10 +236,10 @@ ANALYSIS_TYPE: "OTU"
 #------------------------------------------------------------------------------#
 # A regular workflow for marker gene analysis using paired-end data,           #
 # comprehends the assembly of forward and reverse reads, prior to continuing   #
-# with downstream analysis, behavior, that is implemented within this pipeline.#
+# with downstream analysis, behaviour, that is implemented within this pipeline.#
 # However, primers can potentially amplify fragments larger than the expected  #
 # ones, therefore, there is no overlap between FR and RV reads, thus discarding#
-# all those "un-paired" reads during the assembly. For this scenario, when the #
+# all those "un-paired" reads during the assembly. For this scenario, when the # 
 # analysis type (ANALYSIS_TYPE) is "OTU"  Cascabel implements an alternative   #
 # flow, where instead of continue downstream analyses with assembled reads,    #
 # un-assembled reads are concatenated together with a degenerated base 'N'     #
@@ -326,7 +326,7 @@ pear:
 # rule: fastQCPear                                                             #
 #------------------------------------------------------------------------------#
 # Once the paired end reads have been merged into one fragment, run FastQC     #
-# again to check their quality. Set this option to "T" (true) or "F" (false)   #
+# again, to check their quality. Set this option to "T" (true) or "F" (false)  #
 # in order to execute or skip this step.                                       #
 #------------------------------------------------------------------------------#
 fastQCPear: T
@@ -351,7 +351,7 @@ qiime:
 # BOTH_WF:                           R                                         #
 # rules:  correct_barcodes, correct_barcodes_unassigned, histogram_chart       #
 #------------------------------------------------------------------------------#
-# R is used by different rules whitin the pipeline. In order to run these      #
+# R is used by different rules within the pipeline. In order to run these      #
 # rules, CASCABEL uses the Rscript command.                                    #
 # Here you can change the command to call Rscript.                             #
 #                                                                              #
@@ -366,7 +366,7 @@ Rscript:
 # BOTH_WF:                         JAVA                                        #
 # rules:  write_dmx_files, degap_alignment, remap_clusters                     #
 #------------------------------------------------------------------------------#
-# Java is used by different rules whitin the pipeline. In order to run java,   #
+# Java is used by different rules within the pipeline. In order to run java,   #
 # the pipeline needs to know how to invoke it.                                 #
 # Here you can change the command to invoke java.                              #
 #                                                                              #
@@ -401,7 +401,7 @@ java:
 # - order_by_strand     While demultiplexing it is possible to identify the    #
 #                       current strand of the read according to the barcode.   #
 #                       Set this option to "T" in order to interchange FW with #
-#                       RV reads when barcodes are found on opposity strands.  #
+#                       RV reads when barcodes are found on opposite strands.  #
 # - add_unpair          "T". Un-assembled reads are also included within the   #
 #                       demultiplexing process in order to being assigned to   #
 #                       its samples.                                           #
@@ -415,11 +415,11 @@ java:
 #                       demultiplexed reads may contain adapters or primers.   #
 #                       The following parameters supply options for removing   #
 #                       these sequences by using cutadapt.                     #  
-#   ** remove           "T" or "F" for removing or not any kinf of sequence.   #
+#   ** remove           "T" or "F" for removing or not any kind of sequence.   #
 #   ** fw_primer        Sequence to be removed from forward reads. It accepts  #
-#                       IUPAC wildcards. i.e. "^GTGYCAGCMGCCGCGGTAA"           #
+#                       IUPAC wildcards. e.g. "^GTGYCAGCMGCCGCGGTAA"           #
 #   ** rv_primer        Sequence to be removed from reverse reads. It accepts  #
-#                       IUPAC wildcards. i.e. "^GGACTACNVGGGTWTCTAAT"          #
+#                       IUPAC wildcards. e.g. "^GGACTACNVGGGTWTCTAAT"          #
 #   ** min_overlap      Minimun overlap between a primer and a sequence to be  #
 #                       identified.                                            #
 #   ** extra_params     Any extra parameter that you wish to supply to  the    #
@@ -445,14 +445,14 @@ demultiplexing:
 # BOTH_WF:                  Extract barcodes                                   #
 # rules: extract_barcodes, extract_barcodes_unassigned                         #
 #------------------------------------------------------------------------------#
-# These rules extracts barcodes from the reads, and at the end generates two   #
-# files: one with all the barcodes and a second one with the sequences without #
+# This rule extracts barcodes from the reads, and generates two files: one     #
+# with only the extracted barcodes and a second one with the sequences without #
 # the barcodes.                                                                #
 #                                                                              #
 #-----------------------------       PARAMS       -----------------------------#
 #                                                                              #
 # - c             This parameter allows to choose the barcode configuration:   #
-#                 "barcode_single_end". The reads starts with the barcode      #
+#                 "barcode_single_end". The reads start with the barcode       #
 #                 sequence.                                                    #
 #                 "barcode_paired_stitched". Input has barcodes at the         #
 #                 beginning and end of the read.                               #
@@ -514,13 +514,12 @@ split:
 # ASV_WF:                   dada2 trim and filter reads                        #
 # rule: dada2Filter                                                            #
 #------------------------------------------------------------------------------#
-# This parameters takes effect during the quality trimming a filtering within  #
-# dada2 implemented with the filterAndTrim() function.                         #
+# These parameters take effect during the quality trimming and filtering steps #
+# implemented within dada2 using the filterAndTrim() function.                 #
 #                                                                              #
 #-----------------------------       PARAMS       -----------------------------#
 #                                                                              #
-# - generateQAplots   Cacabel already generates FastQC reports, however dada2  #
-#                     quality plots can be generated by passing "T".           #
+# - generateQAplots   "T" or "F". Generate dada2 quality reports.              #
 #                     Default "F"                                              #
 # - truncFW           Truncate forward reads after truncFW bases. Reads shorter# 
 #                     than this are discarded. Your reads must still overlap   #
@@ -532,12 +531,17 @@ split:
 #                     maxEE_FW "expected errors" will be discarded.            #
 # - maxEE_RV          After truncation, reverse reads with higher than         # 
 #                     maxEE_RV "expected errors" will be discarded.            #
-# - cpus              NUmber of threads|cpus.                                  #
+# - cpus              Number of threads|cpus.                                  #
 # - extra_params      Any extra parameter belonging to dada2's function        #
-#                     filterAndTrim(). e.g., "\",truncQ=2, rm.phix=TRUE\"".    #
-#                     Extra parameters with white spaces like the above should #
-#                     be supplied with escaped quotes.                         #
-# Note from dada2's tutorial ()                                                #
+#                     filterAndTrim(). The value passed through this variable  #
+#                     is send directly to the function in R. Therefore, if your#
+#                     extra_params involves more than one argument, separate   #
+#                     them with commas i.e. Suppose you want to pass truncQ=2  #
+#                     and rm.phix=TRUE arguments. In R the function may look   #
+#                     like this: filterAndTrim(...,truncQ=2, rm.phix=TRUE)     #
+#                     Thus, the extra_params should look like the following:   #  
+#                     "truncQ=2, rm.phix=TRUE".                                #
+# Note from dada2's tutorial:                                                  #
 # "The standard filtering parameters are starting points, not set in stone.    #
 # If you want to speed up downstream computation, consider tightening maxEE.   #
 # If too few reads are passing the filter, consider relaxing maxEE, perhaps    #
@@ -582,9 +586,8 @@ dada2_merge:
 #                                                                              #
 #-----------------------------       PARAMS       -----------------------------#
 #                                                                              #
-# - generateErrPLots    Default "F". Use "T" to generate the error plots       #
-#                       generated with the learned errors from the             #
-#                       learnErrors() function.                                #
+# - generateErrPlots    Default "F". Use "T" to create error plots generated   #
+#                       with the learned errors from learnErrors() function.   #
 # - pool                If pool = "TRUE", the algorithm will pool together all #
 #                       samples prior to sample inference. If pool = "FALSE",  #
 #                       sample inference is performed on each sample           #
@@ -594,6 +597,12 @@ dada2_merge:
 # - chimeras            If "T" The samples in a sequence table are             #
 #                       independently checked for bimeras, and a consensus     #
 #                       decision on each sequence variant is made.             #
+# - extra_params        Any extra parameter belonging to dada2's function      #
+#                       dada(). e.g., "selfConsist=FALSE".                     #
+#                       The value passed through this variable is send directly#
+#                       to the function in R. Therefore, if your extra_params  #
+#                       involves more than one argument, separate them with    #
+#                       commas, as the example above.                          #                                              #
 #------------------------------------------------------------------------------#
 dada2_asv:
   generateErrPlots: "F"
@@ -614,29 +623,45 @@ dada2_asv:
 #                                                                              #
 # - db             Full path to reference database training files:             #
 #                  https://benjjneb.github.io/dada2/training.html              #
-# - add_sp         "T" or "F" assign genus-species binomials to the input      #
+# - extra_params   Any extra parameter belonging to dada2's function           #
+#                  assignaxonomy(). e.g., "minBoot=45, tryRC=TRUE".            #
+#                  The value passed through this variable is send directly to  #
+#                  the function in R. Therefore, if your extra_params involves #
+#                  more than one argument, separate them with commas, as the   #
+#                  example above.                                              #
+# - add_sp         Arguments for assigning genus-species binomials to the input#
 #                  sequences by exact matching against a reference fasta using #
 #                  the addSpecies() function from dada2.                       #
-# - db_sps         If add_sp = "T" FUll path to the reference species file.    #
-# - extra_params   Any extra parameter belonging to dada2's function           #
-#                  assignaxonomy(). e.g., "\",minBoot=45, tryRC=TRUE\"".       #
-#                  Extra parameters with white spaces like the above should    #
-#                  be supplied with escaped quotes.                            #
+#   + add          "T" or "F" Try to assign or not genus-species binomials.    #
+#   + db_sps       If add = "T"  FUll path to the reference species file.      #
+#   + extra_params Any extra parameter belonging to dada2's function           #
+#                  addSpecies(). e.g., "allowMultiple=TRUE".                   #
+#                  The value passed through this variable is send directly to  #
+#                  the function in R. Therefore, if your extra_params involves #
+#                  more than one argument, separate them with commas, as the   #
+#                  example above.                                              #
+# NOTE: Find available databases at:                                           # 
+# https://benjjneb.github.io/dada2/training.html                               #
+# Files "silva_nr_v132_train_set.fa.gz" & "silva_species_assignment_v132.fa.gz"#
+# are just a suggestion and they must be downloaded from previous reference    #
+# prior to its use. rename {FULL_PATH} to the path were your files were        #
+# downloaded.                                                                  #  
 #------------------------------------------------------------------------------#
 dada2_taxonomy:
-  db: ""
-  add_sps: "T"
-  db_sps: ""
-  extra_params: "minBoot=45"
-
+  db: "/{FULL_PATH}/silva_nr_v132_train_set.fa.gz"
+    extra_params: "minBoot=45"
+  add_sps: 
+    add: "T"
+    db_sps: "/{FULL_PATH}/silva_species_assignment_v132.fa.gz"
+    extra_params: "allowMultiple=TRUE"
 
 #------------------------------------------------------------------------------#
 # OTU_WF:                 Align reads vs a reference database                  #
 # rule: align_vs_reference                                                     #
 #------------------------------------------------------------------------------#
-# In some cases you may want to align the reads against a reference database   #
-# before generating OTUs. This facilitates removing technical sequence	       #
-# (primers, adapters) at the beginning and/or end of the reads, filters	       #
+# In some cases, you may want to align the reads against a reference database  #
+# before generating OTUs. This facilitates removing technical sequences	      #
+# (primers, adapters) at the beginning and/or end of the reads, filter	      #
 # potential chimeric sequences or sequences of no interest, which the primers  #
 # amplified but which are not part of the study (e.g. reads of human origin).  #
 # Therefore, this alignment step can improve the OTU clustering and further    #
@@ -659,7 +684,7 @@ align_vs_reference:
   cpus: 4
 
 #------------------------------------------------------------------------------#
-# OTU_WF:                     Remove adapters                                  #
+# OTU_WF:             Remove adapters / primers                                #
 # rule: cutadapt                                                               #
 #------------------------------------------------------------------------------#
 # This rule runs Cutadapt. Cutadapt searches for adapters in the reads and     #
@@ -672,8 +697,8 @@ align_vs_reference:
 #                                                                              #
 # - cutAdapters  if T (true) remove adapters, if F do not remove adapters      #
 #                [default: F].                                                 #
-# - command      Necessary command to invoque cutadapt [default: "cutadapt"].  #
-# - adapters     "-a ADAPTER" Removes adapters at the the 3' end of the        #
+# - command      Necessary command to invoke cutadapt [default: "cutadapt"].   #
+# - adapters     "-a ADAPTER" Removes adapters at the 3' end of the            #
 #                sequence. Cutadapt deals with 3' adapters by removing the     #
 #                adapter and any sequence that may follow. Add the "$"         # 
 #                character to the end of an adapter sequence in order to anchor#
@@ -695,7 +720,7 @@ align_vs_reference:
 #                -a GTGYCAGCMGCCGCGGTAA...ATTAGAWACCCVNGTAGTCC                 #
 # - extra_params Any extra parameter. A useful extra parameter here is         #
 #                --match-read-wildcards which interprets IUPAC wildcards in    #
-#                reads or -O # to ensure the minimum overlap between a read and#
+#                reads or -O to ensure the minimum overlap between a read and  #
 #                one adapter to be found.                                      # 
 # More info and options at http://cutadapt.readthedocs.io/en/stable/guide.html #
 #------------------------------------------------------------------------------#
@@ -710,7 +735,7 @@ cutadapt:
 # rule: search_chimera                                                         #
 #------------------------------------------------------------------------------#
 # This rule will be executed if and only if the option 'search' is set to "T"! #
-# Chimeric sequencesa are predicted using usearch61. This algorithm performs   #
+# Chimeric sequences are predicted using usearch61. This algorithm performs    #
 # both de novo (abundance based) chimera and reference based detection.        #
 # Unclustered sequences are used as input rather than a representative sequence#
 # set, as the sequences will be clustered to get abundance data.               #
@@ -736,7 +761,7 @@ cutadapt:
 #                     In this later case, user MUST suply extra_params:        #
 #                     "--db </full/path/to/db.fasta>" (i.e., path to gold db). #
 # - threads       Number of threads to use.                                    #
-# - extra_params  Any extra parameter. It is recomended to run the chimeric    #
+# - extra_params  Any extra parameter. It is recommended to run the chimeric   #
 #                 search against a chimera database, e.g.,                     #
 #                 "-r /export/data/databases/gold_db/gold.fa" for "usearch61"  #
 #                 or "--db /export/data/databases/gold_db/gold.fa" for         #
@@ -782,7 +807,7 @@ chimera:
 #                              non_interactive_behaviour is equal to 'AVG'.    # 
 #                              [default: 10].                                  #
 # - longs                      Maximum read length.                            #
-# - shorts                     Minimumin read length                           #
+# - shorts                     Minimum read length                             #
 #------------------------------------------------------------------------------#
 # REMARK: If your library contains more than one expected fragment length, you #
 # can either:                                                                  #
@@ -804,8 +829,8 @@ rm_reads:
 # rule: dereplicate, pick_derep_representatives                                #
 #------------------------------------------------------------------------------#
 # This parameters allows the user to dereplicate the sequences over the FULL   #
-# LENGTH (100% identity) before applying any OTU picking starategy. This is    #
-# adviced for very large datasets, when OTU picking methods take too long or   #
+# LENGTH (100% identity) before applying any OTU picking strategy. This is     #
+# advised for very large datasets, when OTU picking methods take too long or   #
 # have memory issues.                                                          #
 #                                                                              #
 #-----------------------------       PARAMS       -----------------------------#
@@ -865,10 +890,9 @@ pickOTU:
 #-----------------------------       PARAMS       -----------------------------#
 #                                                                              #
 # - m             Method for picking representative sequences. Valid choices   #
-#                 are: random, longest, most_abundant, first                   #
 #                 are: random, longest, most_abundant, first.                  #
 #                 [default: "most_abundant"]                                   # 
-#                 Note: "first" chooses the cluster seed when picking otus with#
+#                 Note: "first" chooses the cluster seed when picking OTUs with#
 #                 uclust.                                                      #
 # - extra_params  Any extra parameter. Run 'pick_rep_set.py -h' to see all     #
 #                 options.                                                     #
@@ -920,8 +944,8 @@ pickRep:
 #            'parallel_assign_taxonomy_<method>.py -h'.                        #
 # - tool     Which tool to use, options are "vsearch", "qiime" and "blast".    #
 # ----blast parameters                                                         #
-#    - command         Command to invokw blastn.  [default: "blastn"].         #
-#    - blast_db        Full path to target BLAST databse for the assignation.  #
+#    - command         Command to invoke blastn.  [default: "blastn"].         #
+#    - blast_db        Full path to target BLAST database for the assignation. #
 #    - fasta_db        Full path to a fasta file with sequences for the        #
 #                      assignation. In case of providing both (a Blast database#
 #                      and a fasta file, Cascabel will give priority to the    #
@@ -942,24 +966,24 @@ pickRep:
 #    - identity        Minimum percentage of identity (between 0 and 1).       #
 #    - extra_params    Any extra parameter. Run 'blastn -help' to see all      #
 #                      options.                                                #
-# ----vsearch parameters 	       	       	       	       	       	       #
+# ----vsearch parameters                                                       #
 #    - command         Command to invoke vsearch  [default: "fastqc"].         #
-#    - db_file	       Full path to a fasta file with sequences	for the	       #
-#      	       	       assignation.                                            #
-#    - mapFile 	       Mapping file between sequence accessions and their      #
+#    - db_file         Full path to a fasta file with sequences for the        #
+#                      assignation.                                            #
+#    - mapFile 	   Mapping file between sequence accessions and their          #
 #                      taxonomy. This file should be a two column file, tab    #
 #                      separated with the accessions in the first column and   #
 #                      the taxonomy in the second column with the taxonomic    # 
 #                      levels separated by the 'taxo_separator', e.g.          #
 #                      'AY190.44  Bacteria;Firmicutes;Bacilli;...'             #
 #    - taxo_separator  Character used to split taxonomic levels	specified at   #
-#      	       	       the taxonomy mapping file 'mapFile'. [default: "';'"]   #
+#                      the taxonomy mapping file 'mapFile'. [default: "';'"]   #
 #    - max_target_seqs Maximum number of target sequences per sequence query.  #
-#      	       	       All the target sequences	are taking into	account	and    #
-#      	       	       their taxonomies	are mapped to their Lowest Common      #
-#                      Ancestor	(LCA). 	       	       	       	       	       #
-#    - jobs            Number of cpus. 	       	       	       	       	       #
-#    - identity	       Minimum percentage of identity (between 0 and 1).       #
+#                      All the target sequences are taking into account	and   #
+#                      their taxonomies	are mapped to their Lowest Common      #
+#                      Ancestor	(LCA).                                        #
+#    - jobs            Number of cpus.                                         #
+#    - identity        Minimum percentage of identity (between 0 and 1).       #
 #    - identity_definition  Identity definitions available by vsearch. Values  #
 #                      accepted are:                                           #
 #                      "0". CD-HIT definition: (matching columns) / (shortest  #
@@ -973,7 +997,7 @@ pickRep:
 #                      length)].                                               #
 #                      "4". BLAST definition, equivalent to --iddef 2 in a     #
 #                      context of global pairwise alignment.                   #
-#                      [default:  "2"].
+#                      [default:  "2"].                                        #
 #    - extra_params    Any extra parameter. Run 'vsearch -h' to see all        #
 #                      options [default: "--top_hits_only --maxrejects 32"]    #
 # ----qiime parameters                                                         #
@@ -1175,6 +1199,7 @@ filterAlignment:
 #------------------------------------------------------------------------------#
 # This rule produces a phylogenetic tree from a multiple sequence alignment.   # 
 # This rule, only runs if [alignRep][align] is equal to true "T"               #
+#                                                                              #
 #-----------------------------       PARAMS       -----------------------------#
 #                                                                              #
 # - method:       Method for generating the tree. Valid choices are:           #

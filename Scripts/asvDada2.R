@@ -36,10 +36,11 @@ args <- commandArgs(trailingOnly = T)
 #args[11]... = taxa_db_path
 #args[12]... = species_db_path
 #args[13]... = add_species
-#args[14]... = extra_paramas taxonomy
+#args[14]... = extra_params taxonomy
 #args[15]... = minOverlap merge
 #args[16]... = maxMismatch merge
-#args[17]... = summary files from libraries
+#args[17]... = add_sps extra_params
+#args[18]... = summary files from libraries
 
 # suppose that we expand and pass the summary.txt from the output
 # we should have a path {project}/runs/{run}/{sample}_data/demultiplexed/
@@ -59,7 +60,7 @@ setwd(args[1])
 #paths = c()
 #with args
 paths <-NULL
-for(i in 17:(length(args)-1)) {
+for(i in 18:(length(args)-1)) {
   paths <- c(paths,gsub("/summary.txt", '',args[i]))
 }
 #print(paths)
@@ -110,14 +111,14 @@ if (args[4] == "T" || args[4] == "TRUE" ){
 
 
 
-dadaFs <- dada(filtFs, err=errF, multithread=cpus, pool=pool)
-dadaRs <- dada(filtRs, err=errR, multithread=cpus, pool=pool)
+#dadaFs <- dada(filtFs, err=errF, multithread=cpus, pool=pool)
+#dadaRs <- dada(filtRs, err=errR, multithread=cpus, pool=pool)
 
-#if (!startsWith( trimws(extra_params), ',') && nchar(trimws(extra_params))>1){
-#  extra_params <- paste(",",extra_params)
-#}
-#dadaFs <- eval(parse(text=paste("dada(filtFs, err=errF, multithread=cpus, pool=pool, ",extra_params,")")))   
-#dadaRs <- eval(parse(text=paste("dada(filtRs, err=errF, multithread=cpus, pool=pool, ",extra_params,")")))   
+if (!startsWith( trimws(extra_params), ',') && nchar(trimws(extra_params))>1){
+  extra_params <- paste(",",extra_params)
+}
+dadaFs <- eval(parse(text=paste("dada(filtFs, err=errF, multithread=cpus, pool=pool, ",extra_params,")")))   
+dadaRs <- eval(parse(text=paste("dada(filtRs, err=errF, multithread=cpus, pool=pool, ",extra_params,")")))   
 
 #merge
 minOv <- as.integer(args[15])
@@ -335,14 +336,20 @@ if (args[10] == "T" || args[10] == "TRUE" ){
 
 #TAXONOMY ASSIGNATION
 extra_params_taxo <-args[14]
-#if (!startsWith( trimws(extra_params_taxo), ',') && nchar(trimws(extra_params_taxo))>1){
-#  extra_params <- paste(",",extra_params_taxo)
-#}
-#taxa <- eval(parse(text=paste("assignTaxonomy(seqtab2,args[11], multithread=cpus ",extra_params_taxo,")"))) 
+if (!startsWith( trimws(extra_params_taxo), ',') && nchar(trimws(extra_params_taxo))>1){
+  extra_params_taxo <- paste(",",extra_params_taxo)
+}
+#dadaFs <- eval(parse(text=paste("dada(filtFs, err=errF, multithread=cpus, pool=pool, ",extra_params,")")))
 colnames(seqtab2)<-original_names
-taxa <- assignTaxonomy(seqtab2,args[11], multithread=cpus)
+taxa <- eval(parse(text=paste("assignTaxonomy(seqtab2,args[11], multithread=cpus ",extra_params_taxo,")"))) 
+#taxa <- assignTaxonomy(seqtab2,args[11], multithread=cpus)
 if (args[13] == "T" || args[13] == "TRUE" ){
-  taxa2 <- addSpecies(taxa, args[12])
+ # taxa2 <- addSpecies(taxa, args[12])
+  extra_params_add_sp <-args[17]
+  if (!startsWith( trimws(extra_params_add_sp), ',') && nchar(trimws(extra_params_add_sp))>1){
+    extra_params_add_sp <- paste(",",extra_params_add_sp)
+  }
+  taxa2 <- eval(parse(text=paste("addSpecies(taxa, args[12]", extra_params_add_sp,")")))
   rownames(taxa2) <- new_names
   write.table(taxa2, file=paste0(args[6],'taxonomy_dada2/representative_seq_set_tax_assignments.txt'), sep='\t', quote=FALSE, row.names=TRUE, col.names=NA)
   

@@ -56,7 +56,7 @@ elif len(config["LIBRARY"])==1 and config["demultiplexing"]["demultiplex"] == "F
             r1="{PROJECT}/samples/{sample}/rawdata/fw.fastq" if config["gzip_input"] == "F" else "{PROJECT}/samples/{sample}/rawdata/fw.fastq.gz",
             r2="{PROJECT}/samples/{sample}/rawdata/rv.fastq" if config["gzip_input"] == "F" else "{PROJECT}/samples/{sample}/rawdata/rv.fastq.gz"
         shell:
-            "Script/init_sample_dmx.sh "+config["PROJECT"]+" "+config["LIBRARY"][0]+"  {input.fw} {input.rv}"
+            "Scripts/init_sample_dmx.sh "+config["PROJECT"]+" "+config["LIBRARY"][0]+"  {input.fw} {input.rv}"
 
 elif config["demultiplexing"]["demultiplex"] == "T":
     rule init_structure:
@@ -605,12 +605,12 @@ if config["ANALYSIS_TYPE"] == "ASV":
             temp("{PROJECT}/runs/{run}/asv/dada2_asv_table.txt") 
         params:
             "{PROJECT}/runs/{run}/asv/" #"{config[Rscript][command]} Scripts/asvDada2.R
-            #"$PWD " +str(config["dada2_asv"]["pool"]) + " "+str(config["dada2_asv"]["cpus"]) + " "+str(config["dada2_asv"]["generateErrPlots"]) + " "+str(config["dada2_asv"]["extra_params"]) + " {PROJECT}/runs/{run}/asv/ "  + " "+str(config["rm_reads"]["shorts"])  + " "+str(config["rm_reads"]["longs"]) + " "+str(config["rm_reads"]["offset"])  + " "+str(config["dada2_asv"]["chimeras"])  + " "+str(config["dada2_taxonomy"]["db"]) + " "+str(config["dada2_taxonomy"]["db_sps"])  + " "+str(config["dada2_taxonomy"]["add_sps"]) + " "+str(config["dada2_taxonomy"]["extra_params"]) 
+            #"$PWD " +str(config["dada2_asv"]["pool"]) + " "+str(config["dada2_asv"]["cpus"]) + " "+str(config["dada2_asv"]["generateErrPlots"]) + " "+str(config["dada2_asv"]["extra_params"]) + " {PROJECT}/runs/{run}/asv/ "  + " "+str(config["rm_reads"]["shorts"])  + " "+str(config["rm_reads"]["longs"]) + " "+str(config["rm_reads"]["offset"])  + " "+str(config["dada2_asv"]["chimeras"])  + " "+str(config["dada2_taxonomy"]["db"]) + " "+str(config["dada2_taxonomy"]["add_sps"]["db_sps"])  + " "+str(config["dada2_taxonomy"]["add_sps"]) + " "+str(config["dada2_taxonomy"]["extra_params"]) 
         benchmark:
             "{PROJECT}/runs/{run}/asv/dada2.benchmark"
         shell:
             #"Scripts/asvDada2_fix.R"
-            "{config[Rscript][command]} Scripts/asvDada2.R $PWD " +str(config["dada2_asv"]["pool"]) + " "+str(config["dada2_asv"]["cpus"])  + " "+str(config["dada2_asv"]["generateErrPlots"]) + " "+str(config["dada2_asv"]["extra_params"]) + " {params} "  + " "+str(config["rm_reads"]["shorts"])  + " "+str(config["rm_reads"]["longs"]) + " "+str(config["rm_reads"]["offset"])  + " "+str(config["dada2_asv"]["chimeras"])  + " "+str(config["dada2_taxonomy"]["db"]) + " "+str(config["dada2_taxonomy"]["db_sps"])  + " "+str(config["dada2_taxonomy"]["add_sps"]) + " "+str(config["dada2_taxonomy"]["extra_params"]) + " "+str(config["dada2_merge"]["minOverlap"]) +" "+str(config["dada2_merge"]["maxMismatch"]) + " " + "{input}" 
+            "{config[Rscript][command]} Scripts/asvDada2.R $PWD " +str(config["dada2_asv"]["pool"]) + " "+str(config["dada2_asv"]["cpus"])  + " "+str(config["dada2_asv"]["generateErrPlots"]) + " "+str(config["dada2_asv"]["extra_params"]) + " {params} "  + " "+str(config["rm_reads"]["shorts"])  + " "+str(config["rm_reads"]["longs"]) + " "+str(config["rm_reads"]["offset"])  + " "+str(config["dada2_asv"]["chimeras"])  + " "+str(config["dada2_taxonomy"]["db"]) + " "+str(config["dada2_taxonomy"]["add_sps"]["db_sps"])  + " "+str(config["dada2_taxonomy"]["add_sps"]["add"]) + " \""+str(config["dada2_taxonomy"]["extra_params"]) + "\" "+str(config["dada2_merge"]["minOverlap"]) +" "+str(config["dada2_merge"]["maxMismatch"]) + " \""+str(config["dada2_taxonomy"]["add_sps"]["extra_params"]) + "\" " + "{input}" 
 
 
     rule asv_table:
@@ -1223,19 +1223,19 @@ rule convert_filter_asv:
         "{config[biom][headerKey]} {config[biom][outFormat]} {config[biom][extra_params]}"
 
 #Summarize singletons
-rule summarize_taxa_singletons:
+rule summarize_taxa_no_singletons:
     input:
         "{PROJECT}/runs/{run}/otu/taxonomy_"+config["assignTaxonomy"]["tool"]+"/otuTable_noSingletons.biom"
         if config["ANALYSIS_TYPE"] == "OTU" else
         "{PROJECT}/runs/{run}/asv/taxonomy_dada2/asvTable_noSingletons.biom"
     output:
-        "{PROJECT}/runs/{run}/otu/taxonomy_"+config["assignTaxonomy"]["tool"]+"/summary_singletons/otuTable_noSingletons_L6.txt"
+        "{PROJECT}/runs/{run}/otu/taxonomy_"+config["assignTaxonomy"]["tool"]+"/summary_noSingletons/otuTable_noSingletons_L6.txt"
         if config["ANALYSIS_TYPE"] == "OTU" else
-        "{PROJECT}/runs/{run}/asv/taxonomy_dada2/summary_singletons/asvTable_noSingletons_L6.txt"
+        "{PROJECT}/runs/{run}/asv/taxonomy_dada2/summary_noSingletons/asvTable_noSingletons_L6.txt"
     params:
-        "{PROJECT}/runs/{run}/otu/taxonomy_"+config["assignTaxonomy"]["tool"]+"/summary_singletons/"
+        "{PROJECT}/runs/{run}/otu/taxonomy_"+config["assignTaxonomy"]["tool"]+"/summary_noSingletons/"
         if config["ANALYSIS_TYPE"] == "OTU" else
-        "{PROJECT}/runs/{run}/asv/taxonomy_dada2/summary_singletons/"
+        "{PROJECT}/runs/{run}/asv/taxonomy_dada2/summary_noSingletons/"
     benchmark:
         "{PROJECT}/runs/{run}/otu/taxonomy_"+config["assignTaxonomy"]["tool"]+"/summary/summarize_taxa.benchmark"
     shell:
@@ -1348,7 +1348,7 @@ if config["ANALYSIS_TYPE"] != "ASV":
 #            if config["ANALYSIS_TYPE"] == "OTU" else
 #            "{PROJECT}/runs/{run}/asv/summary/asv_table_L6.txt",
             c="{PROJECT}/runs/{run}/otu/taxonomy_"+config["assignTaxonomy"]["tool"]+"/otuTable_noSingletons.txt",
-            d="{PROJECT}/runs/{run}/otu/taxonomy_"+config["assignTaxonomy"]["tool"]+"/summary_singletons/otuTable_noSingletons_L6.txt",
+            d="{PROJECT}/runs/{run}/otu/taxonomy_"+config["assignTaxonomy"]["tool"]+"/summary_noSingletons/otuTable_noSingletons_L6.txt",
 #            if config["ANALYSIS_TYPE"] == "OTU" else 
 #            "{PROJECT}/runs/{run}/asv/stats_dada2.txt",
             e="{PROJECT}/runs/{run}/otu/taxonomy_"+config["assignTaxonomy"]["tool"]+"/aligned/filtered/representative_seq_set_noSingletons_aligned_pfiltered.tre"
@@ -1371,7 +1371,7 @@ else:
        input:
             a="{PROJECT}/runs/{run}/asv/taxonomy_dada2/asvTable.biom",
             b="{PROJECT}/runs/{run}/asv/taxonomy_dada2/summary/asvTable_L6.txt",
-            d="{PROJECT}/runs/{run}/asv/taxonomy_dada2/summary_singletons/asvTable_noSingletons_L6.txt",
+            d="{PROJECT}/runs/{run}/asv/taxonomy_dada2/summary_noSingletons/asvTable_noSingletons_L6.txt",
             c="{PROJECT}/runs/{run}/asv/taxonomy_dada2/aligned/filtered/representative_seq_set_noSingletons_aligned_pfiltered.tre"
             if config["alignRep"]["align"] == "T"
             else "{PROJECT}/runs/{run}/asv/taxonomy_dada2/representative_seq_set_noSingletons.fasta",

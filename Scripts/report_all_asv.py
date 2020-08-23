@@ -467,8 +467,8 @@ if snakemake.config["ANALYSIS_TYPE"] == "ASV":
     assignTaxoStr =":red:`Tool:` RDP_\n\n"
     assignTaxoStr += ":green:`Function:` assignTaxonomy() *implementation of RDP Classifier within dada2*\n\n"
     assignTaxoStr += ":green:`Reference database:` " + str(snakemake.config["dada2_taxonomy"]["db"])+ "\n\n"
-    if snakemake.config["dada2_taxonomy"]["add_sps"].casefold() == "T":
-        assignTaxoStr += ":green:`Taxonomy species file:` " + str(snakemake.config["dada2_taxonomy"]["db_sps"])+ "\n\n"
+    if snakemake.config["dada2_taxonomy"]["add_sps"]["add"].casefold() == "T":
+        assignTaxoStr += ":green:`Taxonomy species file:` " + str(snakemake.config["dada2_taxonomy"]["add_sps"]["db_sps"])+ "\n\n"
     variable_refs+=".. [RDP]  Wang, Q, G. M. Garrity, J. M. Tiedje, and J. R. Cole. 2007. Naive Bayesian Classifier for Rapid Assignment of rRNA Sequences into the New Bacterial Taxonomy. Appl Environ Microbiol. 73(16):5261-7.\n\n"
 elif snakemake.config["assignTaxonomy"]["tool"] == "blast":
     assignTaxoStr =":red:`Tool:` RDP_\n\n"
@@ -742,7 +742,7 @@ The previous steps were performed within a Cascabel R script according to the fo
 
 **Command**
 
-:commd:`Scripts/asvDada2.R $PWD  {snakemake.config[dada2_asv][pool]}   {snakemake.config[dada2_asv][cpus]}    {snakemake.config[dada2_asv][generateErrPlots]}   {snakemake.config[dada2_asv][extra_params]}  {snakemake.wildcards.PROJECT}/runs/{snakemake.wildcards.run}/asv/    {snakemake.config[rm_reads][shorts]}    {snakemake.config[rm_reads][longs]}   {snakemake.config[rm_reads][offset]}    {snakemake.config[dada2_asv][chimeras]}    {snakemake.config[dada2_taxonomy][db]}   {snakemake.config[dada2_taxonomy][db_sps]}    {snakemake.config[dada2_taxonomy][add_sps]}   {snakemake.config[dada2_taxonomy][extra_params]}  {snakemake.config[dada2_merge][minOverlap]}  {snakemake.config[dada2_merge][maxMismatch]}`  
+:commd:`Scripts/asvDada2.R $PWD  {snakemake.config[dada2_asv][pool]}   {snakemake.config[dada2_asv][cpus]}    {snakemake.config[dada2_asv][generateErrPlots]}   {snakemake.config[dada2_asv][extra_params]}  {snakemake.wildcards.PROJECT}/runs/{snakemake.wildcards.run}/asv/    {snakemake.config[rm_reads][shorts]}    {snakemake.config[rm_reads][longs]}   {snakemake.config[rm_reads][offset]}    {snakemake.config[dada2_asv][chimeras]}    {snakemake.config[dada2_taxonomy][db]}   {snakemake.config[dada2_taxonomy][add_sps][db_sps]}    {snakemake.config[dada2_taxonomy][add_sps][add]}   {snakemake.config[dada2_taxonomy][extra_params]}  {snakemake.config[dada2_merge][minOverlap]}  {snakemake.config[dada2_merge][maxMismatch]}  {snakemake.config[dada2_taxonomy][add_sps][extra_params]}`  
 
 
 {dada2Benchmark}
