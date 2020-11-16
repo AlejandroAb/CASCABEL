@@ -110,7 +110,7 @@ Thanks for your understanding!
 **Required input files:**
                          
 + Forward raw reads (fastq or fastq.gz)
-+ Reverse raw reads (fastq or fastq.gz)
++ Reverse raw reads (fastq or fastq.gz) (only for paired-end layout)
 + File with barcode information (only for demultiplexing: [format](http://qiime.org/documentation/file_formats.html#metadata-mapping-files))
 
   
@@ -125,7 +125,7 @@ Thanks for your understanding!
 + Phylogenetic tree
 + CASCABEL Report
 
-**Run CASCABEL**
+**Run Cascabel**
 
 All the parameters and behavior of the workflow is specified through the [configuration file](../../wiki#23-the-configuration-file-configyaml), therefore the easiest way to have the pipeline running is to filling up some required parameters on such file.
 
@@ -142,38 +142,49 @@ PROJECT: "My_CASCABEL_Project"
 #------------------------------------------------------------------------------#
 #                            LIBRARIES/SAMPLES                                 #
 #------------------------------------------------------------------------------#
-# SAMPLES/Libraries you will like to include on the analysis                   #
-# Same library names used  with init_sample.sh script (if used)                #
-# Include each sample / library name surrounded by quotes, and comma separated #
-# i.e LIBRARY["SAMP1","SAMP2",..."SAMPN"]                                      #
+# SAMPLES/LIBRARIES you want to include in the analysis.                       #
+# Use the same library names as with the init_sample.sh script.                #
+# Include each library name surrounded by quotes, and comma separated.         #
+# i.e LIBRARY:  ["LIB_1","LIB_2",..."LIB_N"]                                   #
+# LIBRARY_LAYOUT: Configuration of the library; all the libraries/samples      #
+#                 must have the same configuration; use:                       #
+#                 "PE" for paired-end reads [Default].                         #
+#                 "SE" for single-end reads.                                   #
 #------------------------------------------------------------------------------#
 LIBRARY: ["EXP1"]
+LIBRARY_LAYOUT: "PE"
+
 #------------------------------------------------------------------------------#
 #                             INPUT FILES                                      #
 #------------------------------------------------------------------------------#
 # To run Cascabel for multiple libraries you can provide an input file, tab    #
 # separated with the following columns:                                        #
 # - Library: Name of the library (this have to match with the values entered   #
-#            in the LIBRARY variable described above).                         #  
+#            in the LIBRARY variable described above).                         #
 # - Forward reads: Full path to the forward reads.                             #
-# - Reverse reads: Full path to the reverse reads.                             #
-# - metadata:      Full path to the barcode mapping file with the information  #
-#                  for demultiplexing the samples (only if needed).            #
-#                  For details, see section 2.2 from the project's wiki.       #
+# - Reverse reads: Full path to the reverse reads (only for paired-end).       #
+# - metadata:      Full path to the file with the information for              #
+#                  demultiplexing the samples (only if needed).                #
 # The full path of this file should be supplied in the input_files variable,   #
 # otherwise, you have to enter the FULL PATH for both: the raw reads and the   #
 # metadata file (barcode mapping file). The metadata file is only needed if    #
 # you want to perform demultiplexing.                                          #
+# If you want to avoid the creation of this file a third solution is available #
+# using the script init_sample.sh. More info at the project Wiki:              #
+# https://github.com/AlejandroAb/CASCABEL/wiki#21-input-files                  #
+#                                                                              #
+#-----------------------------       PARAMS       -----------------------------#
+#                                                                              #
 # - fw_reads:  Full path to the raw reads in forward direction (R1)            #
 # - rw_reads:  Full path to the raw reads in reverse direction (R2)            #
 # - metadata:  Full path to the metadata file with barcodes for each sample    #
 #              to perform library demultiplexing                               #
-# - input_files: Full path to a file with the information for the library or   #
-#                multiple libraries                                            #
+# - input_files: Full path to a file with the information for the library(s)   #
 #                                                                              #
 # ** Please supply only one of the following:                                  #
 #     - fw_reads, rv_reads and metadata                                        #
 #     - input_files                                                            #
+#     - or use init_sample.sh script directly                                  #
 #------------------------------------------------------------------------------#
 fw_reads: "/full/path/to/forward.reads.fq"
 rv_reads: "/full/path/to/reverse.reads.fq"
@@ -244,10 +255,11 @@ For a complete guide on how to setup and use CASCABEL please visit the official 
 We supply some "pre-filled" configuration files for the main possible configurations like for double and single barcoded paired end reads for OTU and ASV analysis. We strongly advise to make informed choices about parameter settings matching the individual needs of the experiment and data set.
 
 * **config.otu.double_bc.yaml**. Configuration file for paired-end data, barcodes on both reads, OTU analysis.
-* **config.otu.single_bc.yaml**. Configuration file for paired-end data, barcodes only on one read, OTU analysis.
+* **config.otu.single_bc.yaml**. Configuration file for single-end data, barcodes only on one read, OTU analysis.
 * **config.asv.double_bc.yaml**. Configuration file for paired-end data, barcodes on both reads, ASV analysis.
-* **config.asv.single_bc.yaml**. Configuration file for paired-end data, barcodes only on one read, OTU analysis.
+* **config.asv.single_bc.yaml**. Configuration file for single-end data, barcodes only on one read, ASV analysis.
 * **config.otu.double_bc.unpaired.yaml**. Configuration file for paired-end data, barcodes on both reads, OTU analysis, [unpaired workflow](../../wiki#4-unpaired-workflow), taxonomy assignation with RDP 
+* **config.asv.double_bc.unpaired.yaml**. Configuration file for paired-end data, barcodes on both reads, ASV analysis, [unpaired workflow](../../wiki#4-unpaired-workflow).
 
 ### Test data
 
@@ -259,6 +271,6 @@ In order to test the pipeline we also sugest to try running it with [CASCABEL's 
 
 For the moment Cascabel's prepint is available for citing at [www.biorxiv.org](https://www.biorxiv.org/content/early/2019/10/17/809384)
 
-Cascabel: a flexible, scalable and easy-to-use amplicon sequence data analysis pipeline
+Cascabel: a scalable and versatile amplicon sequence data analysis pipeline delivering reproducible and documented results.
 Alejandro Abdala Asbun, Marc A Besseling, Sergio Balzano, Judith van Bleijswijk, Harry Witte, Laura Villanueva, Julia C Engelmann
-bioRxiv 809384; doi: https://doi.org/10.1101/809384 
+Front. Genet.; doi: https://doi.org/10.3389/fgene.2020.489357
