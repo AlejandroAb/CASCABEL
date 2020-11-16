@@ -1,6 +1,6 @@
 """
 CASCABEL
-Version: 4.2
+Version: 4.3
 Author: Julia Engelmann and Alejandro Abdala
 Last update: 28/05/2020
 """
@@ -35,7 +35,7 @@ rule all:
         #expand("{PROJECT}/runs/{run}/report_"+config["assignTaxonomy"]["tool"]+".zip", PROJECT=config["PROJECT"],sample=config["LIBRARY"], run=run)
 
 
-if len(config["LIBRARY"])==1 and config["demultiplexing"]["demultiplex"] == "T" and len(config["input_files"])<2:
+if len(config["LIBRARY"])==1 and config["demultiplexing"]["demultiplex"] == "T" and len(config["input_files"])<2 and config["LIBRARY_LAYOUT"] != "SE":
     rule init_structure:
         input:
             fw = config["fw_reads"],
@@ -47,18 +47,37 @@ if len(config["LIBRARY"])==1 and config["demultiplexing"]["demultiplex"] == "T" 
             metadata="{PROJECT}/metadata/sampleList_mergedBarcodes_{sample}.txt"
         shell:
             "Scripts/init_sample.sh "+config["PROJECT"]+" "+config["LIBRARY"][0]+" {input.metadata} {input.fw} {input.rv}"
-elif len(config["LIBRARY"])==1 and config["demultiplexing"]["demultiplex"] == "F" and len(config["input_files"])<2:
+elif len(config["LIBRARY"])==1 and config["demultiplexing"]["demultiplex"] == "T" and len(config["input_files"])<2 and config["LIBRARY_LAYOUT"] == "SE":
     rule init_structure:
         input:
             fw = config["fw_reads"],
-            rv = config["rv_reads"],
+            metadata = config["metadata"]
+        output:
+            r1="{PROJECT}/samples/{sample}/rawdata/fw.fastq"  if config["gzip_input"] == "F" else "{PROJECT}/samples/{sample}/rawdata/fw.fastq.gz",
+            metadata="{PROJECT}/metadata/sampleList_mergedBarcodes_{sample}.txt"
+        shell:
+            "Scripts/init_sample_SE.sh "+config["PROJECT"]+" "+config["LIBRARY"][0]+" {input.metadata} {input.fw}"
+elif len(config["LIBRARY"])==1 and config["demultiplexing"]["demultiplex"] == "F" and len(config["input_files"])<2 and config["LIBRARY_LAYOUT"] != "SE":
+    rule init_structure:
+        input:
+            fw = config["fw_reads"],
+            rv = config["rv_reads"]
         output:
             r1="{PROJECT}/samples/{sample}/rawdata/fw.fastq" if config["gzip_input"] == "F" else "{PROJECT}/samples/{sample}/rawdata/fw.fastq.gz",
             r2="{PROJECT}/samples/{sample}/rawdata/rv.fastq" if config["gzip_input"] == "F" else "{PROJECT}/samples/{sample}/rawdata/rv.fastq.gz"
         shell:
             "Scripts/init_sample_dmx.sh "+config["PROJECT"]+" "+config["LIBRARY"][0]+"  {input.fw} {input.rv}"
 
-elif config["demultiplexing"]["demultiplex"] == "T":
+elif len(config["LIBRARY"])==1 and config["demultiplexing"]["demultiplex"] == "F" and len(config["input_files"])<2 and config["LIBRARY_LAYOUT"] == "SE":
+    rule init_structure:
+        input:
+            fw = config["fw_reads"]
+        output:
+            r1="{PROJECT}/samples/{sample}/rawdata/fw.fastq" if config["gzip_input"] == "F" else "{PROJECT}/samples/{sample}/rawdata/fw.fastq.gz"
+        shell:
+            "Scripts/init_sample_dmx_SE.sh "+config["PROJECT"]+" "+config["LIBRARY"][0]+"  {input.fw}"
+
+elif config["demultiplexing"]["demultiplex"] == "T" and config["LIBRARY_LAYOUT"] != "SE" and len(config["input_files"])>2:
     rule init_structure:
         input:
             file_list = config["input_files"]
@@ -68,7 +87,24 @@ elif config["demultiplexing"]["demultiplex"] == "T":
             metadata="{PROJECT}/metadata/sampleList_mergedBarcodes_{sample}.txt"
         script:
             "Scripts/init_sample.py"
+elif config["demultiplexing"]["demultiplex"] == "T" and config["LIBRARY_LAYOUT"] == "SE" and len(config["input_files"])>2:
+    rule init_structure:
+        input:
+            file_list = config["input_files"]
+        output:
+            r1="{PROJECT}/samples/{sample}/rawdata/fw.fastq"  if config["gzip_input"] == "F" else "{PROJECT}/samples/{sample}/rawdata/fw.fastq.gz",
+            metadata="{PROJECT}/metadata/sampleList_mergedBarcodes_{sample}.txt"
+        script:
+            "Scripts/init_sample_SE.py"
 
+elif config["LIBRARY_LAYOUT"] == "SE" and len(config["input_files"])>2:
+    rule init_structure:
+        input:
+            file_list = config["input_files"]
+        output:
+            r1="{PROJECT}/samples/{sample}/rawdata/fw.fastq"  if config["gzip_input"] == "F" else "{PROJECT}/samples/{sample}/rawdata/fw.fastq.gz"
+        script:
+            "Scripts/init_sample_SE.py"
 else: 
     rule init_structure:
         input:
@@ -78,130 +114,175 @@ else:
             r2="{PROJECT}/samples/{sample}/rawdata/rv.fastq"  if config["gzip_input"] == "F" else "{PROJECT}/samples/{sample}/rawdata/rv.fastq.gz"
         script:
             "Scripts/init_sample.py"
-#First we run fastQC over the rawdata
-rule fast_qc:
-    input:
-        r1="{PROJECT}/samples/{sample}/rawdata/fw.fastq" if config["gzip_input"] == "F" else "{PROJECT}/samples/{sample}/rawdata/fw.fastq.gz",
-        r2="{PROJECT}/samples/{sample}/rawdata/rv.fastq" if config["gzip_input"] == "F" else "{PROJECT}/samples/{sample}/rawdata/rv.fastq.gz"
-    output:
-        o1="{PROJECT}/samples/{sample}/qc/fw_fastqc.html",
-        o2="{PROJECT}/samples/{sample}/qc/rv_fastqc.html",
-        s1="{PROJECT}/samples/{sample}/qc/fw_fastqc/summary.txt",
-        s2="{PROJECT}/samples/{sample}/qc/rv_fastqc/summary.txt"
-    benchmark:
-        "{PROJECT}/samples/{sample}/qc/fq.benchmark"
-    shell:
-        "{config[fastQC][command]} {input.r1} {input.r2} --extract {config[fastQC][extra_params]} -o {wildcards.PROJECT}/samples/{wildcards.sample}/qc/"
-#validate qc if too many fails on qc report
-rule validateQC:
-    input:
-        "{PROJECT}/samples/{sample}/qc/fw_fastqc/summary.txt",
-        "{PROJECT}/samples/{sample}/qc/rv_fastqc/summary.txt",
-        "{PROJECT}/samples/{sample}/qc/fw_fastqc.html",
-        "{PROJECT}/samples/{sample}/qc/rv_fastqc.html",
-        "{PROJECT}/samples/{sample}/rawdata/fw.fastq" if config["gzip_input"] == "F" else "{PROJECT}/samples/{sample}/rawdata/fw.fastq.gz",
-        "{PROJECT}/samples/{sample}/rawdata/rv.fastq" if config["gzip_input"] == "F" else "{PROJECT}/samples/{sample}/rawdata/rv.fastq.gz"
-    output:
-        "{PROJECT}/samples/{sample}/qc/fq_fw_internal_validation.txt",
-        "{PROJECT}/samples/{sample}/qc/fq_rv_internal_validation.txt"
-    script:
-        "Scripts/validateQC.py"
-#Run pear to extend fragments
-rule pear:
-     input:
-         r1="{PROJECT}/samples/{sample}/rawdata/fw.fastq" if config["gzip_input"] == "F" else "{PROJECT}/samples/{sample}/rawdata/fw.fastq.gz",
-         r2="{PROJECT}/samples/{sample}/rawdata/rv.fastq" if config["gzip_input"] == "F" else "{PROJECT}/samples/{sample}/rawdata/rv.fastq.gz",
-         tmp1="{PROJECT}/samples/{sample}/qc/fq_fw_internal_validation.txt",
-         tmp2="{PROJECT}/samples/{sample}/qc/fq_rv_internal_validation.txt"
-     output:
-        "{PROJECT}/runs/{run}/{sample}_data/peared/seqs.assembled.fastq",# if config["UNPAIRED_DATA_PIPELINE"] != "T" else
-        "{PROJECT}/runs/{run}/{sample}_data/peared/seqs.unassembled.forward.fastq",
-        "{PROJECT}/runs/{run}/{sample}_data/peared/pear.log",
-        "{PROJECT}/runs/{run}/{sample}_data/peared/seqs.unassembled.reverse.fastq" 
-     benchmark:
-        "{PROJECT}/runs/{run}/{sample}_data/peared/pear.benchmark"
-     params:
-        "{PROJECT}/runs/{run}/{sample}_data/peared/seqs"
-     shell:
-        "{config[pear][command]} -f {input.r1} -r {input.r2} -o {params[0]} "
-        "-t {config[pear][t]} -v {config[pear][v]} -j {config[pear][j]} -p {config[pear][p]} {config[pear][extra_params]} > "
-        "{output[2]}"
 
-if config["UNPAIRED_DATA_PIPELINE"] == "T" or config["demultiplexing"]["add_unpair"] == "T":
-    rule identify_unpaired_fw:
-        input:
-            fw="{PROJECT}/runs/{run}/{sample}_data/peared/seqs.unassembled.forward.fastq"
-        output:
-            fwo=temp("{PROJECT}/runs/{run}/{sample}_data/peared/seqs.unassembled.forward.out")
-        shell:
-             "cat {input.fw} | awk '{{if((NR-1)%4==0){{header=$1}}else if((NR-2)%4==0){{seq=$0}}else if(NR%4==0){{print header\"\\t\"seq\"\\t\"$0}}}}' > {output.fwo}"
-    rule identify_unpaired_rv:
+if config["LIBRARY_LAYOUT"] != "SE":
+    rule fast_qc:
         """
-        Is like the rule above, but this RC the sequence and reverse the quality values!!
+        Runs QC on raw reads
         """
         input:
-            rv="{PROJECT}/runs/{run}/{sample}_data/peared/seqs.unassembled.reverse.fastq"
+            r1="{PROJECT}/samples/{sample}/rawdata/fw.fastq" if config["gzip_input"] == "F" else "{PROJECT}/samples/{sample}/rawdata/fw.fastq.gz",
+            r2="{PROJECT}/samples/{sample}/rawdata/rv.fastq" if config["gzip_input"] == "F" else "{PROJECT}/samples/{sample}/rawdata/rv.fastq.gz"
         output:
-            rvo=temp("{PROJECT}/runs/{run}/{sample}_data/peared/seqs.unassembled.reverse.out")
+            o1="{PROJECT}/samples/{sample}/qc/fw_fastqc.html",
+            o2="{PROJECT}/samples/{sample}/qc/rv_fastqc.html",
+            s1="{PROJECT}/samples/{sample}/qc/fw_fastqc/summary.txt",
+            s2="{PROJECT}/samples/{sample}/qc/rv_fastqc/summary.txt"
+        benchmark:
+            "{PROJECT}/samples/{sample}/qc/fq.benchmark"
         shell:
-              "cat {input.rv} | awk '{{if((NR-1)%4==0){{header=$1}}else if((NR-2)%4==0){{seq=$0}}else if(NR%4==0){{print header\"\\t\"seq\"\\t\"$0}}}}' > {output.rvo}"
+            "{config[fastQC][command]} {input.r1} {input.r2} --extract {config[fastQC][extra_params]} -o {wildcards.PROJECT}/samples/{wildcards.sample}/qc/"
+
+    rule validateQC:
+        """
+        Interpret FastQC output and stops on interactive mode, if too many
+        errors.
+        """
+        input:
+            "{PROJECT}/samples/{sample}/qc/fw_fastqc/summary.txt",
+            "{PROJECT}/samples/{sample}/qc/rv_fastqc/summary.txt",
+            "{PROJECT}/samples/{sample}/qc/fw_fastqc.html",
+            "{PROJECT}/samples/{sample}/qc/rv_fastqc.html",
+            "{PROJECT}/samples/{sample}/rawdata/fw.fastq" if config["gzip_input"] == "F" else "{PROJECT}/samples/{sample}/rawdata/fw.fastq.gz",
+            "{PROJECT}/samples/{sample}/rawdata/rv.fastq" if config["gzip_input"] == "F" else "{PROJECT}/samples/{sample}/rawdata/rv.fastq.gz"
+        output:
+            "{PROJECT}/samples/{sample}/qc/fq_fw_internal_validation.txt",
+            "{PROJECT}/samples/{sample}/qc/fq_rv_internal_validation.txt"
+        script:
+            "Scripts/validateQC.py"
+
+    rule pear:
+        """
+        Paire/extend paired-end data
+        """
+        input:
+            r1="{PROJECT}/samples/{sample}/rawdata/fw.fastq" if config["gzip_input"] == "F" else "{PROJECT}/samples/{sample}/rawdata/fw.fastq.gz",
+            r2="{PROJECT}/samples/{sample}/rawdata/rv.fastq" if config["gzip_input"] == "F" else "{PROJECT}/samples/{sample}/rawdata/rv.fastq.gz",
+            tmp1="{PROJECT}/samples/{sample}/qc/fq_fw_internal_validation.txt",
+            tmp2="{PROJECT}/samples/{sample}/qc/fq_rv_internal_validation.txt"
+        output:
+            "{PROJECT}/runs/{run}/{sample}_data/peared/seqs.assembled.fastq",# if config["UNPAIRED_DATA_PIPELINE"] != "T" else
+            "{PROJECT}/runs/{run}/{sample}_data/peared/seqs.unassembled.forward.fastq",
+            "{PROJECT}/runs/{run}/{sample}_data/peared/pear.log",
+            "{PROJECT}/runs/{run}/{sample}_data/peared/seqs.unassembled.reverse.fastq" 
+        benchmark:
+            "{PROJECT}/runs/{run}/{sample}_data/peared/pear.benchmark"
+        params:
+            "{PROJECT}/runs/{run}/{sample}_data/peared/seqs"
+        shell:
+            "{config[pear][command]} -f {input.r1} -r {input.r2} -o {params[0]} "
+            "-t {config[pear][t]} -v {config[pear][v]} -j {config[pear][j]} -p {config[pear][p]} {config[pear][extra_params]} > "
+            "{output[2]}"
+
+    if config["UNPAIRED_DATA_PIPELINE"] == "T" or config["demultiplexing"]["add_unpair"] == "T":
+        rule identify_unpaired_fw:
+            """
+            Identify reads that they were not paired.
+            """
+            input:
+                fw="{PROJECT}/runs/{run}/{sample}_data/peared/seqs.unassembled.forward.fastq"
+            output:
+                fwo=temp("{PROJECT}/runs/{run}/{sample}_data/peared/seqs.unassembled.forward.out")
+            shell:
+                "cat {input.fw} | awk '{{if((NR-1)%4==0){{header=$1}}else if((NR-2)%4==0){{seq=$0}}else if(NR%4==0){{print header\"\\t\"seq\"\\t\"$0}}}}' > {output.fwo}"
+        rule identify_unpaired_rv:
+            """
+            Is like the rule above, but this RC the sequence and reverse the quality values!!
+            """
+            input:
+                rv="{PROJECT}/runs/{run}/{sample}_data/peared/seqs.unassembled.reverse.fastq"
+            output:
+                rvo=temp("{PROJECT}/runs/{run}/{sample}_data/peared/seqs.unassembled.reverse.out")
+            shell:
+                "cat {input.rv} | awk '{{if((NR-1)%4==0){{header=$1}}else if((NR-2)%4==0){{seq=$0}}else if(NR%4==0){{print header\"\\t\"seq\"\\t\"$0}}}}' > {output.rvo}"
              #"cat {input.rv} | awk 'BEGIN{{a[\"T\"]=\"A\";a[\"A\"]=\"T\";a[\"C\"]=\"G\";a[\"G\"]=\"C\";a[\"N\"]=\"N\"}}"
              #"{{if((NR-1)%4==0){{header=$1}}else if((NR-2)%4==0){{seq=$0}}else if(NR%4==0){{rc=\"\";rq=\"\";for(i=length(seq);i>0;i--){{k=substr(seq,i,1);rc=rc a[k];rq=rq substr($0,i,1)}} "
              #"printf \"%s\\t%s\\t%s\\n\",header,rc,rq}}}}' >   {output.rvo}"
 
-    rule pair_unpaired:
+        rule pair_unpaired:
+            input:
+                fw="{PROJECT}/runs/{run}/{sample}_data/peared/seqs.unassembled.forward.out",
+                rv="{PROJECT}/runs/{run}/{sample}_data/peared/seqs.unassembled.reverse.out"
+            output:
+                "{PROJECT}/runs/{run}/{sample}_data/peared/seqs.assembled.UNPAIRED.fastq"
+            shell:
+                #"cat {input.fw} | awk -v char={config[CHAR_TO_PAIR]} 'NR==FNR{h[$1]=$2;next}{print \">\"$1\"\\n\"$2 char h[$1]}' - {input.rv} > {output}
+                "cat {input.fw} | awk -v ch=\"{config[CHAR_TO_PAIR]}\" 'BEGIN{{for(i=1;i<=length(ch);i++){{chq=chq \"{config[QUALITY_CHAR]}\"}}}} "
+                "NR==FNR{{seqs[$1]=$2;qa[$1]=$3;next}}{{print $1\"\\n\"seqs[$1] ch $2\"\\n+\\n\"qa[$1] chq $3}}' - {input.rv} > {output}"
+
+    rule validatePear:
+        """
+        Validate the percentage of paired reads.
+        """
         input:
-            fw="{PROJECT}/runs/{run}/{sample}_data/peared/seqs.unassembled.forward.out",
-            rv="{PROJECT}/runs/{run}/{sample}_data/peared/seqs.unassembled.reverse.out"
+            "{PROJECT}/runs/{run}/{sample}_data/peared/pear.log"
         output:
-            "{PROJECT}/runs/{run}/{sample}_data/peared/seqs.assembled.UNPAIRED.fastq"
-        shell:
-            #"cat {input.fw} | awk -v char={config[CHAR_TO_PAIR]} 'NR==FNR{h[$1]=$2;next}{print \">\"$1\"\\n\"$2 char h[$1]}' - {input.rv} > {output}
-            "cat {input.fw} | awk -v ch=\"{config[CHAR_TO_PAIR]}\" 'BEGIN{{for(i=1;i<=length(ch);i++){{chq=chq \"{config[QUALITY_CHAR]}\"}}}} "
-            "NR==FNR{{seqs[$1]=$2;qa[$1]=$3;next}}{{print $1\"\\n\"seqs[$1] ch $2\"\\n+\\n\"qa[$1] chq $3}}' - {input.rv} > {output}"
-
-#Validate % of peared reds
-rule validatePear:
-    input:
-        "{PROJECT}/runs/{run}/{sample}_data/peared/pear.log"
-    output:
-        "{PROJECT}/runs/{run}/{sample}_data/peared/pear.log.validation"
-    script:
-        "Scripts/validatePear.py"
-
-if config["fastQCPear"] == "T" and config["UNPAIRED_DATA_PIPELINE"] != "T":
-    rule fastQCPear:
-      input:
-          r1="{PROJECT}/runs/{run}/{sample}_data/peared/seqs.assembled.fastq"
-      output:
-          o1="{PROJECT}/runs/{run}/{sample}_data/peared/qc/seqs.assembled_fastqc.html",
-          s2="{PROJECT}/runs/{run}/{sample}_data/peared/qc/seqs.assembled_fastqc/summary.txt"
-      params:
-          "{PROJECT}/runs/{run}/{sample}_data/peared/qc/"
-      benchmark:
-          "{PROJECT}/runs/{run}/{sample}_data/peared/qc/fq.benchmark"
-      shell:
-          "{config[fastQC][command]} {input.r1} --extract -o {params}"
-
-    rule validateFastQCPear:
-        input:
-            "{PROJECT}/runs/{run}/{sample}_data/peared/qc/seqs.assembled_fastqc/summary.txt",
-            "{PROJECT}/runs/{run}/{sample}_data/peared/qc/seqs.assembled_fastqc.html",
-            "{PROJECT}/runs/{run}/{sample}_data/peared/seqs.assembled.fastq"
-        output:
-            "{PROJECT}/runs/{run}/{sample}_data/peared/qc/fq_fw_internal_validation.txt"
+            "{PROJECT}/runs/{run}/{sample}_data/peared/pear.log.validation"
         script:
-            "Scripts/validatePearedQC.py"
-else:
-    rule skipFastQCPear:
-        input:
-            "{PROJECT}/runs/{run}/{sample}_data/peared/seqs.assembled.fastq" if config["UNPAIRED_DATA_PIPELINE"] != "T" else
-       	    "{PROJECT}/runs/{run}/{sample}_data/peared/seqs.assembled.UNPAIRED.fastq"
+            "Scripts/validatePear.py"
 
+    if config["fastQCPear"] == "T" and config["UNPAIRED_DATA_PIPELINE"] != "T":
+        rule fastQCPear:
+            input:
+                r1="{PROJECT}/runs/{run}/{sample}_data/peared/seqs.assembled.fastq"
+            output:
+                o1="{PROJECT}/runs/{run}/{sample}_data/peared/qc/seqs.assembled_fastqc.html",
+                s2="{PROJECT}/runs/{run}/{sample}_data/peared/qc/seqs.assembled_fastqc/summary.txt"
+            params:
+                "{PROJECT}/runs/{run}/{sample}_data/peared/qc/"
+            benchmark:
+                "{PROJECT}/runs/{run}/{sample}_data/peared/qc/fq.benchmark"
+            shell:
+                "{config[fastQC][command]} {input.r1} --extract -o {params}"
+
+        rule validateFastQCPear:
+            input:
+                "{PROJECT}/runs/{run}/{sample}_data/peared/qc/seqs.assembled_fastqc/summary.txt",
+                "{PROJECT}/runs/{run}/{sample}_data/peared/qc/seqs.assembled_fastqc.html",
+                "{PROJECT}/runs/{run}/{sample}_data/peared/seqs.assembled.fastq"
+            output:
+                "{PROJECT}/runs/{run}/{sample}_data/peared/qc/fq_fw_internal_validation.txt"
+            script:
+                "Scripts/validatePearedQC.py"
+    else:
+        rule skipFastQCPear:
+            input:
+                "{PROJECT}/runs/{run}/{sample}_data/peared/seqs.assembled.fastq" if config["UNPAIRED_DATA_PIPELINE"] != "T" else
+       	        "{PROJECT}/runs/{run}/{sample}_data/peared/seqs.assembled.UNPAIRED.fastq"
+            output:
+                "{PROJECT}/runs/{run}/{sample}_data/peared/qc/fq_fw_internal_validation.txt"
+            shell:
+                "touch {output}"
+
+else: #SE Workflow only runs QC and validate QC all the above rules 
+
+    rule fast_qc:
+        """
+        Runs QC on raw reads
+        """
+        input:
+            r1="{PROJECT}/samples/{sample}/rawdata/fw.fastq" if config["gzip_input"] == "F" else "{PROJECT}/samples/{sample}/rawdata/fw.fastq.gz"
         output:
-            "{PROJECT}/runs/{run}/{sample}_data/peared/qc/fq_fw_internal_validation.txt"
+            o1="{PROJECT}/samples/{sample}/qc/fw_fastqc.html",
+            s1="{PROJECT}/samples/{sample}/qc/fw_fastqc/summary.txt"
+        benchmark:
+            "{PROJECT}/samples/{sample}/qc/fq.benchmark"
         shell:
-            "touch {output}"
+            "{config[fastQC][command]} {input.r1} --extract {config[fastQC][extra_params]} -o {wildcards.PROJECT}/samples/{wildcards.sample}/qc/"
+
+    rule validateQC:
+        """
+        Interpret FastQC output and stops on interactive mode, if too many
+        errors.
+        """
+        input:
+            "{PROJECT}/samples/{sample}/qc/fw_fastqc/summary.txt",
+            "{PROJECT}/samples/{sample}/qc/fw_fastqc.html",
+            "{PROJECT}/samples/{sample}/rawdata/fw.fastq" if config["gzip_input"] == "F" else "{PROJECT}/samples/{sample}/rawdata/fw.fastq.gz"
+        output:
+            "{PROJECT}/samples/{sample}/qc/fq_fw_internal_validation.txt"
+        script:
+            "Scripts/validateQC_SE.py"
 
 if config["demultiplexing"]["demultiplex"] == "T":
 
@@ -231,7 +312,7 @@ if config["demultiplexing"]["demultiplex"] == "T":
         script:
             "Scripts/validateBCV.py"
 
-    if config["demultiplexing"]["add_unpair"] == "T":
+    if config["demultiplexing"]["add_unpair"] == "T" and  config["LIBRARY_LAYOUT"] != "SE":
         rule concat_assembly:
             input: 
                 pair="{PROJECT}/runs/{run}/{sample}_data/peared/seqs.assembled.fastq",
@@ -241,25 +322,49 @@ if config["demultiplexing"]["demultiplex"] == "T":
             shell:
                 "cat {input.pair} {input.unpair} > {output}" 
 
-#Extract bc from reads
-    rule extract_barcodes:
-        input:
-            tmp2="{PROJECT}/runs/{run}/{sample}_data/peared/pear.log.validation",
-            assembly="{PROJECT}/runs/{run}/{sample}_data/peared/seqs.assembled.PAIRED_UNPAIRED.fastq" if config["UNPAIRED_DATA_PIPELINE"] != "T" and config["demultiplexing"]["add_unpair"] == "T"     
-            else "{PROJECT}/runs/{run}/{sample}_data/peared/seqs.assembled.fastq" if config["UNPAIRED_DATA_PIPELINE"] != "T" else
-            "{PROJECT}/runs/{run}/{sample}_data/peared/seqs.assembled.UNPAIRED.fastq",
-            tmpinput="{PROJECT}/runs/{run}/{sample}_data/peared/qc/fq_fw_internal_validation.txt",
-            tmp3="{PROJECT}/metadata/bc_validation/{sample}/validation.log"
-        output:
-            "{PROJECT}/runs/{run}/{sample}_data/barcodes/barcodes.fastq",
-            "{PROJECT}/runs/{run}/{sample}_data/barcodes/reads.fastq"
-        params:
-            "{PROJECT}/runs/{run}/{sample}_data/barcodes/"
-        benchmark:
-            "{PROJECT}/runs/{run}/{sample}_data/barcodes/barcodes.benchmark"
-        shell:
-            "{config[qiime][path]}extract_barcodes.py -f {input.assembly} -c {config[ext_bc][c]} "
-            "{config[ext_bc][bc_length]} {config[ext_bc][extra_params]} -o {params}"
+    if  config["LIBRARY_LAYOUT"] != "SE":
+        rule extract_barcodes:
+            """
+            Extracts the barcodes from the fastq reads. This rules applies to the not Single END mode.
+            For choosing the correct "assembly" it uses the peared/seqs.assembled.PAIRED_UNPAIRED.fastq (Paired + Unpaired) if the WF is
+            different to the UNPAIRED WF and if the add_unpair option is set to T.
+            It selects only the paired sequences if the workflow is different to the unpaired WF and ther option add_unpair is set to F.
+            Finally, it uses only the unpaired sequences if the Workflow is the UNPAIRED no matter what the user choose for the add_unpair option.
+            """
+            input:
+                tmp2="{PROJECT}/runs/{run}/{sample}_data/peared/pear.log.validation",
+                assembly="{PROJECT}/runs/{run}/{sample}_data/peared/seqs.assembled.PAIRED_UNPAIRED.fastq" if config["UNPAIRED_DATA_PIPELINE"] != "T" and config["demultiplexing"]["add_unpair"] == "T"     
+                else "{PROJECT}/runs/{run}/{sample}_data/peared/seqs.assembled.fastq" if config["UNPAIRED_DATA_PIPELINE"] != "T" else
+                "{PROJECT}/runs/{run}/{sample}_data/peared/seqs.assembled.UNPAIRED.fastq",
+                tmpinput="{PROJECT}/runs/{run}/{sample}_data/peared/qc/fq_fw_internal_validation.txt",
+                tmp3="{PROJECT}/metadata/bc_validation/{sample}/validation.log"
+            output:
+                "{PROJECT}/runs/{run}/{sample}_data/barcodes/barcodes.fastq",
+                "{PROJECT}/runs/{run}/{sample}_data/barcodes/reads.fastq"
+            params:
+                "{PROJECT}/runs/{run}/{sample}_data/barcodes/"
+            benchmark:
+                "{PROJECT}/runs/{run}/{sample}_data/barcodes/barcodes.benchmark"
+            shell:
+                "{config[qiime][path]}extract_barcodes.py -f {input.assembly} -c {config[ext_bc][c]} "
+                "{config[ext_bc][bc_length]} {config[ext_bc][extra_params]} -o {params}"
+    else: #The workflow is SE
+        rule extract_barcodes:
+            input:
+                assembly="{PROJECT}/samples/{sample}/rawdata/fw.fastq" if config["gzip_input"] == "F" else "{PROJECT}/samples/{sample}/rawdata/fw.fastq.gz",
+                tmp="{PROJECT}/samples/{sample}/qc/fq_fw_internal_validation.txt",
+                tmp3="{PROJECT}/metadata/bc_validation/{sample}/validation.log"
+            output:
+                "{PROJECT}/runs/{run}/{sample}_data/barcodes/barcodes.fastq",
+                "{PROJECT}/runs/{run}/{sample}_data/barcodes/reads.fastq"
+            params:
+                "{PROJECT}/runs/{run}/{sample}_data/barcodes/"
+            benchmark:
+                "{PROJECT}/runs/{run}/{sample}_data/barcodes/barcodes.benchmark"
+            shell:
+                "{config[qiime][path]}extract_barcodes.py -f {input.assembly} -c {config[ext_bc][c]} "
+                "{config[ext_bc][bc_length]} {config[ext_bc][extra_params]} -o {params}"
+
 #If allow mismatch correct bar code
     if config["bc_mismatch"]:
         rule correct_barcodes:
@@ -290,18 +395,36 @@ if config["demultiplexing"]["demultiplex"] == "T":
             "{config[qiime][path]}split_libraries_fastq.py -m {input.mapFile} -i {input.rFile} "
             "-o {params.outDir} -b {input.bcFile} -q {config[split][q]} -r {config[split][r]} "
             "--retain_unassigned_reads --barcode_type {config[split][barcode_type]} {config[split][extra_params]}"
-#split libraries reverse complement
-    rule get_unassigned:
-        input:
-            split="{PROJECT}/runs/{run}/{sample}_data/splitLibs/seqs.fna",
-            assembly="{PROJECT}/runs/{run}/{sample}_data/peared/seqs.assembled.PAIRED_UNPAIRED.fastq" if config["UNPAIRED_DATA_PIPELINE"] != "T" and config["demultiplexing"]["add_unpair"] == "T"     
-            else "{PROJECT}/runs/{run}/{sample}_data/peared/seqs.assembled.fastq" if config["UNPAIRED_DATA_PIPELINE"] != "T" else
-            "{PROJECT}/runs/{run}/{sample}_data/peared/seqs.assembled.UNPAIRED.fastq"
-        output:
-            temp("{PROJECT}/runs/{run}/{sample}_data/splitLibs/unassigned.fastq")
-        shell:
-            "cat {input.split} | grep \"^>Unassigned\" |  sed 's/>Unassigned_[0-9]* /@/g' | "
-            "sed 's/ .*//' | grep -F -w -A3  -f - {input.assembly} |  sed '/^--$/d' > {output}"
+    if config["LIBRARY_LAYOUT"] != "SE":
+        rule get_unassigned:
+            input:
+                split="{PROJECT}/runs/{run}/{sample}_data/splitLibs/seqs.fna",
+                assembly="{PROJECT}/runs/{run}/{sample}_data/peared/seqs.assembled.PAIRED_UNPAIRED.fastq" if config["UNPAIRED_DATA_PIPELINE"] != "T" and config["demultiplexing"]["add_unpair"] == "T"     
+                else "{PROJECT}/runs/{run}/{sample}_data/peared/seqs.assembled.fastq" if config["UNPAIRED_DATA_PIPELINE"] != "T" 
+                else "{PROJECT}/runs/{run}/{sample}_data/peared/seqs.assembled.UNPAIRED.fastq" 
+            output:
+                temp("{PROJECT}/runs/{run}/{sample}_data/splitLibs/unassigned.fastq")
+            shell:
+                "cat {input.split} | grep \"^>Unassigned\" |  sed 's/>Unassigned_[0-9]* /@/g' | "
+                "sed 's/ .*//' | grep -F -w -A3  -f - {input.assembly} |  sed '/^--$/d' > {output}"
+    else:
+        rule uncompress_singleEND:
+            input:
+                "{PROJECT}/samples/{sample}/rawdata/fw.fastq.gz"
+            output:
+                temp("{PROJECT}/samples/{sample}/rawdata/fw.tmp.fastq")
+            shell:
+                "gzip -cd {input} > {output}"
+        rule get_unassigned:
+            input:
+                split="{PROJECT}/runs/{run}/{sample}_data/splitLibs/seqs.fna",
+                assembly="{PROJECT}/samples/{sample}/rawdata/fw.fastq" if config["gzip_input"] == "F" else "{PROJECT}/samples/{sample}/rawdata/fw.tmp.fastq"
+            output:
+                temp("{PROJECT}/runs/{run}/{sample}_data/splitLibs/unassigned.fastq")
+            shell:
+                "cat {input.split} | grep \"^>Unassigned\" |  sed 's/>Unassigned_[0-9]* /@/g' | "
+                "sed 's/ .*//' | grep -F -w -A3  -f - {input.assembly} |  sed '/^--$/d' > {output}"
+
     rule rc_unassigned:
         input:
             "{PROJECT}/runs/{run}/{sample}_data/splitLibs/unassigned.fastq"
@@ -384,7 +507,7 @@ if config["demultiplexing"]["demultiplex"] == "T":
         shell:
             "cat {input} | grep -A1 --no-group-separator \"^>Unassigned\"  > {output}"
 
-    if config["UNPAIRED_DATA_PIPELINE"] != "T" and config["demultiplexing"]["add_unpair"] == "T" :
+    if config["UNPAIRED_DATA_PIPELINE"] != "T" and config["demultiplexing"]["add_unpair"] == "T" and config["LIBRARY_LAYOUT"] != "SE":
         rule find_unassembled_fw_ids:
              """
              This rule creates a file with all the new ids assigned to unassembled reads.
@@ -470,7 +593,7 @@ if config["demultiplexing"]["demultiplex"] == "T":
         shell:
             "cat {input.seqs} {input.seqsRC}  > {output}"
 
-    if config["demultiplexing"]["create_fastq_files"] == "T" or config["ANALYSIS_TYPE"] == "ASV":
+    if (config["demultiplexing"]["create_fastq_files"] == "T" or config["ANALYSIS_TYPE"] == "ASV") and config["LIBRARY_LAYOUT"] != "SE":
         rule write_dmx_files_fw:
             input:
                 dmx= "{PROJECT}/runs/{run}/{sample}_data/splitLibs/seqs.no_unassigneds.fna" if config["UNPAIRED_DATA_PIPELINE"] != "T" and config["demultiplexing"]["add_unpair"] == "T"
@@ -528,6 +651,39 @@ if config["demultiplexing"]["demultiplex"] == "T":
                     "{PROJECT}/runs/{run}/{sample}_data/demultiplexed/summary.txt"
                 shell:
                     "cat {input.fw} {input.rv} > {output}"
+    elif (config["demultiplexing"]["create_fastq_files"] == "T" or config["ANALYSIS_TYPE"] == "ASV") and config["LIBRARY_LAYOUT"] == "SE":
+        rule write_dmx_files_fw:
+            input:
+                dmx="{PROJECT}/runs/{run}/{sample}_data/splitLibs/seqs.assigned.fna",
+                r1="{PROJECT}/samples/{sample}/rawdata/fw.fastq" if config["gzip_input"] == "F" else "{PROJECT}/samples/{sample}/rawdata/fw.fastq.gz",
+            params:
+                outdir="{PROJECT}/runs/{run}/{sample}_data/demultiplexed/"
+            output:
+                "{PROJECT}/runs/{run}/{sample}_data/demultiplexed/summary_fw.txt"
+            benchmark:
+                "{PROJECT}/runs/{run}/{sample}_data/demultiplexed/demultiplex_fq.benchmark"
+            shell:
+                "{config[java][command]}  -cp Scripts DemultiplexQiime --over-write --fasta -a fw -b {config[demultiplexing][remove_bc]}  -d {input.dmx} -o {params.outdir} "
+                "-r {input.r1}  {config[demultiplexing][dmx_params]}"
+        if config["demultiplexing"]["primers"]["remove"] == "T":
+            rule remove_primers_dmx_files:
+                input:
+                    fw="{PROJECT}/runs/{run}/{sample}_data/demultiplexed/summary_fw.txt",
+                params:
+                    "{PROJECT}/runs/{run}/{sample}_data/demultiplexed"
+                output:
+                    "{PROJECT}/runs/{run}/{sample}_data/demultiplexed/summary.txt"
+                shell:
+                    "Scripts/removePrimersDemultiplexSE.sh {params} {config[demultiplexing][primers][fw_primer]} {config[demultiplexing][primers][min_overlap]} {config[demultiplexing][primers][extra_params]}"
+        else:
+            rule summary_write_dmx_files:
+                input:
+                    fw="{PROJECT}/runs/{run}/{sample}_data/demultiplexed/summary_fw.txt",
+                output:
+                    "{PROJECT}/runs/{run}/{sample}_data/demultiplexed/summary.txt"
+                shell:
+                    "cat {input.fw} > {output}"
+
 
     else:
         rule skip_dmx_file_creation:
@@ -554,7 +710,7 @@ else:
             #"sed -n '1~4s/^@/>/p;2~4p' {input.extended_reads} >  {output}"
             "sed -n '1~4s/^@/>/p;2~4p' {input.extended_reads} | "
             "awk  '{{if($0 ~ \"^>\"){{seq=seq+1;print \">{wildcards.sample}_\"seq\" \"substr($1,2)}}else{{print $0}}}}' > {output}"
-    if config["ANALYSIS_TYPE"] == "ASV":
+    if config["ANALYSIS_TYPE"] == "ASV" and config["LIBRARY_LAYOUT"] != "SE":
         rule skip_dmx_file_creation:
             input:
                 r1="{PROJECT}/samples/{sample}/rawdata/fw.fastq" if config["gzip_input"] == "F" else "{PROJECT}/samples/{sample}/rawdata/fw.fastq.gz",
@@ -565,7 +721,17 @@ else:
                 "{PROJECT}/runs/{run}/{sample}_data/demultiplexed/summary.txt"
             shell:
                 "touch {output} &&  ln -s $PWD/{input.r1} {params}{wildcards.sample}_1.fastq.gz "
-                " && ln -s $PWD/{input.r2} {params}{wildcards.sample}_2.fastq.gz"
+                " && ln -s $PWD/{input.r2} {params}{wildcards.sample}_2.fastq.gz" 
+    elif config["ANALYSIS_TYPE"] == "ASV" and config["LIBRARY_LAYOUT"] == "SE":
+        rule skip_dmx_file_creation:
+            input:
+                r1="{PROJECT}/samples/{sample}/rawdata/fw.fastq" if config["gzip_input"] == "F" else "{PROJECT}/samples/{sample}/rawdata/fw.fastq.gz"
+            params:
+                "{PROJECT}/runs/{run}/{sample}_data/demultiplexed/"
+            output:
+                "{PROJECT}/runs/{run}/{sample}_data/demultiplexed/summary.txt"
+            shell:
+                "touch {output} &&  ln -s $PWD/{input.r1} {params}{wildcards.sample}_1.fastq.gz "
     else:
         rule skip_dmx_file_creation:
             params:
@@ -610,7 +776,15 @@ if config["ANALYSIS_TYPE"] == "ASV":
             "{PROJECT}/runs/{run}/asv/dada2.benchmark"
         shell:
             #"Scripts/asvDada2_fix.R"
-            "{config[Rscript][command]} Scripts/asvDada2.R $PWD " +str(config["dada2_asv"]["pool"]) + " "+str(config["dada2_asv"]["cpus"])  + " "+str(config["dada2_asv"]["generateErrPlots"]) + " "+str(config["dada2_asv"]["extra_params"]) + " {params} "  + " "+str(config["rm_reads"]["shorts"])  + " "+str(config["rm_reads"]["longs"]) + " "+str(config["rm_reads"]["offset"])  + " "+str(config["dada2_asv"]["chimeras"])  + " "+str(config["dada2_taxonomy"]["db"]) + " "+str(config["dada2_taxonomy"]["add_sps"]["db_sps"])  + " "+str(config["dada2_taxonomy"]["add_sps"]["add"]) + " \""+str(config["dada2_taxonomy"]["extra_params"]) + "\" "+str(config["dada2_merge"]["minOverlap"]) +" "+str(config["dada2_merge"]["maxMismatch"]) + " \""+str(config["dada2_taxonomy"]["add_sps"]["extra_params"]) + "\" " + "{input}" 
+            #"{config[Rscript][command]} Scripts/asvDada2.R $PWD " +str(config["dada2_asv"]["pool"]) + " "+str(config["dada2_asv"]["cpus"])  + " "+str(config["dada2_asv"]["generateErrPlots"]) + " "+str(config["dada2_asv"]["extra_params"]) + " {params} "  + " "+str(config["rm_reads"]["shorts"])  + " "+str(config["rm_reads"]["longs"]) + " "+str(config["rm_reads"]["offset"])  + " "+str(config["dada2_asv"]["chimeras"])  + " "+str(config["dada2_taxonomy"]["db"]) + " "+str(config["dada2_taxonomy"]["add_sps"]["db_sps"])  + " "+str(config["dada2_taxonomy"]["add_sps"]["add"]) + " \""+str(config["dada2_taxonomy"]["extra_params"]) + "\" "+str(config["dada2_merge"]["minOverlap"]) +" "+str(config["dada2_merge"]["maxMismatch"]) + " \""+str(config["dada2_taxonomy"]["add_sps"]["extra_params"]) + "\" " + "{input}" 
+            "{config[Rscript][command]} Scripts/asvDada2.R $PWD " +str(config["dada2_asv"]["pool"]) + " "
+            " "+ str(config["dada2_asv"]["cpus"])  + " "+str(config["dada2_asv"]["generateErrPlots"]) + " "
+            " "+ str(config["dada2_asv"]["extra_params"]) + " {params} "  + " "+str(config["rm_reads"]["shorts"])  + " "
+            " "+ str(config["rm_reads"]["longs"]) + " "+str(config["rm_reads"]["offset"])  + " "+str(config["dada2_asv"]["chimeras"])  + " "
+            " "+str(config["dada2_taxonomy"]["db"]) + " "+str(config["dada2_taxonomy"]["add_sps"]["db_sps"])  + " "
+            " "+str(config["dada2_taxonomy"]["add_sps"]["add"]) + " \""+str(config["dada2_taxonomy"]["extra_params"]) + "\" "
+            " "+str(config["dada2_merge"]["minOverlap"]) +" "+str(config["dada2_merge"]["maxMismatch"])+" "
+            " "+str(config["UNPAIRED_DATA_PIPELINE"]) +" " + " \""+str(config["dada2_taxonomy"]["add_sps"]["extra_params"]) + "\" " + "{input}"
 
 
     rule asv_table:
@@ -658,7 +832,7 @@ if config["align_vs_reference"]["align"] == "T":
 
 if config["cutAdapters"] == "T":
     """
-    If we are going to remove primers/adapters and we do not came from our own
+    If we are going to remove primers/adapters and they do not came from our own
     demultiplexing, it is lickly to have the sequences in both direction, FW and RV
     thus, we need to rev com the sequences, concatenate them and then when we run cutadapt
     always in this step, discard-untrimmed so this way we end up with the sequences in the correct orientation
@@ -1425,9 +1599,9 @@ rule report:
     output:
         temp("{PROJECT}/runs/{run}/{sample}_data/report.html")
     script:
-        "Scripts/report_v2.py"
-        if config["ANALYSIS_TYPE"] == "OTU" else
-        "Scripts/report_asv.py"
+        "Scripts/report_v2.py" if config["ANALYSIS_TYPE"] == "OTU" and config["LIBRARY_LAYOUT"] != "SE" 
+        else "Scripts/report_v2_SE.py" if config["ANALYSIS_TYPE"] == "OTU" and config["LIBRARY_LAYOUT"] == "SE"  
+        else "Scripts/report_asv.py"
 rule tune_report:
     input:
         "{PROJECT}/runs/{run}/{sample}_data/report.html"

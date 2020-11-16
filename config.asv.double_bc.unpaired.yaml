@@ -128,8 +128,9 @@ gzip_input: "F"
 fw_reads: ""
 rv_reads: ""
 metadata: ""
-#OR 
+#OR
 input_files: ""
+
 
 ################################################################################
 #                          REPORT PARAMETER SECTION                            #
@@ -156,7 +157,7 @@ input_files: ""
 # - wkhtmltopdf_command  name w/wo path to execute the html to pdf translation.#
 #------------------------------------------------------------------------------#
 pdfReport: "T"
-wkhtmltopdf_command: "wkhtmltopdf  -T 10mm -B 30mm"
+wkhtmltopdf_command: "wkhtmltopdf -T 10mm -B 30mm "
 
 #------------------------------------------------------------------------------#
 #                           Portable Report                                    #
@@ -268,7 +269,7 @@ ANALYSIS_TYPE: "ASV"
 #                             This parameter only applies for the OTU-WF. For  #
 #                             the ASV-WF, dada2 merge both reads with 10 Ns.   #  
 #------------------------------------------------------------------------------#
-UNPAIRED_DATA_PIPELINE: "F"
+UNPAIRED_DATA_PIPELINE: "T"
 CHAR_TO_PAIR: "T"
 QUALITY_CHAR: "G"
 
@@ -561,7 +562,7 @@ dada2_filter:
   truncRV: 200
   maxEE_FW: 3
   maxEE_RV: 5
-  cpus: 10
+  cpus: 5
   extra_params: "\",truncQ=2, rm.phix=TRUE\""
 
 #------------------------------------------------------------------------------#
@@ -579,7 +580,7 @@ dada2_filter:
 #                   region.                                                    #
 #------------------------------------------------------------------------------#
 dada2_merge:
-  minOverlap: 10
+  minOverlap: 12
   maxMismatch: 0
 
 #------------------------------------------------------------------------------#
@@ -611,9 +612,9 @@ dada2_merge:
 #                       commas, as the example above.                          #                                              #
 #------------------------------------------------------------------------------#
 dada2_asv:
-  generateErrPlots: "T"
+  generateErrPlots: "F"
   pool: "pseudo"
-  cpus: 10
+  cpus: 5
   chimeras : "T"
   extra_params: "selfConsist=FALSE"
 
@@ -1033,17 +1034,17 @@ pickRep:
 #    - jobs:           Number of jobs to start in parallel.                    #
 #------------------------------------------------------------------------------#
 assignTaxonomy:
-  tool: "vsearch"
+  tool: "qiime"
   blast:
     command: "blastn"
     blast_db: ""
     fasta_db: ""
     mapFile: ""
     taxo_separator: "';'" 
-    evalue: "0.001"
+    evalue: "0.0001"
     max_target_seqs: 5
     jobs: 10
-    identity: 0.5   
+    identity: 0.8   
     extra_params: ""
   vsearch:
     command: "vsearch"
@@ -1056,9 +1057,9 @@ assignTaxonomy:
     jobs: 10
     extra_params: "--top_hits_only --maxrejects 32"
   qiime:
-    method: "uclust"
-    mapFile: "97_otu_taxonomy.txt."
-    dbFile: "97_otus.fasta"
+    method: "rdp"
+    mapFile: "/{FULL_PATH}/pr2_version_4.12.0_18S_UTAX_8l.tax.tsv" #available at https://github.com/pr2database/pr2database/releases
+    dbFile: "/{FULL_PATH}/pr2_version_4.12.0_18S_mothur.fasta" #available at https://github.com/pr2database/pr2database/releases
     dbType: "-r"
     jobs: 10
     extra_params: ""

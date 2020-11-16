@@ -1,10 +1,10 @@
 ################################################################################
 #                             CONFIGURATION FILE                               #
 #------------------------------------------------------------------------------#
-# Configuration file for  CASCABEL pipeline.                                   #
+# Configuration file for the CASCABEL pipeline.                                #
 # Set the parameters below, save the file and run Snakemake.                   #
-# The file format is yaml (http://www.yaml.org/) In this file, you specify your#
-# input data, barcode mapping file and you can choose tools and parameters     #
+# The file format is yaml (http://www.yaml.org/). In this file, you specify    #
+# your input data, barcode mapping file and you can choose tools and parameters#
 # according to your needs. Most rules and parameters have default settings.    #
 # It is very important to keep the indentation of the file (don’t change the   #
 # tabs and spaces), as well as the name of the parameters/variables. But you   #
@@ -13,7 +13,7 @@
 # ignored by Snakemake.                                                        #
 #                                                                              #
 # @Author: Julia Engelmann and Alejandro Abdala                                #
-# @Last update: 24/03/2020                                                     #
+# @Last update: 16/11/2020                                                     #
 ################################################################################
 
 ################################################################################
@@ -27,7 +27,7 @@
 #                                Execution mode                                #
 #------------------------------------------------------------------------------#
 # This parameter allows the user to inspect intermediate files in order to     #
-# finetune some downstream analysis, re-do previous steps or exit the workflow.#
+# finetune some downstream analyses, re-do previous steps or exit the workflow.#
 #                                                                              #
 #-----------------------------       PARAMS       -----------------------------#
 #                                                                              #	            
@@ -56,9 +56,13 @@ PROJECT: ""
 # Use the same library names as with the init_sample.sh script.                #
 # Include each library name surrounded by quotes, and comma separated.         #
 # i.e LIBRARY:  ["LIB_1","LIB_2",..."LIB_N"]                                   #
+# LIBRARY_LAYOUT: Configuration of the library; all the libraries/samples      #
+#                 must have the same configuration; use:                       #
+#                 "PE" for paired-end reads [Default].                         #
+#                 "SE" for single-end reads.                                   #
 #------------------------------------------------------------------------------#
 LIBRARY: [""]
-
+LIBRARY_LAYOUT: "PE"
 #------------------------------------------------------------------------------#
 #                               RUN                                            #
 #------------------------------------------------------------------------------#
@@ -82,10 +86,10 @@ description: ""
 #------------------------------------------------------------------------------#
 #                             INPUT TYPE                                       #
 #------------------------------------------------------------------------------#
-# CASCABEL supports two types of input files, fastq and gzipped fastq files.   #     
-# This parameter can take the values "T" if the input files are gziped         #
+# Cascabel supports two types of input files, fastq and gzipped fastq files.   #     
+# This parameter can take the values "T" if the input files are gzipped        #
 # (only the reads!, the metadata file always needs to be uncompressed) or "F"  #
-# if the input files are regular fastq files                                   #
+# if the input files are regular fastq files.                                  #
 #------------------------------------------------------------------------------#
 gzip_input: "F"
 
@@ -95,9 +99,9 @@ gzip_input: "F"
 # To run Cascabel for multiple libraries you can provide an input file, tab    #
 # separated with the following columns:                                        #
 # - Library: Name of the library (this have to match with the values entered   #
-#            in the LIBRARY variable described above).                         #  
+#            in the LIBRARY variable described above).                         #
 # - Forward reads: Full path to the forward reads.                             #
-# - Reverse reads: Full path to the reverse reads.                             #
+# - Reverse reads: Full path to the reverse reads (only for paired-end).       #
 # - metadata:      Full path to the file with the information for              #
 #                  demultiplexing the samples (only if needed).                #
 # The full path of this file should be supplied in the input_files variable,   #
@@ -138,7 +142,7 @@ input_files: ""
 #------------------------------------------------------------------------------#
 #                           PDF Report                                         #
 #------------------------------------------------------------------------------#
-# By default, CASCABEL creates the final report in HTML format. In order to    #
+# By default, Cascabel creates the final report in HTML format. In order to    #
 # create the report also as pdf file, set this flag to "T".                    #
 # Important! in order to convert the file to pdf format, it is necessary to    #
 # execute the pipeline within a Xserver session i.e MobaXterm or ssh -X.       #
@@ -149,7 +153,7 @@ input_files: ""
 #-----------------------------       PARAMS       -----------------------------#
 #                                                                              #
 # - pdfReport            "T" for generate pdf report or "F" to skip it.        #
-# - wkhtmltopdf_command  name w/wo path to execute the html to pdf translation #
+# - wkhtmltopdf_command  name w/wo path to execute the html to pdf translation.#
 #------------------------------------------------------------------------------#
 pdfReport: "T"
 wkhtmltopdf_command: "wkhtmltopdf -T 10mm -B 30mm "
@@ -157,7 +161,7 @@ wkhtmltopdf_command: "wkhtmltopdf -T 10mm -B 30mm "
 #------------------------------------------------------------------------------#
 #                           Portable Report                                    #
 #------------------------------------------------------------------------------#
-# CASCABEL creates the final report in HTML format, containing references to   #
+# Cascabel creates the final report in HTML format, containing references to   #
 # other images or links. Therefore just copying the HTML files for sharing or  #
 # inspecting the results will break these links.                               #
 # By setting 'portableReport' to true "T", CASCABEL will generate a zip file   #
@@ -179,7 +183,7 @@ portableReport: "T"
 # - ktImportText  Name of the command to invoke this krona utility.            #
 # - samples       Indicate the samples to be included in the chart, use comma  #
 #                 separated values of samples (same name as the ones supplied  #
-#                 at the metadata barcode file). Or "all" to include all the   #
+#                 in the metadata barcode file). Or "all" to include all the   #
 #                 samples.                                                     #
 # - otu_table     Target OTU table for the report. Use "default" to use the    #
 #                 filtered OTU table (exclude singletons). Or "singletons" to  #
@@ -217,12 +221,11 @@ krona:
 #------------------------------------------------------------------------------#
 # Cascabel supports two main types of analysis:                                #
 #  1) Analysis based on traditional OTUs (Operational Taxonomic Units) which   #
-#     are mainly generated by clustering sequences based on a sheared          #
+#     are mostly generated by clustering sequences based on a shared           #
 #     similarity threshold.                                                    #
-#  2) Analysis based on ASV (Amplicon sequence variant). This kind of analysis #
-#     deal also with the errors on the sequence reads such that true sequence  #
-#     variants can be resolved, down to the level of single-nucleotide         #
-#     differences.                                                             #
+#  2) Analysis based on ASVs (Amplicon sequence variants). This kind of        #
+#     analysis tries to distinguish errors in the sequence reads from true     #
+#     sequence variants, down to the level of single-nucleotide differences.   #
 #                                                                              #
 #-----------------------------       PARAMS       -----------------------------#
 #                                                                              # 
@@ -232,37 +235,38 @@ ANALYSIS_TYPE: "OTU"
 
 
 #------------------------------------------------------------------------------#
-# OTU_WF:                  UNPAIRED DATA WORK FLOW                             #
+# BOTH_WF:                  UNPAIRED DATA WORK FLOW                             #
 #------------------------------------------------------------------------------#
 # A regular workflow for marker gene analysis using paired-end data,           #
-# comprehends the assembly of forward and reverse reads, prior to continuing   #
-# with downstream analysis, behaviour, that is implemented within this pipeline.#
-# However, primers can potentially amplify fragments larger than the expected  #
-# ones, therefore, there is no overlap between FR and RV reads, thus discarding#
-# all those "un-paired" reads during the assembly. For this scenario, when the # 
-# analysis type (ANALYSIS_TYPE) is "OTU"  Cascabel implements an alternative   #
-# flow, where instead of continue downstream analyses with assembled reads,    #
-# un-assembled reads are concatenated together with a degenerated base 'N'     #
-# between the FW reads and the reverse complemented RV reads (which does not   #
-# significantly influence k-mer based classification methods such as RDP).     #
-#                                                                              #
+# comprehends the merging of forward and reverse reads, prior to continuing    #
+# with downstream analysis implemented within this pipeline.   	  	           #
+# However, primers can intentially amplify fragments which are so large that   #
+# forward and reverse reads do not overlap. A regular analysis would discard   #
+# all those "unpaired" reads during the FW and RV read assembly. For this      #
+# scenario, Cascabel implements an alternative flow, where instead of          #
+# continuing with assembled reads, un-assembled reads are concatenated together# 
+# with a degenerated base 'N' between the FW read and the reverse complemented #
+# RV read (which does not significantly influence k-mer based classification   #
+# methods such as RDP).                                                        #                                                                             #
 #-----------------------------       PARAMS       -----------------------------#
 #                                                                              #
 #                                                                              # 
-# - UNPAIRED_DATA_PIPELINE    "T" or "F" True for work with the "un-assembled" #
-#                             reads. If ANALYSIS_TYPE = "ASV" this option is   #
-#                             ignored and taken as "F". If you want a similar  #
-#                             approach with "ASV" take a look at the option    #
-#                             "justConcatenate" from the mergePairs() function #
-#                             from dada2 package.                              #
+# - UNPAIRED_DATA_PIPELINE    "T" or "F". True to work with the "un-assembled" #
+#                             reads. If ANALYSIS_TYPE = "ASV" this option use  #
+#                             the "justConcatenate" option from the            #
+#                             mergePairs() function from the dada2 package.    #
 # - CHAR_TO_PAIR              In-silico base used to pair both fragments.      #
 #                             Valid values A|T|G|C|N. You can use more than one#
-#                             base, e.g. "GGGGG" pair with 5 Gs                # 
+#                             base, e.g. "GGGGG" pair with 5 Gs.               #
+#                             This parameter only applies for the OTU-WF. For  #
+#                             the ASV-WF, dada2 merge both reads with 10 Ns.   # 
 # - QUALITY_CHAR              The forward and reverse reads are paired         #
 #                             in-silico in a fastq file, thus the quality for  #
 #                             the pairing bases must be provided. If more than #
 #                             one CHAR_TO_PAIR is used, you only need to       #
-#                             specify one and only one QUALITY_CHAR.           #  
+#                             specify one and only one QUALITY_CHAR.           #
+#                             This parameter only applies for the OTU-WF. For  #
+#                             the ASV-WF, dada2 merge both reads with 10 Ns.   #  
 #------------------------------------------------------------------------------#
 UNPAIRED_DATA_PIPELINE: "F"
 CHAR_TO_PAIR: "T"
@@ -285,7 +289,7 @@ QUALITY_CHAR: "G"
 # - extra_params  Extra parameters. See fastqc --help for more info.           #
 # - qcLimit       Set the maximum number of FastQC FAILS (from the 12 tests    #
 #                 evaluated) accepted before interrupting the workflow if the  #
-#                 'interactive' mode is equal to "T"                           #
+#                 'interactive' mode is equal to "T".                          #
 #------------------------------------------------------------------------------#
 fastQC:
   command: "fastqc"
@@ -300,7 +304,7 @@ fastQC:
 #                                                                              #
 #-----------------------------       PARAMS       -----------------------------#
 #                                                                              #
-# - t             Minimum length of reads after trimming the low.              #
+# - t             Minimum length of reads after trimming low quality bases.    #
 # - v             Minimum overlap size. The minimum overlap may be set to 1    #
 #                 when the statistical test is used. (default in pear: 10)     #
 # - j             Number of threads to use.                                    #
@@ -308,9 +312,9 @@ fastQC:
 #                 options are: 0.0001, 0.001, 0.01, 0.05 and 1.0. Setting 1.0  #
 #                 disables the test. (default: 0.01)                           #
 # - extra_params  Extra parameters. See pear --help for more info.             #
-# - prcpear       The minimun percentage of expected peared reads, if the      #
+# - prcpear       The minimum percentage of expected paired reads, if the      #
 #                 actual percentage is lower and the 'interactive' parameter   #
-#                 is set to "T";  a warning message will be shown.             #
+#                 is set to "T"; a warning message will be shown.              #
 #------------------------------------------------------------------------------#
 pear:
   command: "pear"
@@ -325,8 +329,8 @@ pear:
 # BOTH_WF:         FastQC on merged/assembled fragments                        #
 # rule: fastQCPear                                                             #
 #------------------------------------------------------------------------------#
-# Once the paired end reads have been merged into one fragment, run FastQC     #
-# again, to check their quality. Set this option to "T" (true) or "F" (false)  #
+# Once the paired-end reads have been merged into one fragment, run FastQC     #
+# again to check their quality. Set this option to "T" (true) or "F" (false)   #
 # in order to execute or skip this step.                                       #
 #------------------------------------------------------------------------------#
 fastQCPear: T
@@ -340,7 +344,7 @@ fastQCPear: T
 #------------------------------------------------------------------------------#
 # Different QIIME scripts are used along the pipeline and in order to execute  #
 # these scripts, they need to be located on the user PATH environmental        #
-# variable, or QIIME's bin directory need to be included in the parameter:     #
+# variable, or QIIME's bin directory needs to be included in the parameter:    #
 # 'path' below. This parameter will be used by the pipeline for all the rules  #
 # that use a Qiime script.                                                     #
 #------------------------------------------------------------------------------#
@@ -382,7 +386,7 @@ java:
 # BOTH_WF:          Demultiplex input files                                    #
 # rule: write_dmx_files                                                        #
 #------------------------------------------------------------------------------#
-# CASCABEL optionally performs library demultiplexing for barcoded reads.      #
+# Cascabel optionally performs library demultiplexing for barcoded reads.      #
 # This feature can be turned ON/OFF with the following options:                #
 #                                                                              #
 #-----------------------------       PARAMS       -----------------------------#
@@ -396,31 +400,31 @@ java:
 #                       sample.                                                #
 # - remove_bc           The demultiplexed fastq files are created using the    #
 #                       raw data, thus they may contain artificial sequences   #
-#                       like the barcodes. This option trim the first N bases  #
+#                       like the barcodes. This option trims the first N bases #
 #                       from each read.                                        #
-# - order_by_strand     While demultiplexing it is possible to identify the    #
+# - order_by_strand     During demultiplexing it is possible to identify the   #
 #                       current strand of the read according to the barcode.   #
 #                       Set this option to "T" in order to interchange FW with #
 #                       RV reads when barcodes are found on opposite strands.  #
 # - add_unpair          "T". Un-assembled reads are also included within the   #
 #                       demultiplexing process in order to being assigned to   #
-#                       its samples.                                           #
-#                       "F". Only carry demultiplexing process with paired     #
-#                       reads.                                                 #
+#                       their samples.                                         #
+#                       "F". Only carry out the demultiplexing process with    #
+# 			            paired reads.                                          #
 # - dmx_params          Parameters to pass on to the demultiplexing script.    #
 #                       For example, the user can change the prefix and suffix #
 #                       of the output files. To see the available parameters,  #
-#                       run: java -cp Scripts DemultiplexQiime                 #
+#                       run: java -cp Scripts DemultiplexQiime.                #
 # - primers             In the same sense as for "remove_bc" option,           #
 #                       demultiplexed reads may contain adapters or primers.   #
 #                       The following parameters supply options for removing   #
 #                       these sequences by using cutadapt.                     #  
 #   ** remove           "T" or "F" for removing or not any kind of sequence.   #
 #   ** fw_primer        Sequence to be removed from forward reads. It accepts  #
-#                       IUPAC wildcards. e.g. "^GTGYCAGCMGCCGCGGTAA"           #
+#                       IUPAC wildcards, e.g., "^GTGYCAGCMGCCGCGGTAA".         #
 #   ** rv_primer        Sequence to be removed from reverse reads. It accepts  #
-#                       IUPAC wildcards. e.g. "^GGACTACNVGGGTWTCTAAT"          #
-#   ** min_overlap      Minimun overlap between a primer and a sequence to be  #
+#                       IUPAC wildcards, e.g., "^GGACTACNVGGGTWTCTAAT".        #
+#   ** min_overlap      Minimum overlap between a primer and a sequence to be  #
 #                       identified.                                            #
 #   ** extra_params     Any extra parameter that you wish to supply to  the    #
 #                       cutadapt command. Default "--discard-untrimmed". With  #
@@ -438,30 +442,30 @@ demultiplexing:
     remove: "F"
     fw_primer: ""
     rv_primer: ""
-    min_overlap: "19"
-    extra_params: "--discard-untrimmed"
+    min_overlap: ""
+    extra_params: "--discard-untrimmed --match-read-wildcards"
     
 #------------------------------------------------------------------------------#
 # BOTH_WF:                  Extract barcodes                                   #
 # rules: extract_barcodes, extract_barcodes_unassigned                         #
 #------------------------------------------------------------------------------#
-# This rule extracts barcodes from the reads, and generates two files: one     #
+# This rule extract barcodes from the reads, and generates two files: one      #
 # with only the extracted barcodes and a second one with the sequences without #
 # the barcodes.                                                                #
 #                                                                              #
 #-----------------------------       PARAMS       -----------------------------#
 #                                                                              #
 # - c             This parameter allows to choose the barcode configuration:   #
-#                 "barcode_single_end". The reads start with the barcode       #
-#                 sequence.                                                    #
+#                 "barcode_single_end". The merged fragments start with the    #
+#		          barcode sequence.                                            #
 #                 "barcode_paired_stitched". Input has barcodes at the         #
-#                 beginning and end of the read.                               #
+#                 beginning and end of the merged fragment.                    #
 #                 "barcode_paired_end". This option is not valid here since    #
 #                 the reads have already been merged to one fragment.          #
 # - bc_length     If 'c' is "barcode_paired_stitched" use both:                #
 #                 --bc1_len X and --bc2_len Y.                                 #
 #                 If 'c' is "barcode_single_end" use only --bc1_len X.         #
-#                 Where X and Y are the lengths of the barcodes.               #
+#                 X and Y are the nucleotide lengths of the barcodes.          #
 # - extra_params  Extra parameters. See extract_barcodes.py -help.             #
 #------------------------------------------------------------------------------#
 ext_bc:
@@ -519,8 +523,9 @@ split:
 #                                                                              #
 #-----------------------------       PARAMS       -----------------------------#
 #                                                                              #
-# - generateQAplots   "T" or "F". Generate dada2 quality reports.              #
-#                     Default "F"                                              #
+# - generateQAplots   Cascabel already generates FastQC reports, however dada2 #
+#                     quality plots can be generated by passing "T".           #
+#                     Default "F".                                             #
 # - truncFW           Truncate forward reads after truncFW bases. Reads shorter# 
 #                     than this are discarded. Your reads must still overlap   #
 #                     after truncation in order to merge them later.           #      
@@ -531,7 +536,7 @@ split:
 #                     maxEE_FW "expected errors" will be discarded.            #
 # - maxEE_RV          After truncation, reverse reads with higher than         # 
 #                     maxEE_RV "expected errors" will be discarded.            #
-# - cpus              Number of threads|cpus.                                  #
+# - cpus              Number of threads|cpus to be used.                       #
 # - extra_params      Any extra parameter belonging to dada2's function        #
 #                     filterAndTrim(). The value passed through this variable  #
 #                     is send directly to the function in R. Therefore, if your#
@@ -563,7 +568,7 @@ dada2_filter:
 # ASV_WF:                          dada2 merge pairs                           #
 # rule: run_dada2                                                              #
 #------------------------------------------------------------------------------#
-# After denoising forward and reverse reads, these are assembled with the      #
+# After denoising forward and reverse reads, they are assembled with the       #
 # mergePairs() function from dada2 package.                                    #
 #                                                                              #
 #-----------------------------       PARAMS       -----------------------------#
@@ -581,13 +586,14 @@ dada2_merge:
 # ASV_WF:                           dada2 generates ASV                        #
 # rule: run_dada2                                                              #
 #------------------------------------------------------------------------------#
-# Find true Amplicon sequence variants by denoising sequences with dada()      #
+# Find true Amplicon Sequence Variants by denoising sequences with the dada()  #
 # function.                                                                    #
 #                                                                              #
 #-----------------------------       PARAMS       -----------------------------#
 #                                                                              #
-# - generateErrPlots    Default "F". Use "T" to create error plots generated   #
-#                       with the learned errors from learnErrors() function.   #
+# - generateErrPLots    Default "F". Use "T" to generate the error plots       #
+#                       generated with the learned errors from the             #
+#                       learnErrors() function.                                #
 # - pool                If pool = "TRUE", the algorithm will pool together all #
 #                       samples prior to sample inference. If pool = "FALSE",  #
 #                       sample inference is performed on each sample           #
@@ -615,8 +621,8 @@ dada2_asv:
 # ASV_WF:                             Assign taxonomy                          #
 # rule: run_dada2                                                              #
 #------------------------------------------------------------------------------#
-# The taxonomy assignation for the ASVs is performed within the dada2 package, #                               
-# by using the assignTaxonomy() function which use the RDP Naive Bayesian      #
+# The taxonomy assignation for the ASVs is performed within the dada2 package, #    
+# by using the assignTaxonomy() function which uses the RDP Naive Bayesian     #
 # Classifier algorithm.                                                        #
 #                                                                              #
 #-----------------------------       PARAMS       -----------------------------#
@@ -633,7 +639,7 @@ dada2_asv:
 #                  sequences by exact matching against a reference fasta using #
 #                  the addSpecies() function from dada2.                       #
 #   + add          "T" or "F" Try to assign or not genus-species binomials.    #
-#   + db_sps       If add = "T"  FUll path to the reference species file.      #
+#   + db_sps       If add = "T"  full path to the reference species file.      #
 #   + extra_params Any extra parameter belonging to dada2's function           #
 #                  addSpecies(). e.g., "allowMultiple=TRUE".                   #
 #                  The value passed through this variable is send directly to  #
@@ -659,9 +665,9 @@ dada2_taxonomy:
 # OTU_WF:                 Align reads vs a reference database                  #
 # rule: align_vs_reference                                                     #
 #------------------------------------------------------------------------------#
-# In some cases, you may want to align the reads against a reference database  #
-# before generating OTUs. This facilitates removing technical sequences	      #
-# (primers, adapters) at the beginning and/or end of the reads, filter	      #
+# In some cases you may want to align the reads against a reference database   #
+# before generating OTUs. This facilitates removing technical sequence	       #
+# (primers, adapters) at the beginning and/or end of the reads, filters	       #
 # potential chimeric sequences or sequences of no interest, which the primers  #
 # amplified but which are not part of the study (e.g. reads of human origin).  #
 # Therefore, this alignment step can improve the OTU clustering and further    #
@@ -698,7 +704,7 @@ align_vs_reference:
 # - cutAdapters  if T (true) remove adapters, if F do not remove adapters      #
 #                [default: F].                                                 #
 # - command      Necessary command to invoke cutadapt [default: "cutadapt"].   #
-# - adapters     "-a ADAPTER" Removes adapters at the 3' end of the            #
+# - adapters     "-a ADAPTER" Remove adapters at the 3' end of the             #
 #                sequence. Cutadapt deals with 3' adapters by removing the     #
 #                adapter and any sequence that may follow. Add the "$"         # 
 #                character to the end of an adapter sequence in order to anchor#
@@ -740,11 +746,11 @@ cutadapt:
 # Unclustered sequences are used as input rather than a representative sequence#
 # set, as the sequences will be clustered to get abundance data.               #
 # The results are all input sequences not flagged as chimeras.                 # 
-# This rule implements different methods for identifying chimeras, following,  #
+# This rule implements different methods for identifying chimeras, below       #
 # more details about the available options.                                    #
-# For details, see: http://drive5.com/usearch/usearch_docs.html                #
+# For details about usearch, see: http://drive5.com/usearch/usearch_docs.html  #
 # If you are using usearch61, bear in mind that you can use a reference        #
-# database via extra_params, e.g., "-r /path/to/gold_db/gold.fa"               #
+# database via extra_params, e.g., "-r /path/to/gold_db/gold.fa".              #
 #                                                                              #
 #-----------------------------       PARAMS       -----------------------------#
 #                                                                              #
@@ -765,7 +771,7 @@ cutadapt:
 #                 search against a chimera database, e.g.,                     #
 #                 "-r /export/data/databases/gold_db/gold.fa" for "usearch61"  #
 #                 or "--db /export/data/databases/gold_db/gold.fa" for         #
-#                 "uchime_ref"                                                 #
+#                 "uchime_ref".                                                #
 # - search        "T" | "F" (true or false) to execute chimera checking or not.#
 #------------------------------------------------------------------------------#
 chimera:
@@ -871,7 +877,8 @@ derep:
 #                  usearch_ref, usearch61,  usearch61_ref, sumaclust, and      #
 #                  sortmerna. [default:0.97].                                  #
 # - m              OTU picking method. Valid choices are: sortmerna, mothur,   #
-#                  trie, uclust, uclust_ref, usearch, swarm.                   #
+#                  trie, uclust, uclust_ref, usearch, usearch_ref, swarm,      #
+#		           cdhit, sumaclust, prefix_suffix.                    	       #
 # - extra_params   Any extra parameter. Run 'pick_otus.py -h' to see all       #
 #                  options.                                                    # 
 #------------------------------------------------------------------------------#
@@ -890,9 +897,9 @@ pickOTU:
 #-----------------------------       PARAMS       -----------------------------#
 #                                                                              #
 # - m             Method for picking representative sequences. Valid choices   #
-#                 are: random, longest, most_abundant, first.                  #
-#                 [default: "most_abundant"]                                   # 
-#                 Note: "first" chooses the cluster seed when picking OTUs with#
+#                 are: random, longest, most_abundant, first                   #
+#                 [default: "most_abundant"].                                  # 
+#                 Note: "first" chooses the cluster seed when picking otus with#
 #                 uclust.                                                      #
 # - extra_params  Any extra parameter. Run 'pick_rep_set.py -h' to see all     #
 #                 options.                                                     #
@@ -1016,14 +1023,14 @@ pickRep:
 #    - dbFile          Full path to reference fasta file or blast database     #
 #                      file.                                                   #
 #                      The default fasta file supplied by Qiime can be located #
-#                      at cascabel's environment, if created with conda, in    #
-#                      such case you may found the file at: 	               #
+#                      at Cascabel's environment, if created with conda, in    #
+#                      such case you may find the file at: 	                   #
 #                      /../.conda/envs/cascabel/lib/python2.7/site-packages/ \ #
 #                      qiime_default_reference/gg_13_8_otus/taxonomy/ \        #
 #                      97_otus.fasta"                                          #
 #    - dbType          If 'dbFile' points to a fasta file use "-r". If 'dbFile'#
 #                      points to a blast database use "-b".                    #
-#    - jobs:           Number of jobs to start in parallel                     #
+#    - jobs:           Number of jobs to start in parallel.                    #
 #------------------------------------------------------------------------------#
 assignTaxonomy:
   tool: "vsearch"
@@ -1080,10 +1087,10 @@ makeOtu:
 #                                                                              #
 #-----------------------------       PARAMS       -----------------------------#
 #                                                                              #
-# - n             The minimum total observation count of an OTU for that otu   #
+# - n             The minimum total observation count of an OTU for that OTU   #
 #                 to be retained [default: "2 ]                                #
 # - extra_params  Any extra desired parameter. Run                             #
-#                 'filter_otus_from_otu_table.py --help' to  see all options.  #
+#                 'filter_otus_from_otu_table.py --help' to see all options.   #
 #------------------------------------------------------------------------------#
 filterOtu:
   n: "2"
@@ -1103,7 +1110,7 @@ filterOtu:
 # - outFormat     "--to-tsv": Output as tab-separated (classic) table.         #
 #                 "--to-json"  and "--to-hdf5" are also available.             #
 # - extra_params: Any extra desired parameter. Run 'biom convert --help' to see#
-#                 all the options                                              #
+#                 all the options.                                             #
 #------------------------------------------------------------------------------#
 biom:
   command: "biom"
@@ -1184,7 +1191,7 @@ alignRep:
 # Additionally, the user can supply a lanemask file, that defines which        #
 # positions should be included when building the tree, and which should be     #
 # ignored.                                                                     #
-# This rule, only runs if [alignRep][align] is equal to true "T"               #
+# This rule, only runs if [alignRep][align] is equal to true "T".              #
 #-----------------------------       PARAMS       -----------------------------#
 #                                                                              #
 # - extra_params: Any extra desired parameter. Run 'filter_alignment.py --help'# 
@@ -1198,7 +1205,7 @@ filterAlignment:
 # rule: make_tree                                                              #
 #------------------------------------------------------------------------------#
 # This rule produces a phylogenetic tree from a multiple sequence alignment.   # 
-# This rule, only runs if [alignRep][align] is equal to true "T"               #
+# This rule, only runs if [alignRep][align] is equal to true ("T").            #
 #                                                                              #
 #-----------------------------       PARAMS       -----------------------------#
 #                                                                              #

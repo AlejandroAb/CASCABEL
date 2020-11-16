@@ -39,8 +39,9 @@ args <- commandArgs(trailingOnly = T)
 #args[14]... = extra_params taxonomy
 #args[15]... = minOverlap merge
 #args[16]... = maxMismatch merge
-#args[17]... = add_sps extra_params
-#args[18]... = summary files from libraries
+#args[17]... = mergePairs
+#args[18]... = add_sps extra_params
+#args[19]... = summary files from libraries
 
 # suppose that we expand and pass the summary.txt from the output
 # we should have a path {project}/runs/{run}/{sample}_data/demultiplexed/
@@ -60,7 +61,7 @@ setwd(args[1])
 #paths = c()
 #with args
 paths <-NULL
-for(i in 18:(length(args)-1)) {
+for(i in 19:(length(args)-1)) {
   paths <- c(paths,gsub("/summary.txt", '',args[i]))
 }
 #print(paths)
@@ -88,7 +89,7 @@ names(filtRs) <- sample.names
 if (args[2] == "pseudo"){
   pool = "pseudo"
 }else{
-  pool <- eval(parse(text=args[1]))
+  pool <- eval(parse(text=args[2]))
 }
 cpus <- strtoi(args[3],10)
 extra_params <- args[5]
@@ -123,8 +124,11 @@ dadaRs <- eval(parse(text=paste("dada(filtRs, err=errF, multithread=cpus, pool=p
 #merge
 minOv <- as.integer(args[15])
 maxMism <- as.integer(args[16])
-mergers <- mergePairs(dadaFs, filtFs, dadaRs, filtRs, minOverlap = minOv, maxMismatch = maxMism)
-
+if (args[17] == "T" || args[17] == "TRUE" ){
+   mergers <- mergePairs(dadaFs, filtFs, dadaRs, filtRs, minOverlap = minOv, maxMismatch = maxMism, returnRejects = TRUE, justConcatenate = TRUE)
+}else{
+   mergers <- mergePairs(dadaFs, filtFs, dadaRs, filtRs, minOverlap = minOv, maxMismatch = maxMism)
+}
 # ASV table 
 seqtab <- makeSequenceTable(mergers)
 #rownames= samples #colnames= sequences
@@ -345,7 +349,7 @@ taxa <- eval(parse(text=paste("assignTaxonomy(seqtab2,args[11], multithread=cpus
 #taxa <- assignTaxonomy(seqtab2,args[11], multithread=cpus)
 if (args[13] == "T" || args[13] == "TRUE" ){
  # taxa2 <- addSpecies(taxa, args[12])
-  extra_params_add_sp <-args[17]
+  extra_params_add_sp <-args[18]
   if (!startsWith( trimws(extra_params_add_sp), ',') && nchar(trimws(extra_params_add_sp))>1){
     extra_params_add_sp <- paste(",",extra_params_add_sp)
   }

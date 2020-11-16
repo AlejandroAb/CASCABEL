@@ -7,16 +7,14 @@ with open(snakemake.input[0]) as files:
             try:
                 lib = tmpLine[0]
                 fw = tmpLine[1]
-                rv = tmpLine[2]
                 mapp = ""
-                if len(tmpLine) > 3:
-                    mapp = tmpLine[3].rstrip()
+                if len(tmpLine) > 2:
+                    mapp = tmpLine[2].rstrip()
                 if lib.lower() == snakemake.wildcards.sample.lower():
                     if len(mapp)>1 :
-                        print("Scripts/init_sample.sh "+snakemake.wildcards.PROJECT+" " + lib +" "+mapp+" "+fw +" " +rv)
-                        os.system("Scripts/init_sample.sh "+snakemake.wildcards.PROJECT+" " + lib +" "+mapp+" "+fw +" " +rv)
+                        os.system("Scripts/init_sample_SE.sh "+snakemake.wildcards.PROJECT+" " + lib +" "+mapp+" "+fw)
                     else:
-                        os.system("Scripts/init_sample_dmx.sh "+snakemake.wildcards.PROJECT+" " + lib +" "+fw +" " +rv)
+                        os.system("Scripts/init_sample_dmx_SE.sh "+snakemake.wildcards.PROJECT+" " + lib +" "+fw)
                     files.close()
                     exit(0)
             except ValueError:
