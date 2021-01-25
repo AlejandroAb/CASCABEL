@@ -255,7 +255,7 @@ if snakemake.config["demultiplexing"]["demultiplex"] != "F":
     extractBCStr +=":green:`- Fastq file with the reads:` "+snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/barcodes/reads.fastq\n\n"
     extractBCStr +=barBench
 ################################################################################
-#                           CORRECT Barcodeds                                  #
+#                           CORRECT Barcodes                                   #
 ################################################################################
 correctBCStr = ""
 bcFile="barcodes.fastq"
@@ -263,9 +263,9 @@ if snakemake.config["demultiplexing"]["demultiplex"] != "F" and snakemake.config
     correctBCStr = "Correct Barcodes\n--------------------\n"
     correctBCStr += "Try to correct the barcode from unassigned reads.\n\n"
     correctBCStr += "Maximum number of mismatches **"  + str(snakemake.config["bc_mismatch"]) + "**.\n\n"
-    correctBCStr +=":red:`Tool:` CASCABEL's R script\n\n"
+    correctBCStr +=":red:`Tool:` CASCABEL's Java application\n\n"
     correctBCStr +="**Command:**\n\n"
-    correctBCStr += ":commd:`Rscript Scripts/errorCorrectBarcodes.R $PWD "+snakemake.wildcards.PROJECT+"/metadata/sampleList_mergedBarcodes_"+snakemake.wildcards.sample+".txt "+snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/barcodes/barcodes.fastq "  + str(snakemake.config["bc_mismatch"]) + "`\n\n"
+    correctBCStr += ":commd:`java -cp Scripts/BarcodeCorrector/build/classes/  barcodecorrector.BarcodeCorrector  -b "+snakemake.wildcards.PROJECT+"/metadata/sampleList_mergedBarcodes_"+snakemake.wildcards.sample+".txt -f "+snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/barcodes/barcodes.fastq -m "  + str(snakemake.config["bc_mismatch"]) + "`\n\n"
     correctBCStr += "**Output file:**\n\n:green:`- Barcode corrected file:` "+snakemake.wildcards.PROJECT+ "/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/barcodes/barcodes.fastq_corrected\n\n"
     correctBarBench =readBenchmark(snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/barcodes/barcodes_corrected.benchmark")
     correctBCStr += correctBarBench
@@ -312,9 +312,9 @@ if snakemake.config["demultiplexing"]["demultiplex"] != "F":
     if snakemake.config["bc_mismatch"]:
         splitStr += "Correct reverse complemented barcodes \n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n"
         splitStr += "Maximum number of mismatches **"  + str(snakemake.config["bc_mismatch"]) + "**.\n\n"
-        splitStr +=":red:`Tool:` CASCABEL's R script\n\n"
+        splitStr +=":red:`Tool:` CASCABEL's Java application\n\n"
         splitStr +="**Command:**\n\n"
-        splitStr += ":commd:`Rscript Scripts/errorCorrectBarcodes.R $PWD "+snakemake.wildcards.PROJECT+"/metadata/sampleList_mergedBarcodes_"+snakemake.wildcards.sample+".txt "+snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/barcodes_unassigned/barcodes.fastq_corrected "  + str(snakemake.config["bc_mismatch"]) + "`\n\n"
+        splitStr += ":commd:`java -cp Scripts/BarcodeCorrector/build/classes/  barcodecorrector.BarcodeCorrector -b "+snakemake.wildcards.PROJECT+"/metadata/sampleList_mergedBarcodes_"+snakemake.wildcards.sample+".txt -f "+snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/barcodes_unassigned/barcodes.fastq_corrected -m "  + str(snakemake.config["bc_mismatch"]) + "`\n\n"
         splitStr += "**Output file:**\n\n:green:`- Barcode corrected file:` "+snakemake.wildcards.PROJECT+ "/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/barcodes/barcodes.fastq_corrected\n\n"
         splitStrBench =readBenchmark(snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/barcodes_unassigned/barcodes_corrected.benchmark")
         splitStr += splitStrBench+"\n\n"

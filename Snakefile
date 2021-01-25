@@ -1,8 +1,8 @@
 """
 CASCABEL
-Version: 4.3
+Version: 4.4
 Author: Julia Engelmann and Alejandro Abdala
-Last update: 28/05/2020
+Last update: 25/01/2021
 """
 run=config["RUN"]
 
@@ -376,7 +376,8 @@ if config["demultiplexing"]["demultiplex"] == "T":
             benchmark:
                 "{PROJECT}/runs/{run}/{sample}_data/barcodes/barcodes_corrected.benchmark"
             shell:
-                "{config[Rscript][command]} Scripts/errorCorrectBarcodes.R $PWD {input.mapp} {input.bc} "  + str(config["bc_mismatch"])
+                "java -cp Scripts/BarcodeCorrector/build/classes/ barcodecorrector.BarcodeCorrector -f {input.bc} -b  {input.mapp} -m  "  + str(config["bc_mismatch"])
+                #"{config[Rscript][command]} Scripts/errorCorrectBarcodes.R $PWD {input.mapp} {input.bc} "  + str(config["bc_mismatch"])
 #split libraries - demultiplex
     rule split_libraries:
         input:
@@ -456,7 +457,8 @@ if config["demultiplexing"]["demultiplex"] == "T":
             benchmark:
                 "{PROJECT}/runs/{run}/{sample}_data/barcodes_unassigned/barcodes_corrected.benchmark"
             shell:
-                "{config[Rscript][command]} Scripts/errorCorrectBarcodes.R $PWD {input.mapp} {input.bc} "  + str(config["bc_mismatch"])
+                "java -cp Scripts/BarcodeCorrector/build/classes/ barcodecorrector.BarcodeCorrector -f {input.bc} -b  {input.mapp} -m  "  + str(config["bc_mismatch"])
+                #"{config[Rscript][command]} Scripts/errorCorrectBarcodes.R $PWD {input.mapp} {input.bc} "  + str(config["bc_mismatch"])
 
     rule split_libraries_rc:
         """
@@ -641,7 +643,7 @@ if config["demultiplexing"]["demultiplex"] == "T":
                 output:
                     "{PROJECT}/runs/{run}/{sample}_data/demultiplexed/summary.txt"
                 shell:
-                    "Scripts/removePrimersDemultiplex.sh {params} {config[demultiplexing][primers][fw_primer]} {config[demultiplexing][primers][rv_primer]} {config[demultiplexing][primers][min_overlap]} {config[demultiplexing][primers][extra_params]}"
+                    "Scripts/removePrimersDemultiplex.sh {params} fastq.gz {config[demultiplexing][primers][fw_primer]} {config[demultiplexing][primers][rv_primer]} {config[demultiplexing][primers][min_overlap]} {config[demultiplexing][primers][extra_params]}"
         else:
             rule summary_write_dmx_files:
                 input:
@@ -674,7 +676,7 @@ if config["demultiplexing"]["demultiplex"] == "T":
                 output:
                     "{PROJECT}/runs/{run}/{sample}_data/demultiplexed/summary.txt"
                 shell:
-                    "Scripts/removePrimersDemultiplexSE.sh {params} {config[demultiplexing][primers][fw_primer]} {config[demultiplexing][primers][min_overlap]} {config[demultiplexing][primers][extra_params]}"
+                    "Scripts/removePrimersDemultiplexSE.sh {params} fastq.gz {config[demultiplexing][primers][fw_primer]} {config[demultiplexing][primers][min_overlap]} {config[demultiplexing][primers][extra_params]}"
         else:
             rule summary_write_dmx_files:
                 input:
@@ -718,10 +720,28 @@ else:
             params:
                 "{PROJECT}/runs/{run}/{sample}_data/demultiplexed/"
             output:
+                "{PROJECT}/runs/{run}/{sample}_data/demultiplexed/summary.txt_tmp" 
+                if config["demultiplexing"]["primers"]["remove"] == "T" else
                 "{PROJECT}/runs/{run}/{sample}_data/demultiplexed/summary.txt"
             shell:
+                "touch {output} &&  ln -s $PWD/{input.r1} {params}{wildcards.sample}_1.fastq "
+                " && ln -s $PWD/{input.r2} {params}{wildcards.sample}_2.fastq "
+                if config["gzip_input"] == "F" else
                 "touch {output} &&  ln -s $PWD/{input.r1} {params}{wildcards.sample}_1.fastq.gz "
-                " && ln -s $PWD/{input.r2} {params}{wildcards.sample}_2.fastq.gz" 
+                " && ln -s $PWD/{input.r2} {params}{wildcards.sample}_2.fastq.gz "
+
+        if config["demultiplexing"]["primers"]["remove"] == "T":
+            rule remove_primers_dmx_files:
+                input:
+                    fw="{PROJECT}/runs/{run}/{sample}_data/demultiplexed/summary.txt_tmp"
+                params:
+                    dir="{PROJECT}/runs/{run}/{sample}_data/demultiplexed",
+                    ext="fastq"  if config["gzip_input"] == "F" else "fastq.gz"
+                output:
+                    "{PROJECT}/runs/{run}/{sample}_data/demultiplexed/summary.txt"
+                shell:
+                    "Scripts/removePrimersDemultiplex.sh {params.dir} {params.ext} {config[demultiplexing][primers][fw_primer]} {config[demultiplexing][primers][rv_primer]} {config[demultiplexing][primers][min_overlap]} {config[demultiplexing][primers][extra_params]}"
+ 
     elif config["ANALYSIS_TYPE"] == "ASV" and config["LIBRARY_LAYOUT"] == "SE":
         rule skip_dmx_file_creation:
             input:
@@ -729,9 +749,26 @@ else:
             params:
                 "{PROJECT}/runs/{run}/{sample}_data/demultiplexed/"
             output:
+                "{PROJECT}/runs/{run}/{sample}_data/demultiplexed/summary.txt_tmp"
+                if config["demultiplexing"]["primers"]["remove"] == "T" else
                 "{PROJECT}/runs/{run}/{sample}_data/demultiplexed/summary.txt"
             shell:
-                "touch {output} &&  ln -s $PWD/{input.r1} {params}{wildcards.sample}_1.fastq.gz "
+                "touch {output} &&  ln -s $PWD/{input.r1} {params}{wildcards.sample}_1.fastq "
+                if config["gzip_input"] == "F" else
+                "touch {output} &&  ln -s $PWD/{input.r1} {params}{wildcards.sample}_1.fastq.gz"
+
+        if config["demultiplexing"]["primers"]["remove"] == "T":
+            rule remove_primers_dmx_files:
+                input:
+                    fw="{PROJECT}/runs/{run}/{sample}_data/demultiplexed/summary.txt_tmp"
+                params:
+                    dir="{PROJECT}/runs/{run}/{sample}_data/demultiplexed",
+                    ext="fastq"  if config["gzip_input"] == "F" else "fastq.gz"
+                output:
+                    "{PROJECT}/runs/{run}/{sample}_data/demultiplexed/summary.txt"
+                shell:                    
+                    "Scripts/removePrimersDemultiplexSE.sh {params.dir} {params.ext}  {config[demultiplexing][primers][fw_primer]} {config[demultiplexing][primers][min_overlap]} {config[demultiplexing][primers][extra_params]}" 
+
     else:
         rule skip_dmx_file_creation:
             params:

@@ -316,7 +316,7 @@ headers.append("(%)")
 fileData.append(headers)
 #combined
 data.append("Demultiplexed reads")
-data.append(snakemake.wildcards.PROJECT+ "/runs/" + snakemake.wildcards.run+ "/<LIBRARY>_data/demultiplexed/\*.fastq.gz")
+data.append(snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/<SAMPLE>_data/demultiplexed/\*.fastq.gz")
 data.append(str(intTotalReads))
 data.append("100%")
 fileData.append(data)

@@ -410,7 +410,7 @@ java:
 #                       demultiplexing process in order to being assigned to   #
 #                       their samples.                                         #
 #                       "F". Only carry out the demultiplexing process with    #
-# 			            paired reads.                                          #
+# 			paired reads.                                          #
 # - dmx_params          Parameters to pass on to the demultiplexing script.    #
 #                       For example, the user can change the prefix and suffix #
 #                       of the output files. To see the available parameters,  #
@@ -419,7 +419,11 @@ java:
 #                       demultiplexed reads may contain adapters or primers.   #
 #                       The following parameters supply options for removing   #
 #                       these sequences by using cutadapt.                     #  
-#   ** remove           "T" or "F" for removing or not any kind of sequence.   #
+#   ** remove           "T" or "F" for removing or not any kind of adapter.    #
+#                       This option can be set to true ("T") even though the   #
+#                       "demultiplex" option is set to false ("F"). Useful when#
+#                       starting with demultiplexed reads containing adapters  #
+#                       for a ASV workflow.                                    #
 #   ** fw_primer        Sequence to be removed from forward reads. It accepts  #
 #                       IUPAC wildcards, e.g., "^GTGYCAGCMGCCGCGGTAA".         #
 #   ** rv_primer        Sequence to be removed from reverse reads. It accepts  #
@@ -442,7 +446,7 @@ demultiplexing:
     remove: "F"
     fw_primer: ""
     rv_primer: ""
-    min_overlap: ""
+    min_overlap: "5"
     extra_params: "--discard-untrimmed --match-read-wildcards"
     
 #------------------------------------------------------------------------------#
