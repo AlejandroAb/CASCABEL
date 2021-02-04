@@ -271,8 +271,6 @@ In order to test the pipeline we also sugest to try running it with [CASCABEL's 
 
 ### Citing
 
-For the moment Cascabel's prepint is available for citing at [www.biorxiv.org](https://www.biorxiv.org/content/early/2019/10/17/809384)
-
 Cascabel: a scalable and versatile amplicon sequence data analysis pipeline delivering reproducible and documented results.
 Alejandro Abdala Asbun, Marc A Besseling, Sergio Balzano, Judith van Bleijswijk, Harry Witte, Laura Villanueva, Julia C Engelmann
 Front. Genet.; doi: https://doi.org/10.3389/fgene.2020.489357
