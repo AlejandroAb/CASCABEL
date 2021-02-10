@@ -268,7 +268,7 @@ if snakemake.config["demultiplexing"]["demultiplex"] != "F" and snakemake.config
     correctBCStr = "Correct Barcodes\n--------------------\n"
     correctBCStr += "Try to correct the barcode from unassigned reads.\n\n"
     correctBCStr += "Maximum number of mismatches **"  + str(snakemake.config["bc_mismatch"]) + "**.\n\n"
-    correctBCStr +=":red:`Tool:` CASCABEL's Java program\n\n"
+    correctBCStr +=":red:`Tool:` Cascabel Java program\n\n"
     correctBCStr +="**Command:**\n\n"
     correctBCStr += ":commd:`java -cp Scripts/BarcodeCorrector/build/classes/  barcodecorrector.BarcodeCorrector  -b "+snakemake.wildcards.PROJECT+"/metadata/sampleList_mergedBarcodes_"+snakemake.wildcards.sample+".txt -f "+snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/barcodes/barcodes.fastq -m "  + str(snakemake.config["bc_mismatch"]) + "`\n\n"
     correctBCStr += "**Output file:**\n\n:green:`- Barcode corrected file:` "+snakemake.wildcards.PROJECT+ "/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/barcodes/barcodes.fastq_corrected\n\n"
@@ -317,7 +317,7 @@ if snakemake.config["demultiplexing"]["demultiplex"] != "F":
     if snakemake.config["bc_mismatch"]:
         splitStr += "Correct reverse complemented barcodes \n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n"
         splitStr += "Maximum number of mismatches **"  + str(snakemake.config["bc_mismatch"]) + "**.\n\n"
-        splitStr +=":red:`Tool:` CASCABEL's Java program\n\n"
+        splitStr +=":red:`Tool:` Cascabel Java program\n\n"
         splitStr +="**Command:**\n\n"
         splitStr += ":commd:`java -cp Scripts/BarcodeCorrector/build/classes/  barcodecorrector.BarcodeCorrector -b "+snakemake.wildcards.PROJECT+"/metadata/sampleList_mergedBarcodes_"+snakemake.wildcards.sample+".txt -f "+snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/barcodes_unassigned/barcodes.fastq_corrected -m "  + str(snakemake.config["bc_mismatch"]) + "`\n\n"
         splitStr += "**Output file:**\n\n:green:`- Barcode corrected file:` "+snakemake.wildcards.PROJECT+ "/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/barcodes/barcodes.fastq_corrected\n\n"
@@ -350,7 +350,7 @@ demultiplexFQ = ""
 if snakemake.config["demultiplexing"]["demultiplex"] == "T" and snakemake.config["demultiplexing"]["create_fastq_files"] == "T":
     demultiplexFQ = "Generate single sample fastq files\n------------------------------------------\n\n" # title
     demultiplexFQ += "Create single fastq files per samples (based on the raw data without applying any filtering).\n\n"
-    demultiplexFQ +=":red:`Tool:` CASCABEL's Java program\n\n"
+    demultiplexFQ +=":red:`Tool:` Cascabel Java program\n\n"
     demultiplexFQ += "**Command:**\n\n"
     demultiplexFQ += ":commd:`"+snakemake.config["java"]["command"] + " -cp Scripts DemultiplexQiime --fasta -d "+snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/seqs_fw_rev_accepted.fna -o "+ snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/demultiplexed/ "
     ext=".gz"

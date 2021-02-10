@@ -1111,7 +1111,7 @@ else:
             "Scripts/combineAllReads.py"
 
 #Dereplicate
-if config["derep"]["dereplicate"] == "T" and config["pickOTU"]["m"] != "swarm" and config["pickOTU"]["m"] != "usearch":
+if (config["derep"]["dereplicate"] == "T" and config["pickOTU"]["m"] != "usearch") or config["pickOTU"]["m"] == "swarm" :
 #here make two steps
     rule dereplicate:
         input:
@@ -1126,43 +1126,79 @@ if config["derep"]["dereplicate"] == "T" and config["pickOTU"]["m"] != "swarm" a
             "{PROJECT}/runs/{run}/derep/derep.benchmark"
         shell:
             "{config[derep][vsearch_cmd]} --derep_fulllength {input} --output {output[0]} --uc {output[1]} --strand {config[derep][strand]} "
-            "--fasta_width 0 --minuniquesize {config[derep][min_abundance]}"
+            "--fasta_width 0 --minuniquesize {config[derep][min_abundance]} --sizeout" if config["pickOTU"]["m"] == "swarm"
+            else "{config[derep][vsearch_cmd]} --derep_fulllength {input} --output {output[0]} --uc {output[1]} --strand {config[derep][strand]} "
+            "--fasta_width 0 --minuniquesize {config[derep][min_abundance]}" 
 
+if  config["pickOTU"]["m"] == "swarm" :
+    rule cluster_OTUs:
+        input:
+            "{PROJECT}/runs/{run}/derep/seqs_fw_rev_combined_derep.fasta" 
+        output:
+            swarms="{PROJECT}/runs/{run}/otu/seqs_fw_rev_combined_derep_otus.txt",
+           # rep_seqs="{PROJECT}/runs/{run}/otu/representative_seq_set_swarm.fasta", (in case we want to generate reps -w {output.rep_seqs})
+            uc="{PROJECT}/runs/{run}/otu/swarms.uc" 
+        params:
+            otuDir="{PROJECT}/runs/{run}/otu/"
+        benchmark:
+            "{PROJECT}/runs/{run}/otu.benchmark"
+        shell:
+            "swarm -i  {params.otuDir}swarm.struct -s {params.otuDir}swarm.stats -d {config[pickOTU][s]} -z "
+            "-o {output.swarms}  -u {output.uc}  -t {config[pickOTU][cpus]} "
+            "{config[pickOTU][extra_params]} < {input} "
+
+else:
 #cluster OTUs
-rule cluster_OTUs:
-    input:
-        "{PROJECT}/runs/{run}/derep/seqs_fw_rev_combined_derep.fasta" if config["derep"]["dereplicate"] == "T" and config["pickOTU"]["m"] != "swarm"
-        and config["pickOTU"]["m"] != "usearch" else "{PROJECT}/runs/{run}/seqs_fw_rev_combined.fasta"
-        #"{PROJECT}/runs/{run}/{sample}_data/seqs_fw_rev_filtered.fasta"
-    output:
-        "{PROJECT}/runs/{run}/otu/seqs_fw_rev_combined_derep_otus.txt" if config["derep"]["dereplicate"] == "T" and config["pickOTU"]["m"] != "swarm"
-        and config["pickOTU"]["m"] != "usearch" else "{PROJECT}/runs/{run}/otu/seqs_fw_rev_combined_otus.txt"
-    params:
-        trieDir="{PROJECT}/runs/{run}/otu/"
-    benchmark:
-        "{PROJECT}/runs/{run}/otu.benchmark"
-    shell:
-        "{config[qiime][path]}pick_otus.py -m {config[pickOTU][m]} -i {input} "
-        "-o {params.trieDir}  -s {config[pickOTU][s]} --threads {config[pickOTU][cpus]} {config[pickOTU][extra_params]} "
-        if config["pickOTU"]["m"] != "swarm" else
-        "{config[qiime][path]}pick_otus.py -m {config[pickOTU][m]} -i {input} "
-        "-o {params.trieDir}  --threads {config[pickOTU][cpus]} {config[pickOTU][extra_params]} "
+    rule cluster_OTUs:
+        input:
+            "{PROJECT}/runs/{run}/derep/seqs_fw_rev_combined_derep.fasta" if config["derep"]["dereplicate"] == "T" and config["pickOTU"]["m"] != "swarm"
+            and config["pickOTU"]["m"] != "usearch" else "{PROJECT}/runs/{run}/seqs_fw_rev_combined.fasta"
+            #"{PROJECT}/runs/{run}/{sample}_data/seqs_fw_rev_filtered.fasta"
+        output:
+            "{PROJECT}/runs/{run}/otu/seqs_fw_rev_combined_derep_otus.txt" if config["derep"]["dereplicate"] == "T" and config["pickOTU"]["m"] != "swarm"
+            and config["pickOTU"]["m"] != "usearch" else "{PROJECT}/runs/{run}/otu/seqs_fw_rev_combined_otus.txt"
+        params:
+            trieDir="{PROJECT}/runs/{run}/otu/"
+        benchmark:
+            "{PROJECT}/runs/{run}/otu.benchmark"
+        shell:
+            "{config[qiime][path]}pick_otus.py -m {config[pickOTU][m]} -i {input} "
+            "-o {params.trieDir}  -s {config[pickOTU][s]} --threads {config[pickOTU][cpus]} {config[pickOTU][extra_params]} "
 
-if config["derep"]["dereplicate"] == "T" and config["pickOTU"]["m"] != "swarm"  and config["pickOTU"]["m"] != "usearch":
+if config["derep"]["dereplicate"] == "T"  and config["pickOTU"]["m"] != "usearch" and config["pickOTU"]["m"] != "swarm":
     rule remap_clusters:
         input:
             otu_txt="{PROJECT}/runs/{run}/otu/seqs_fw_rev_combined_derep_otus.txt",
             uc_derep="{PROJECT}/runs/{run}/derep/seqs_fw_rev_combined_derep.uc"
         output:
-            "{PROJECT}/runs/{run}/otu/seqs_fw_rev_combined_remapped_otus.txt"
+            map="{PROJECT}/runs/{run}/otu/seqs_fw_rev_combined_remapped_otus.txt",
+            log="{PROJECT}/runs/{run}/otu/remap.log"
+        benchmark:
+            "{PROJECT}/runs/{run}/derep/remap.benchmark"
         shell:
             "{config[java][command]} -cp Scripts/ClusterMapper/build/classes clustermapper.ClusterMapper uc2otu "
-            "-uc {input.uc_derep} -otu {input.otu_txt} -o {output}"
+            "-uc {input.uc_derep} -otu {input.otu_txt} -o {output.map} > {output.log}"
+elif config["pickOTU"]["m"] == "swarm":
+    rule remap_clusters:
+        input:
+            uc_swarm="{PROJECT}/runs/{run}/otu/swarms.uc",
+            uc_derep="{PROJECT}/runs/{run}/derep/seqs_fw_rev_combined_derep.uc"
+        output:
+            "{PROJECT}/runs/{run}/otu/seqs_fw_rev_combined_remapped_otus.txt"
+        benchmark:
+            "{PROJECT}/runs/{run}/derep/remap.benchmark"
+        shell:
+            "{config[java][command]} -cp Scripts/ClusterMapper/build/classes clustermapper.ClusterMapper uc2uc "
+            "-uc {input.uc_derep} -uc2 {input.uc_swarm} -o {output.map} --full-uc --relabel -l OTU -lidx 1 > {output.log}"
+
+
 #pick representative OTUs
 rule pick_representatives:
     input:
-        otus="{PROJECT}/runs/{run}/otu/seqs_fw_rev_combined_derep_otus.txt" if config["derep"]["dereplicate"] == "T" and config["pickOTU"]["m"] != "swarm"
-        and config["pickOTU"]["m"] != "usearch" else "{PROJECT}/runs/{run}/otu/seqs_fw_rev_combined_otus.txt",
+        otus="{PROJECT}/runs/{run}/otu/seqs_fw_rev_combined_derep_otus.txt" 
+        if (config["derep"]["dereplicate"] == "T"  and config["pickOTU"]["m"] != "usearch" and config["pickOTU"]["m"] != "swarm")
+        else "{PROJECT}/runs/{run}/otu/seqs_fw_rev_combined_remapped_otus.txt" if config["pickOTU"]["m"] == "swarm" 
+        else "{PROJECT}/runs/{run}/otu/seqs_fw_rev_combined_otus.txt",
         filtered="{PROJECT}/runs/{run}/seqs_fw_rev_combined.fasta"
         #filtered="{PROJECT}/runs/{run}/{sample}_data/seqs_fw_rev_filtered.fasta"
     output:
@@ -1346,8 +1382,8 @@ else:
 rule make_otu_table:
     input:
         tax="{PROJECT}/runs/{run}/otu/taxonomy_"+config["assignTaxonomy"]["tool"]+"/representative_seq_set_tax_assignments.txt",
-        otus="{PROJECT}/runs/{run}/otu/seqs_fw_rev_combined_remapped_otus.txt" if config["derep"]["dereplicate"] == "T" and config["pickOTU"]["m"] != "swarm"
-        and config["pickOTU"]["m"] != "usearch" else "{PROJECT}/runs/{run}/otu/seqs_fw_rev_combined_otus.txt"
+        otus="{PROJECT}/runs/{run}/otu/seqs_fw_rev_combined_remapped_otus.txt" if (config["derep"]["dereplicate"] == "T" and config["pickOTU"]["m"] != "usearch") 
+        or config["pickOTU"]["m"] == "swarm" else "{PROJECT}/runs/{run}/otu/seqs_fw_rev_combined_otus.txt"
     output:
         "{PROJECT}/runs/{run}/otu/taxonomy_"+config["assignTaxonomy"]["tool"]+"/otuTable.biom"
     benchmark:

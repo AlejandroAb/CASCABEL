@@ -881,9 +881,11 @@ derep:
 #                  for the following methods 'm': uclust, uclust_ref, usearch, #
 #                  usearch_ref, usearch61,  usearch61_ref, sumaclust, and      #
 #                  sortmerna. [default:0.97].                                  #
+#                  For Swarm this options is equal to the "distance" option -d #
+#                  in swarm.                                                   #
 # - m              OTU picking method. Valid choices are: sortmerna, mothur,   #
 #                  trie, uclust, uclust_ref, usearch, usearch_ref, swarm,      #
-#		           cdhit, sumaclust, prefix_suffix.                    	       #
+#		           cdhit, sumaclust, prefix_suffix.                    #
 # - extra_params   Any extra parameter. Run 'pick_otus.py -h' to see all       #
 #                  options.                                                    # 
 #------------------------------------------------------------------------------#

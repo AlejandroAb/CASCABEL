@@ -59,7 +59,7 @@ summTaxaBenchmark = readBenchmark(snakemake.wildcards.PROJECT+"/runs/"+snakemake
 otuNoSingletonsBenchmark = readBenchmark(snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/otu/taxonomy_"+snakemake.config["assignTaxonomy"]["tool"]+"/otuTable_nosingletons.bio.benchmark")
 filterBenchmark = readBenchmark(snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/otu/taxonomy_"+snakemake.config["assignTaxonomy"]["tool"]+"/representative_seq_set_noSingletons.benchmark")
 deRepBenchmark=""
-if  snakemake.config["derep"]["dereplicate"] == "T" and  snakemake.config["pickOTU"]["m"] != "swarm" and  snakemake.config["pickOTU"]["m"] != "usearch":
+if  (snakemake.config["derep"]["dereplicate"] == "T"  and  snakemake.config["pickOTU"]["m"] != "usearch") or  snakemake.config["pickOTU"]["m"] == "swarm":
     deRepBenchmark = readBenchmark(snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/derep/derep.benchmark")
 if snakemake.config["alignRep"]["align"] == "T":
     #align_seqs.py -m {config[alignRep][m]} -i {input} -o {params.outdir} {config[alignRep][extra_params]}
@@ -109,9 +109,14 @@ blastnVersion = "**" + blastnV.stdout.decode('utf-8').split('\n', 1)[0].replace(
 vsearchV2 = subprocess.run([snakemake.config["assignTaxonomy"]["vsearch"]["command"], '--version'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 vsearchVersion_tax = "**" + vsearchV2.stdout.decode('utf-8').split('\n', 1)[0].strip() + "**"
 
-if  snakemake.config["derep"]["dereplicate"] == "T" and  snakemake.config["pickOTU"]["m"] != "swarm" and  snakemake.config["pickOTU"]["m"] != "usearch":
+if  (snakemake.config["derep"]["dereplicate"] == "T" and  snakemake.config["pickOTU"]["m"] != "usearch") or snakemake.config["pickOTU"]["m"] == "swarm":
     vsearchV = subprocess.run([snakemake.config["derep"]["vsearch_cmd"], '--version'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     vsearchVersion = "**" + vsearchV.stdout.decode('utf-8').split('\n', 1)[0].strip() + "**"
+
+if  snakemake.config["pickOTU"]["m"] == "swarm":
+    swarmV = subprocess.run(['swarm', '--version'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    swarmVersion = "**" + vsearchV.stdout.decode('utf-8').split('\n', 1)[0].strip() + "**"
+
 
 if snakemake.config["alignRep"]["align"] == "T":
     alignFastaVersion="TBD"
@@ -143,7 +148,7 @@ except Exception as e:
 
 derep_reads = "TBD"
 intDerep=1
-if  snakemake.config["derep"]["dereplicate"] == "T" and  snakemake.config["pickOTU"]["m"] != "swarm" and  snakemake.config["pickOTU"]["m"] != "usearch":
+if  (snakemake.config["derep"]["dereplicate"] == "T"  and  snakemake.config["pickOTU"]["m"] != "usearch") or snakemake.config["pickOTU"]["m"] == "swarm":
     try:
         totd = subprocess.run( ["grep \"^>\" " +  snakemake.wildcards.PROJECT+ "/runs/" + snakemake.wildcards.run+ "/derep/seqs_fw_rev_combined_derep.fasta" + " | wc -l"], stdout=subprocess.PIPE, shell=True)
         intDerep = int(totd.stdout.decode('utf-8').strip())
@@ -154,7 +159,7 @@ if  snakemake.config["derep"]["dereplicate"] == "T" and  snakemake.config["pickO
 intOtus = 1
 try:
     otu_file=""
-    if (snakemake.config["derep"]["dereplicate"] == "T" and snakemake.config["pickOTU"]["m"] != "swarm" and snakemake.config["pickOTU"]["m"] != "usearch"):
+    if (snakemake.config["derep"]["dereplicate"] == "T" and snakemake.config["pickOTU"]["m"] != "usearch") or snakemake.config["pickOTU"]["m"] == "swarm" :
         otu_file = snakemake.wildcards.PROJECT+ "/runs/" + snakemake.wildcards.run+ "/otu/seqs_fw_rev_combined_remapped_otus.txt"
     else:
         otu_file = snakemake.wildcards.PROJECT+ "/runs/" + snakemake.wildcards.run+ "/otu/seqs_fw_rev_combined_otus.txt"
@@ -232,7 +237,7 @@ data.append("100%")
 fileData.append(data)
 data=[]
 #derep
-if  snakemake.config["derep"]["dereplicate"] == "T" and  snakemake.config["pickOTU"]["m"] != "swarm" and  snakemake.config["pickOTU"]["m"] != "usearch":
+if  (snakemake.config["derep"]["dereplicate"] == "T" and  snakemake.config["pickOTU"]["m"] != "usearch") or snakemake.config["pickOTU"]["m"] == "swarm":
 	data.append("Dereplicated reads")
 	data.append(snakemake.wildcards.PROJECT+ "/runs/" + snakemake.wildcards.run+ "/derep/seqs_fw_rev_combined_derep.fasta")
 	data.append(str(intDerep))
@@ -280,7 +285,7 @@ labels=["Combined\nreads"];
 prcs=[]
 
 prcs.append("100%")
-if  snakemake.config["derep"]["dereplicate"] == "T" and  snakemake.config["pickOTU"]["m"] != "swarm" and  snakemake.config["pickOTU"]["m"] != "usearch":
+if  (snakemake.config["derep"]["dereplicate"] == "T" and  snakemake.config["pickOTU"]["m"] != "usearch") or snakemake.config["pickOTU"]["m"] == "swarm":
     numbers.append(intDerep)
     labels.append("Derep.")
     prcs.append("{:.2f}".format(float((intDerep/intTotalReads)*100))+"%")
@@ -350,7 +355,7 @@ elif snakemake.config["assignTaxonomy"]["tool"] == "vsearch":
 
 #Dereplication report
 dereplicateReport=""
-if  snakemake.config["derep"]["dereplicate"] == "T" and  snakemake.config["pickOTU"]["m"] != "swarm" and  snakemake.config["pickOTU"]["m"] != "usearch":
+if  (snakemake.config["derep"]["dereplicate"] == "T"  and  snakemake.config["pickOTU"]["m"] != "usearch") or snakemake.config["pickOTU"]["m"] == "swarm":
     dereplicateReport="Dereplicate reads\n"
     dereplicateReport+="---------------------\n\n"
     dereplicateReport+="Clusterize the reads with an identity threshold of 100%.\n\n"
@@ -362,6 +367,55 @@ if  snakemake.config["derep"]["dereplicate"] == "T" and  snakemake.config["pickO
     dereplicateReport+=":green:`- Dereplicated fasta file:` "+snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/derep/seqs_fw_rev_combined_derep.fasta\n\n"
     dereplicateReport+=":green:`- Cluster file:` "+ snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/derep/seqs_fw_rev_combined_derep.uc\n\n"
     dereplicateReport+="Total number of dereplicated sequences is: "+str(derep_reads).strip()+"\n\n"+deRepBenchmark+"\n\n"
+
+#Cluestering report
+otuClusteringReport=""
+otuClusteringReport="Cluster OTUs\n"
+otuClusteringReport+="---------------------\n\n"
+otuClusteringReport+="Assigns similar sequences to operational taxonomic units, or OTUs, by clustering sequences based on a user-defined similarity threshold.\n\n"
+if (snakemake.config["pickOTU"]["m"]== "swarm"):
+    otuClusteringReport+=":red:`Tool:` [swarm]_\n\n"
+    otuClusteringReport+=":red:`Version:` " + swarmVersion+"\n\n"
+    otuClusteringReport+=":green:`Distance:` " + snakemake.config["pickOTU"]["s"]+"\n\n"
+    otuClusteringReport+="**Command:**\n\n"
+    otuClusteringReport+=":commd:`swarm -i "+snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/otu/swarm.struct -s "+snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/otu/swarm.stats -d "+snakemake.config["pickOTU"]["s"]+" -z -o "+snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/otu/seqs_fw_rev_combined_derep_otus.txt "
+    otuClusteringReport+="-u "+snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/otu/swarms.uc -t "+ snakemake.config["pickOTU"]["cpus"]+"  " + snakemake.config["pickOTU"]["extra_params"] + " < "+ snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/derep/seqs_fw_rev_combined_derep.fasta` \n\n"
+    otuClusteringReport+="**Output files:**\n\n"
+    otuClusteringReport+=":green:`- OTU List:` "+snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/otu/seqs_fw_rev_combined_derep_otus.txt\n\n"
+    otuClusteringReport+=":green:`- Cluster file (uc):` "+snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/otu/swarms.uc\n\n"
+    otuClusteringReport+=":green:`- Swarm stats:` "+ snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/otu/swarm.stats\n\n"
+    otuClusteringReport+=":green:`- Swarm structure:` "+ snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/otu/swarm.struct\n\n"
+    otuClusteringReport+="The total number of different OTUS (swarms) is: " +totalOtus+"\n\n"
+else:
+    otuClusteringReport+=":red:`Tool:`  ["+snakemake.config["pickOTU"]["m"]+"]_\n\n"
+    otuClusteringReport+=":red:`Version:` " + clusterOtuVersion +"\n\n"
+    otuClusteringReport+=":green:`Method:` " + snakemake.config["pickOTU"]["m"]+"\n\n"
+    otuClusteringReport+=":green:`Identity:` " + snakemake.config["pickOTU"]["s"]+"\n\n"
+    otuClusteringReport+="**Command:**\n\n"
+    otuClusteringReport+=":commd:` pick_otus.py -m "+snakemake.config["pickOTU"]["m"] + "-i "+ snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/seqs_fw_rev_filtered.fasta -o "+ snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/otu/ "
+    otuClusteringReport+="-s "+snakemake.config["pickOTU"]["s"]+" " + snakemake.config["pickOTU"]["extra_params"] + " --threads "+ snakemake.config["pickOTU"]["cpus"] + "` \n\n"  
+    otuClusteringReport+="**Output files:**\n\n"
+    otuClusteringReport+=":green:`- OTU List:` "+snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/otu/seqs_fw_rev_filtered_otus.txt\n\n"
+    otuClusteringReport+=":green:`- Log file:` "+ snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/otu/seqs_fw_rev_filtered_otus.log\n\n"
+    otuClusteringReport+="The total number of different OTUS is: " +totalOtus+"\n\n"
+
+#Remap report
+remapClusters=""
+if  (snakemake.config["derep"]["dereplicate"] == "T"  and  snakemake.config["pickOTU"]["m"] != "usearch") or snakemake.config["pickOTU"]["m"] == "swarm":
+    variable_refs+= ".. [ClusterMapper] https://github.com/AlejandroAb/ClusterMapper\n\n"
+    remapClusters="Re-map clusters\n"
+    remapClusters+="---------------------\n\n"
+    remapClusters+="Compute abundance values after dereplication and OTU clustering.\n\n"
+    remapClusters+=":red:`Tool:`  Cascabel Java application: [ClusterMapper]_\n\n"
+    remapClusters+="**Command:**\n\n"
+    if(snakemake.config["pickOTU"]["m"] == "swarm"):
+        remapClusters+=":commd:`java -cp Scripts/ClusterMapper/build/classes clustermapper.ClusterMapper uc2otu  -uc "+ snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/derep/seqs_fw_rev_combined_derep.uc -otu " + snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/otu/seqs_fw_rev_combined_derep_otus.txt -o " + snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/otu/seqs_fw_rev_combined_remapped_otus.txt`\n\n"
+    else:
+        remapClusters+=":commd:`java  -cp Scripts/ClusterMapper/build/classes clustermapper.ClusterMapper uc2uc   -uc "+ snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/derep/seqs_fw_rev_combined_derep.uc -uc2 " + snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/otu/swarms.uc --full-uc --relabel -l OTU -lidx 1 -o " + snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/otu/seqs_fw_rev_combined_remapped_otus.txt`\n\n"
+    remapClusters+="**Output files:**\n\n"
+    remapClusters+=":green:`- Mapped abundances:` "+snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/otu/seqs_fw_rev_combined_remapped_otus.txt\n\n"
+    remapClusters+=":green:`- Log file:` "+snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/otu/remap.log\n\n"
+
 #Alignment report
 alignmentReport = ""
 if snakemake.config["alignRep"]["align"] == "T":
@@ -487,30 +541,9 @@ The total number of reads is: {totalReads}
 
 {dereplicateReport}
 
-Cluster OTUs
--------------
+{otuClusteringReport}
 
-Assigns similar sequences to operational taxonomic units, or OTUs, by clustering sequences based on a user-defined similarity threshold.
-
-:red:`Tool:` [QIIME]_ - pick_otus.py
-
-:red:`Version:` {clusterOtuVersion}
-
-:green:`Method:` [{snakemake.config[pickOTU][m]}]_
-
-:green:`Identity:` {snakemake.config[pickOTU][s]}
-
-**Command:**
-
-:commd:`pick_otus.py -m {snakemake.config[pickOTU][m]} -i {snakemake.wildcards.PROJECT}/runs/{snakemake.wildcards.run}/seqs_fw_rev_filtered.fasta -o {snakemake.wildcards.PROJECT}/samples/{snakemake.wildcards.run}/otu/ {snakemake.config[pickOTU][extra_params]} -s {snakemake.config[pickOTU][s]}`
-
-**Output files:**
-
-:green:`- OTU List:` {snakemake.wildcards.PROJECT}/runs/{snakemake.wildcards.run}/otu/seqs_fw_rev_filtered_otus.txt
-
-:green:`- Log file:` {snakemake.wildcards.PROJECT}/runs/{snakemake.wildcards.run}/otu/seqs_fw_rev_filtered_otus.log
-
-The total number of different OTUS is: {totalOtus}
+{remapClusters}
 
 {otuBenchmark}
 
