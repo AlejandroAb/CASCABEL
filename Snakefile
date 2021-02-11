@@ -1142,8 +1142,9 @@ if  config["pickOTU"]["m"] == "swarm" :
             otuDir="{PROJECT}/runs/{run}/otu/"
         benchmark:
             "{PROJECT}/runs/{run}/otu.benchmark"
+        #-i  {params.otuDir}swarm.struct
         shell:
-            "swarm -i  {params.otuDir}swarm.struct -s {params.otuDir}swarm.stats -d {config[pickOTU][s]} -z "
+            "swarm  -s {params.otuDir}swarm.stats -d {config[pickOTU][s]} -z "
             "-o {output.swarms}  -u {output.uc}  -t {config[pickOTU][cpus]} "
             "{config[pickOTU][extra_params]} < {input} "
 
@@ -1184,7 +1185,8 @@ elif config["pickOTU"]["m"] == "swarm":
             uc_swarm="{PROJECT}/runs/{run}/otu/swarms.uc",
             uc_derep="{PROJECT}/runs/{run}/derep/seqs_fw_rev_combined_derep.uc"
         output:
-            "{PROJECT}/runs/{run}/otu/seqs_fw_rev_combined_remapped_otus.txt"
+            map="{PROJECT}/runs/{run}/otu/seqs_fw_rev_combined_remapped_otus.txt",
+            log="{PROJECT}/runs/{run}/otu/remap.log"
         benchmark:
             "{PROJECT}/runs/{run}/derep/remap.benchmark"
         shell:
@@ -1234,8 +1236,8 @@ if  config["assignTaxonomy"]["tool"] == "blast":
         """
         input:
             blastout="{PROJECT}/runs/{run}/otu/taxonomy_"+config["assignTaxonomy"]["tool"]+"/representative_seq_set_tax_blastn.out",
-            otus="{PROJECT}/runs/{run}/otu/seqs_fw_rev_combined_derep_otus.txt" if config["derep"]["dereplicate"] == "T" and config["pickOTU"]["m"] != "swarm"
-            and config["pickOTU"]["m"] != "usearch" else "{PROJECT}/runs/{run}/otu/seqs_fw_rev_combined_otus.txt"
+            otus="{PROJECT}/runs/{run}/otu/seqs_fw_rev_combined_derep_otus.txt" if (config["derep"]["dereplicate"] == "T" and config["pickOTU"]["m"] != "usearch")
+            or config["pickOTU"]["m"] == "swarm" else "{PROJECT}/runs/{run}/otu/seqs_fw_rev_combined_otus.txt"
         output:
             "{PROJECT}/runs/{run}/otu/taxonomy_"+config["assignTaxonomy"]["tool"]+"/representative_seq_set_tax_blastn.complete.out"
         benchmark:
