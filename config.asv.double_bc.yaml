@@ -561,8 +561,8 @@ split:
 #------------------------------------------------------------------------------# 
 dada2_filter:
   generateQAplots: "F"
-  truncFW: 200
-  truncRV: 200
+  truncFW: 0
+  truncRV: 0
   maxEE_FW: 3
   maxEE_RV: 5
   cpus: 10
@@ -871,7 +871,7 @@ derep:
 # taken to represent the presence of a taxonomic unit (e.g., approximately at  #
 # genus level, when the similarity threshold is set at 0.94) in the sequence   #
 # collection. Swarm takes a different clustering approach which does not       #
-# require setting a threshold. Instead, clusters are formed using sequence     # 
+# require setting a threshold. Instead, clusters are formed using sequence     #
 # graphs and abundance.                                                        #
 #                                                                              #
 #-----------------------------       PARAMS       -----------------------------#
@@ -880,11 +880,19 @@ derep:
 #                  for the following methods 'm': uclust, uclust_ref, usearch, #
 #                  usearch_ref, usearch61,  usearch61_ref, sumaclust, and      #
 #                  sortmerna. [default:0.97].                                  #
+#                  For Swarm this options must be supplied and it is equal to  #
+#                  the "distance" (option -d), and it take integer values.     #
+#                  [default:1]                                                 #
 # - m              OTU picking method. Valid choices are: sortmerna, mothur,   #
 #                  trie, uclust, uclust_ref, usearch, usearch_ref, swarm,      #
-#		           cdhit, sumaclust, prefix_suffix.                    	       #
+#                          cdhit, sumaclust, prefix_suffix.                    #
 # - extra_params   Any extra parameter. Run 'pick_otus.py -h' to see all       #
-#                  options.                                                    # 
+#                  options.                                                    #
+#                  For swarm, you can also add any extra parameter. Run        #
+#                  'swarm -h' to see the available options. When running swarm #
+#                  with distance (-d resolution) equal to 1 we recommend to add#
+#                  extra_param "-f"  (--fastidious) to link nearby             #
+#                  low-abundance swarms.                                       #
 #------------------------------------------------------------------------------#
 pickOTU:
   s: "0.97"

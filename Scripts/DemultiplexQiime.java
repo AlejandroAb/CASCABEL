@@ -12,9 +12,9 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- *
+ * Create single sample fastq files 
  * @author aabdala
- * @version 1.0
+ * @version 1.1
  */
 public class DemultiplexQiime {
 
@@ -300,18 +300,32 @@ public class DemultiplexQiime {
                 }
             }
             reader.close();
+            String fw_header = "";
+            if (forward.length() > 0) {
+                fw_header = evaluateHeader(forward);
+                if(fw_header.equals("")){
+                    fw_header="1:N:0:1";
+                }
+            }
+            String rv_header = "";
+            if (reverse.length() > 0) {
+                rv_header = evaluateHeader(reverse);
+                 if(rv_header.equals("")){
+                    rv_header="2:N:0:1";
+                }
+            }
             for (String key : writers.keySet()) {
                 writers.get(key).close();
                 //String file = outDir + preffix + key + suffix + ".txt";
                 String file = outDir + preffix + key + suffix + "_" + orientation + ".txt";
                 if (forward.length() > 0) {
-                    createFastq(key, file, forward, "_1");
+                    createFastq(key, file, forward, "_1", fw_header);
                 }
                 if (reverse.length() > 0) {
-                    createFastq(key, file, reverse, "_2");
+                    createFastq(key, file, reverse, "_2", rv_header);
                 }
                 if (paired.length() > 0) {
-                    createFastq(key, file, paired, "");
+                    createFastq(key, file, paired, "", "");
                 }
             }
             //Delete files unless --write-summary
@@ -352,6 +366,53 @@ public class DemultiplexQiime {
     }
 
     /**
+     * Evaluates the header so we can now how is the second part after the
+     * sequence ID on a fastqfile. This way, we can keep the header and avoid
+     * issues with fastq file format
+     *
+     * @param sequenceFile
+     * @return
+     */
+    public String evaluateHeader(String sequenceFile) {
+        String command = "";
+        String read = "cat ";
+        if (sequenceFile.endsWith("gz")) {
+            read = "zcat ";
+        }
+        command = read + sequenceFile + " | head -1 | cut -f2 -d\" \"";
+        String header = "";
+        String cmdArr[] = {"/bin/sh", "-c", command};
+        try {
+            Process proc = Runtime.getRuntime().exec(cmdArr);
+            //Process proc = Runtime.getRuntime().exec("c:/Program Files/R/R-3.0.3/bin/Rscript " + scriptDir + "script_abundancia.R " + workingDir +" "+ scriptDir + " " +file + " " + imageName);
+            proc.waitFor();
+            InputStream inputstream = proc.getInputStream();
+            InputStreamReader inputstreamreader = new InputStreamReader(inputstream);
+            BufferedReader bufferedreader = new BufferedReader(inputstreamreader);
+            String line = "";
+            while ((line = bufferedreader.readLine()) != null) {
+                header = line;
+            }
+            //
+            bufferedreader.close();
+            if (proc.waitFor() != 0) {
+                System.err.println("exit value = " + proc.exitValue());
+                System.err.println("command = " + command);
+                writeErrStream(proc.getErrorStream());
+                proc.destroy();
+                return "Error";
+            } else {
+                proc.destroy();
+                return header;
+            }
+        } catch (Exception e) {
+            System.out.println("" + e.getLocalizedMessage());
+            e.printStackTrace();
+            return "Error runing: " + command;
+        }
+    }
+
+    /**
      * This method creates a fasta | fastq files by fetching sequences from
      * original raw sequences
      *
@@ -362,26 +423,39 @@ public class DemultiplexQiime {
      * @param extra extra string to put to the names of the resultant files, for
      * example for forward reads "_1" or "_2" for reverse reads or "" for single
      * libraries
+     * @param header_extra When we create fastq files we need two use @ID
+     * extra_info. The "extra_info" is useful to differentiate between forward
+     * and reverse reads, since they have the same @ID. This validation can be
+     * performed by some sequence repository platforms or also for tools. So,
+     * this header, have the valuer for the second part of the ID which is
+     * computed by the evaluateHeader method.
      * @return
      */
-    public String createFastq(String sample, String ids, String raw_file, String extra) {
+    public String createFastq(String sample, String ids, String raw_file, String extra, String header_extra) {
         String command = "";
         String file_extenssion = raw_fastq ? "fastq" : "fasta";
         int start_idx = bc_length + 1;
-        String header = removeHeader ? "$1" : "$0";//all the header
+        String header = removeHeader ? "$1 "  + "\" "+header_extra+"\"" : "$0";//all the header
+        /*if (extra.equals("_1") && header.equals("$1")) {
+            //header = "$1  \" 1:N:0:1\"";
+            
+        } else if (extra.equals("_2") && header.equals("$1")) {
+            header = "$1  \" 2:N:0:1\"";
+        }*/
+        //comente code above is the hardcoded solution for the  "$1 "+header_extra  assignation
         String append = overWrite ? ">" : ">>";
         try {
             if (start_idx > 1 && raw_fastq) {
                 command = "seqtk subseq  " + raw_file + " " + ids
                         + " | awk '{if(NR%4==2 || NR%4==0){print substr($0," + start_idx + ")}else if(NR%4==1){print " + header + "}else{print $0}}' "
-                        + " | gzip " + append + " " + outDir + preffix + sample + suffix + extra + "." + file_extenssion + ".gz";
+                        + " | gzip -3 " + append + " " + outDir + preffix + sample + suffix + extra + "." + file_extenssion + ".gz";
             } else if (start_idx > 1) { //is fasta file
                 command = "seqtk subseq  " + raw_file + " " + ids
                         + " | awk '{if(NR%2==0){print substr($0," + start_idx + ")}else if(NR%4==1){print " + header + "}else{print $0}}' "
-                        + " | gzip " + append + " " + outDir + preffix + sample + suffix + extra + "." + file_extenssion + ".gz";
+                        + " | gzip -3 " + append + " " + outDir + preffix + sample + suffix + extra + "." + file_extenssion + ".gz";
             } else { //no bc removal 
                 command = "seqtk subseq  " + raw_file + " " + ids
-                        + " | gzip " + append + " " + outDir + preffix + sample + suffix + extra + "." + file_extenssion + ".gz";
+                        + " | gzip -3 " + append + " " + outDir + preffix + sample + suffix + extra + "." + file_extenssion + ".gz";
             }
 
             if (debug) {

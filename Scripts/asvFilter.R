@@ -16,8 +16,9 @@ args <- commandArgs(trailingOnly = T)
 #args[6] = maxEE RV
 #args[7] = cpus
 #args[8] = filterAndTrim function extra params
-#args[9]... = output filter summary
-#args[10]... = summary files from libraries
+#args[9] = interactive behavior
+#args[10] = output filter summary
+#args[11]... = summary files from libraries
 # suppose that we expand and pass the summary.txt from the output
 # we should have a path {project}/runs/{run}/{sample}_data/demultiplexed/
 #args<-c("/export/lv3/scratch/projects_AA/dada2_CASCABEL/CASCABEL",
@@ -32,7 +33,7 @@ setwd(args[1])
 
 #Set the different paths for all the supplied libraries
 paths = c()
-for(i in 10:length(args)) {
+for(i in 11:length(args)) {
   paths <- c(paths,gsub("/summary.txt", '',args[i]))
 }
 
@@ -44,8 +45,8 @@ filesRev <- sort(list.files(paths, pattern="_2.fastq.gz", full.names = TRUE))
 sample.names <- gsub('_1.fastq.gz', '', basename(filesForw))
 
 #if we want to save the plot we can do the following
-asv_dir <- gsub("filter_summary.out"," ", args[9])
-dir.create(asv_dir)
+asv_dir <- gsub("filter_summary.out"," ", args[10])
+dir.create(asv_dir, showWarnings = FALSE)
 if (args[2] == "T" || args[2] == "TRUE" ){
   library(ggplot2)
   plots_fw <- plotQualityProfile(filesForw)
@@ -56,6 +57,61 @@ if (args[2] == "T" || args[2] == "TRUE" ){
   #here we have to solve two things where to store the plots
   # and if we are going to generate one pdf per file, one per library
   # or one per strand...
+}
+readintegerConsole <- function(x){
+  cat(x);
+  n <- readLines("stdin",n=1);
+  if(!grepl("^[0-9]+$",n))
+  {
+    return(readintegerConsole(x))
+  }
+  return(as.integer(n))
+}
+
+createMenuConsole <- function()
+{ 
+  cat("\n--------------------------------------\n")
+  cat("------     READ TRUNCATION    --------\n")
+  cat("The next step will truncate the reads:\n")
+  if (args[2] == "T" || args[2] == "TRUE" ){
+   cat(paste("We advise having a look at the QA plots generated at: ",asv_dir))
+  }else{
+    cat("Based on your configuration settings, no new QC plots were generated.\n")
+    cat("In order to select the best values, we advise you to have a look at your\n")
+    cat("FastQC report but be aware that no barcodes or primers were removed when\n")
+    cat("they were generated, so probably you have shorter reads at this stage.\n") 
+    cat("If you want to generate dada2's QA plots, stop the workflow with option 3\n")
+    cat("then update your settings with \"dada2_filter: generateQAplots = T\" and \n")
+    cat("re-run the pipeline.\n\n") 
+  }
+  cat("Your current values are:\n")
+  cat(paste(" * Forward: ",args[3],"\n"))
+  cat(paste(" * Reverse: ",args[4],"\n"))
+  cat("\nA value of \"0\" means no truncation.\n")
+  cat("Reads shorter than the selected value are discarded!\n")
+  cat("What would you like to do?\n\n")
+  
+  cat(" 1. Use values from configuration file.\n")
+  cat(" 2. Specify new values!\n")
+  cat(" 3. Interrupt workflow.\n")
+  cat("Enter your option:\n")
+  n <- readLines("stdin",n=1);
+  if(!grepl("^[0-9]+$",n))
+  {
+    return(createMenuConsole())
+  }else if(n == 1){
+    fw_len <- strtoi(args[3], 10) 
+    rv_len <- strtoi(args[4], 10)
+  }else if(n == 2){
+    
+    fw_len <<- readintegerConsole("Enter FW reads truncation value:")
+    rv_len <<- readintegerConsole("Enter RV reads truncation value:")
+  
+  }else if(n == 3){
+    exit(1)
+  }else {
+    return(createMenuConsole())
+  }
 }
 
 #Create path and file names for filtered samples" 
@@ -70,8 +126,13 @@ names(filtRs) <- sample.names
 
 #Within CASCABEL the adapters have been already removed so no extra truncation should be needed
 # within  Cacabel we remove barcodes and primers
-fw_len <- strtoi(args[3], 10) 
-rv_len <- strtoi(args[4], 10)
+if (args[9] == "T" || args[9] == "TRUE" ){
+  createMenuConsole()
+}else{
+  fw_len <- strtoi(args[3], 10) 
+  rv_len <- strtoi(args[4], 10)
+  
+}
 maxEE_fw <- strtoi(args[5], 10) 
 maxEE_rv <- strtoi(args[6],10)
 cpus <- strtoi(args[7],10)
@@ -93,5 +154,5 @@ out <- eval(parse(text=paste("filterAndTrim(filesForw, filtFs, filesRev, filtRs,
 #The original rownames are the name of the fq files
 rownames(out)<-sample.names
 colnames(out)<-c("reads.in","filtered")
-write.table(out, file = args[9]  , sep = "\t", quote=FALSE, col.names =NA)
+write.table(out, file = args[10]  , sep = "\t", quote=FALSE, col.names =NA)
 

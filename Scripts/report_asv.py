@@ -491,7 +491,7 @@ countTxt += make_table(fileData)
 
 sampleDistChart = ""
 if snakemake.config["demultiplexing"]["demultiplex"] == "T":
-    dist_table = readSampleDist(snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/seqs_fw_rev_filtered.dist.txt",trimmedCounts,samplesLibInt)
+    dist_table = readSampleDist(snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/seqs_fw_rev_filtered.dist.txt",totalAssigned,samplesLibInt)
     sampleDistChart = "Sample distribution\n--------------------------------------\n\n" # title
     sampleDistChart += dist_table + "\n\n"
     sampleDistChart += ".. image:: report_files/seqs_fw_rev_filtered."+snakemake.wildcards.sample+".dist.png\n\n"
