@@ -1,8 +1,8 @@
 """
 CASCABEL
-Version: 4.4
+Version: 4.5
 Author: Julia Engelmann and Alejandro Abdala
-Last update: 25/01/2021
+Last update: 07/06/2021
 """
 run=config["RUN"]
 
@@ -131,7 +131,7 @@ if config["LIBRARY_LAYOUT"] != "SE":
         benchmark:
             "{PROJECT}/samples/{sample}/qc/fq.benchmark"
         shell:
-            "{config[fastQC][command]} {input.r1} {input.r2} --extract {config[fastQC][extra_params]} -o {wildcards.PROJECT}/samples/{wildcards.sample}/qc/"
+            "{config[fastQC][command]} {input.r1} {input.r2} --extract {config[fastQC][extra_params]} -t 10 -o {wildcards.PROJECT}/samples/{wildcards.sample}/qc/"
 
     rule validateQC:
         """
@@ -779,6 +779,28 @@ else:
                 "touch {output}" 
 
 if config["ANALYSIS_TYPE"] == "ASV":
+    #if config["dada2_filter"]["generateQAplots"] == "T":
+    #    rule dada2_QA_Plots:
+    #           input:
+    #               expand("{PROJECT}/runs/{run}/{sample}_data/demultiplexed/summary.txt", PROJECT=config["PROJECT"],sample=config["LIBRARY"], run=run)
+    #           output:
+    #               "{PROJECT}/runs/{run}/asv/fw_QA_plots.pdf"
+    #           benchmark:
+    #               "{PROJECT}/runs/{run}/asv/qa_plots.benchmark"
+    #           params:
+    #               "{PROJECT}/runs/{run}/asv/"
+    #           shell:
+    #               "{config[Rscript][command]} Scripts/asvFilter.R $PWD {params} {input}"
+    #else: 
+    #    rule skip_QA_Plots:
+    #           output:
+    #               "{PROJECT}/runs/{run}/asv/no_qa_plots.txt"
+    #           shell:
+    #               "touch {output}"
+    #rule dada2TruncationValues:
+    #    input:
+    #        "{PROJECT}/runs/{run}/asv/fw_QA_plots.pdf" if config["dada2_filter"]["generateQAplots"] == "T" else "{PROJECT}/runs/{run}/asv/no_qa_plots.txt"
+ 
     rule dada2Filter:
         input:
             expand("{PROJECT}/runs/{run}/{sample}_data/demultiplexed/summary.txt", PROJECT=config["PROJECT"],sample=config["LIBRARY"], run=run)
@@ -787,7 +809,7 @@ if config["ANALYSIS_TYPE"] == "ASV":
         benchmark:
             "{PROJECT}/runs/{run}/asv/filter.benchmark"
         shell:
-            "{config[Rscript][command]} Scripts/asvFilter.R $PWD " + str(config["dada2_filter"]["generateQAplots"]) + " " + str(config["dada2_filter"]["truncFW"]) + " " + str(config["dada2_filter"]["truncRV"]) + " "+str(config["dada2_filter"]["maxEE_FW"]) + " "+str(config["dada2_filter"]["maxEE_RV"]) + " " +str(config["dada2_filter"]["cpus"]) + " " +str(config["dada2_filter"]["extra_params"]) + " " + "{output} {input} " 
+            "{config[Rscript][command]} Scripts/asvFilter.R $PWD " + str(config["dada2_filter"]["generateQAplots"]) + " " + str(config["dada2_filter"]["truncFW"]) + " " + str(config["dada2_filter"]["truncRV"]) + " "+str(config["dada2_filter"]["maxEE_FW"]) + " "+str(config["dada2_filter"]["maxEE_RV"]) + " " +str(config["dada2_filter"]["cpus"]) + " \"" +str(config["dada2_filter"]["extra_params"]) + "\" " +str(config["interactive"])+ " {output} {input} " 
 
     rule validate_dada2Filter:
         input:
