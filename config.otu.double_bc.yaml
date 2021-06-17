@@ -566,7 +566,7 @@ dada2_filter:
   maxEE_FW: 3
   maxEE_RV: 5
   cpus: 5
-  extra_params: "\",truncQ=2, rm.phix=TRUE\""
+  extra_params: ",truncQ=2, rm.phix=TRUE"
 
 #------------------------------------------------------------------------------#
 # ASV_WF:                          dada2 merge pairs                           #
