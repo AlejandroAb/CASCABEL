@@ -62,9 +62,10 @@ setwd(args[1])
 #with args
 paths <-NULL
 for(i in 19:(length(args)-1)) {
-  paths <- c(paths,gsub("/summary.txt", '',args[i]))
+  #paths <- c(paths,gsub('demultiplexed/','demultiplexed/filtered/',gsub("/summary.txt", '',args[i])))
+   paths <- c(paths,gsub("summary.txt", 'filtered/',args[i]))
 }
-#print(paths)
+print(paths)
 #with params
 #inputs <- unlist((strsplit(unlist(snakemake@input[[2]]), split=" ")))
 #print(inputs)
@@ -73,18 +74,24 @@ for(i in 19:(length(args)-1)) {
 #}
 #print(paths)
 #List files
-filesForw <- sort(list.files(paths, pattern="_1.fastq.gz", full.names = TRUE))
-filesRev <- sort(list.files(paths, pattern="_2.fastq.gz", full.names = TRUE))
+     #filesForw <- sort(list.files(paths, pattern="_1.fastq.gz", full.names = TRUE))
+     #filesRev <- sort(list.files(paths, pattern="_2.fastq.gz", full.names = TRUE))
 #Get sample names
-sample.names <- gsub('_1.fastq.gz', '', basename(filesForw))
+     #sample.names <- gsub('_1.fastq.gz', '', basename(filesForw))
 #Create path and file names for filtered samples"
 #filtFs <- file.path(paths, "filtered", paste0(sample.names, "_F_filt.fastq.gz"))
 #filtRs <- file.path(paths, "filtered", paste0(sample.names, "_R_filt.fastq.gz"))
-filtFs <- gsub('demultiplexed/','demultiplexed/filtered/',filesForw)
-filtRs <- gsub('demultiplexed/','demultiplexed/filtered/',filesRev)
+     #filtFs <- gsub('demultiplexed/','demultiplexed/filtered/',filesForw)
+     #filtRs <- gsub('demultiplexed/','demultiplexed/filtered/',filesRev)
+filtFs <-  sort(list.files(paths, pattern="_1.fastq.gz", full.names = TRUE))
+filtRs <-  sort(list.files(paths, pattern="_2.fastq.gz", full.names = TRUE))
+#Get sample names
+     sample.names <- gsub('_1.fastq.gz', '', basename(filtFs))
 #assign names to files
 names(filtFs) <- sample.names
 names(filtRs) <- sample.names
+
+print(filtFs)
 
 if (args[2] == "pseudo"){
   pool = "pseudo"

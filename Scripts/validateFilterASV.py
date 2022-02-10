@@ -10,16 +10,22 @@ with open(snakemake.input[0]) as filter_summary:
     l=0
     summ=0
     samples=0
+    samp_cero=0
     for line in filter_summary:
         l+=1
         tmpLine = line.split('\t')
-        if len(tmpLine) > 2:
-          try:
-              summ+=(float(tmpLine[2])/float(tmpLine[1]))*100
-              sample_counts += line
+        if len(tmpLine) > 2 and (l > 1):
+          #print("1 " + str(tmpLine[1]) + " 2 " + str(tmpLine[2]) + " 3 " + str(tmpLine[3]))
+          if float(tmpLine[1]) > 0 :
+              try:
+                  summ+=(float(tmpLine[2])/float(tmpLine[1]))*100
+                  sample_counts += line
+                  samples+=1
+              except ValueError:
+                  summ+=0
+          else:
+              samp_cero+=1
               samples+=1
-          except ValueError:
-              summ+=0
     avg=float(summ/samples)
 filter_summary.close()
 
@@ -27,7 +33,9 @@ filter_summary.close()
 
 if snakemake.config["interactive"] == "F":
     print("\033[93m" +"Interactive mode off \033[0m")
-    print("\033[93m" + "Total number of samples: " + str(l) + "\033[0m")
+    print("\033[93m" + "Total number of samples: " + str(samples) + "\033[0m")
+    if samp_cero>0:
+        print("\033[93m" + "Total number of samples with zero reads: " + str(samp_cero) + "\033[0m")
     print("\033[93m" + "Average percentage of reads passing filters: " + "{0:.2f}".format(avg) + "% \033[0m")
     print("\033[93m" +"We suggest to review the filter log at: "+ snakemake.input[0]+ "\033[0m")
     with open(snakemake.output[0], "w") as tmplog:
@@ -41,6 +49,8 @@ else:
     if avg > 90:
         print("\033[92m" + "Total number of samples: " + str(samples) + "\033[0m")
         print("\033[92m" + "Average percentage of reads passing filters: " +"{0:.2f}".format(avg) +"% \033[0m")
+        if samp_cero>0:
+            print("\033[93m" + "Total number of samples with zero reads: " + str(samp_cero) + "\033[0m")
         with open(snakemake.output[0], "w") as tmplog:
             tmplog.write( "Total number of samples: " + str(samples)+  "\n")
             tmplog.write( "Average percentage of reads passing filters: " + "{0:.2f}".format(avg)+"%")
@@ -49,6 +59,8 @@ else:
         exit(0)
     else:
         print("\033[92m" + "Total number of samples: " + str(samples) + "\033[0m")
+        if samp_cero>0:
+            print("\033[93m" + "Total number of samples with zero reads: " + str(samp_cero) + "\033[0m")
         print("\033[92m" + "Average percentage of reads passing filters: \033[91m" + "{0:.2f}".format(avg) + "% \033[0m")
         print("\033[92mPlease take a look into complete log file at: \033[93m "+ snakemake.input[0] + " \033[0m")
         #print("\033[92mFind the dada2 quality plots at: \033[93m "+ snakemake.input[0] + " \033[0m")
