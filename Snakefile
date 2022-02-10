@@ -1,8 +1,8 @@
 """
 CASCABEL
-Version: 4.5
+Version: 4.5.2
 Author: Julia Engelmann and Alejandro Abdala
-Last update: 07/06/2021
+Last update: 10/02/2022
 """
 run=config["RUN"]
 
@@ -233,7 +233,7 @@ if config["LIBRARY_LAYOUT"] != "SE":
             benchmark:
                 "{PROJECT}/runs/{run}/{sample}_data/peared/qc/fq.benchmark"
             shell:
-                "{config[fastQC][command]} {input.r1} --extract -o {params}"
+                "{config[fastQC][command]} {input.r1} -t 10  --extract -o {params}"
 
         rule validateFastQCPear:
             input:
@@ -700,18 +700,23 @@ if config["demultiplexing"]["demultiplex"] == "T":
 else:
     rule skip_demultiplexing_fq2fasta:
         input:
-            extended_reads="{PROJECT}/runs/{run}/{sample}_data/peared/seqs.assembled.fastq" if config["UNPAIRED_DATA_PIPELINE"] != "T" else
-       	    "{PROJECT}/runs/{run}/{sample}_data/peared/seqs.assembled.UNPAIRED.fastq",
-            tmp_pear_validation="{PROJECT}/runs/{run}/{sample}_data/peared/pear.log.validation",
-            tmp_pear_fq_validation="{PROJECT}/runs/{run}/{sample}_data/peared/qc/fq_fw_internal_validation.txt"
+            extended_reads="{PROJECT}/runs/{run}/{sample}_data/peared/seqs.assembled.fastq" if config["UNPAIRED_DATA_PIPELINE"] != "T" and config["LIBRARY_LAYOUT"] != "SE" 
+            else "{PROJECT}/runs/{run}/{sample}_data/peared/seqs.assembled.UNPAIRED.fastq" if config["UNPAIRED_DATA_PIPELINE"] == "T" and config["LIBRARY_LAYOUT"] != "SE"
+            else "{PROJECT}/samples/{sample}/rawdata/fw.fastq" if config["gzip_input"] == "F" else "{PROJECT}/samples/{sample}/rawdata/fw.fastq.gz"
+            #tmp_pear_validation="{PROJECT}/runs/{run}/{sample}_data/peared/pear.log.validation",
+            #tmp_pear_fq_validation="{PROJECT}/runs/{run}/{sample}_data/peared/qc/fq_fw_internal_validation.txt"
         output:
             "{PROJECT}/runs/{run}/{sample}_data/seqs_fw_rev_accepted.fna"
         shell:
             #to change vsearch --fastq_filter N_debres_r1.txt -fastaout test.txt
             #"fq2fa {input.extended_reads} {output}"
             #"sed -n '1~4s/^@/>/p;2~4p' {input.extended_reads} >  {output}"
+            "zcat {input.extended_reads} | sed -n '1~4s/^@/>/p;2~4p'  | "
+            "awk  '{{if($0 ~ \"^>\"){{seq=seq+1;print \">{wildcards.sample}_\"seq\" \"substr($1,2)}}else{{print $0}}}}' > {output}"
+            if config["gzip_input"] == "T" and config["LIBRARY_LAYOUT"] == "SE" else
             "sed -n '1~4s/^@/>/p;2~4p' {input.extended_reads} | "
             "awk  '{{if($0 ~ \"^>\"){{seq=seq+1;print \">{wildcards.sample}_\"seq\" \"substr($1,2)}}else{{print $0}}}}' > {output}"
+            
     if config["ANALYSIS_TYPE"] == "ASV" and config["LIBRARY_LAYOUT"] != "SE":
         rule skip_dmx_file_creation:
             input:
@@ -864,7 +869,7 @@ if config["ANALYSIS_TYPE"] == "ASV":
         benchmark:
             "{PROJECT}/runs/{run}/asv/taxonomy_dada2/dada2.table.benchmark"
         shell:
-            "cat {input[0]} | awk 'NR==FNR{{if(NR>1){{tax=$2;for(i=3;i<=NF;i++){{tax=tax\";\"$i}};h[$1]=tax;}}next;}} {{if(FNR==1){{print $0\"\\ttaxonomy\"}}else{{print $0\"\\t\"h[$1]}}}}' -  {input[1]} > {output}" 
+            "cat {input[0]} | awk  -F \"\\t\" 'NR==FNR{{if(NR>1){{tax=$2;for(i=3;i<=NF;i++){{tax=tax\";\"$i}};h[$1]=tax;}}next;}} {{if(FNR==1){{print $0\"\\ttaxonomy\"}}else{{print $0\"\\t\"h[$1]}}}}' -  {input[1]} > {output}" 
 
     rule asv_to_biom:
         input:
