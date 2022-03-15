@@ -2,7 +2,7 @@
 # Dada2- filter and QA reads for Cascabel
 # 
 # @author: J. Engelmann
-# @author: A. ABdala
+# @author: A. Abdala
 
 library(dada2) 
 library(Biostrings)
@@ -19,22 +19,20 @@ args <- commandArgs(trailingOnly = T)
 #args[9] = interactive behavior
 #args[10] = output filter summary
 #args[11]... = summary files from libraries
-# suppose that we expand and pass the summary.txt from the output
-# we should have a path {project}/runs/{run}/{sample}_data/demultiplexed/
-#args<-c("/export/lv3/scratch/projects_AA/dada2_CASCABEL/CASCABEL",
-#        "T","200","200",3,5,15,",truncQ=2, rm.phix=TRUE",
-#       "cascabel_project/runs/Test/asv/filter_summary.out",
-#      "cascabel_project/runs/Test/summer_data/demultiplexed/summary.txt", 
-#     "cascabel_project/runs/Test/winter_data/demultiplexed/summary.txt")
 
 
 setwd(args[1])
 
-
 #Set the different paths for all the supplied libraries
 paths = c()
-for(i in 11:length(args)) {
-  paths <- c(paths,gsub("/summary.txt", '',args[i]))
+if (args[11] == "T" || args[11] == "TRUE" ){
+  for(i in 12:length(args)) {
+    paths <- c(paths,gsub("/summary.txt", '/primer_removed',args[i]))
+  }
+}else{
+ for(i in 12:length(args)) {
+    paths <- c(paths,gsub("/summary.txt", '',args[i]))
+  }
 }
 
 #List files
@@ -44,20 +42,22 @@ filesRev <- sort(list.files(paths, pattern="_2.fastq.gz", full.names = TRUE))
 #Get sample names
 sample.names <- gsub('_1.fastq.gz', '', basename(filesForw))
 
+
 #if we want to save the plot we can do the following
-asv_dir <- gsub("filter_summary.out"," ", args[10])
-dir.create(asv_dir, showWarnings = FALSE)
+asv_dir <- gsub("filter_summary.out","", args[10])
+dir.create(asv_dir, showWarnings = TRUE)
 if (args[2] == "T" || args[2] == "TRUE" ){
   library(ggplot2)
-  plots_fw <- plotQualityProfile(filesForw)
-  ggsave(paste0(asv_dir,"fw_QA_plots.pdf"), plots_fw)
-  plots_rv <- plotQualityProfile(filesRev)
-  ggsave(paste0(asv_dir,"rv_QA_plots.pdf"), plots_fw)
-  
-  #here we have to solve two things where to store the plots
-  # and if we are going to generate one pdf per file, one per library
-  # or one per strand...
+  plots<-list()
+  for(i in 1:length(filesForw)){
+    p<-plotQualityProfile(c(filesForw[i],filesRev[i]))
+    plots<-append(plots,list(p))
+  }
+  pdf(paste0(asv_dir,"QA_plots.pdf"))
+  print(plots)
+  dev.off()
 }
+
 readintegerConsole <- function(x){
   cat(x);
   n <- readLines("stdin",n=1);
@@ -100,8 +100,8 @@ createMenuConsole <- function()
   {
     return(createMenuConsole())
   }else if(n == 1){
-    fw_len <- strtoi(args[3], 10) 
-    rv_len <- strtoi(args[4], 10)
+    fw_len <<- strtoi(args[3], 10) 
+    rv_len <<- strtoi(args[4], 10)
   }else if(n == 2){
     
     fw_len <<- readintegerConsole("Enter FW reads truncation value:")
@@ -117,8 +117,15 @@ createMenuConsole <- function()
 #Create path and file names for filtered samples" 
 #filtFs <- file.path(paths, "filtered", paste0(sample.names, "_F_filt.fastq.gz"))
 #filtRs <- file.path(paths, "filtered", paste0(sample.names, "_R_filt.fastq.gz"))
-filtFs <- gsub('demultiplexed/','demultiplexed/filtered/',filesForw)
-filtRs <- gsub('demultiplexed/','demultiplexed/filtered/',filesRev)
+
+if (args[11] == "T" || args[11] == "TRUE" ){
+  filtFs <- gsub('primer_removed/','filtered/',filesForw)
+  filtRs <- gsub('primer_removed/','filtered/',filesRev)
+
+}else{
+  filtFs <- gsub('demultiplexed/','demultiplexed/filtered/',filesForw)
+  filtRs <- gsub('demultiplexed/','demultiplexed/filtered/',filesRev)
+}
 
 #assign names to files
 names(filtFs) <- sample.names

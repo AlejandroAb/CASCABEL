@@ -410,7 +410,7 @@ java:
 #                       demultiplexing process in order to being assigned to   #
 #                       their samples.                                         #
 #                       "F". Only carry out the demultiplexing process with    #
-# 			            paired reads.                              #
+#                       paired reads.                                          #
 # - dmx_params          Parameters to pass on to the demultiplexing script.    #
 #                       For example, the user can change the prefix and suffix #
 #                       of the output files. To see the available parameters,  #
@@ -418,29 +418,42 @@ java:
 # - primers             In the same sense as for "remove_bc" option,           #
 #                       demultiplexed reads may contain adapters or primers.   #
 #                       The following parameters supply options for removing   #
-#                       these sequences by using cutadapt.                     #  
-#   ** remove           "T" or "F" for removing or not any kind of adapter.    #
-#                       This option can be set to true ("T") even though the   #
+#                       these sequences by using cutadapt.                     #
+#   ** remove           Removing or not any kind of adapter.                   #
+#                       This option can remove primer even though the          #
 #                       "demultiplex" option is set to false ("F"). Useful when#
 #                       starting with demultiplexed reads containing adapters  #
-#                       for a ASV workflow.                                    #
+#                       for a ASV workflow. Valid options for this entry are:  #
+#                       "F" do not remove primers.                             #
+#                       "CFG" Remove adapters using values from the            #
+#                       configuration file.                                    #
+#                       "METADATA" Adapters are taken from the metadata/mapping#
+#                       file.                                                  #  
+#                       [default: F].                                          #
 #   ** fw_primer        Sequence to be removed from forward reads. It accepts  #
 #                       IUPAC wildcards, e.g., "^GTGYCAGCMGCCGCGGTAA".         #
+#                       Only use it whit - remove: "CFG" -                     #
 #   ** rv_primer        Sequence to be removed from reverse reads. It accepts  #
 #                       IUPAC wildcards, e.g., "^GGACTACNVGGGTWTCTAAT".        #
+#                       Only use it whit - remove: "CFG" - 
 #   ** min_overlap      Minimum overlap between a primer and a sequence to be  #
 #                       identified.                                            #
 #   ** extra_params     Any extra parameter that you wish to supply to  the    #
-#                       cutadapt command. Default "--discard-untrimmed". With  #
-#                       this extra option, reads without the primers are       #
-#                       discarded.                                             #
+#                       cutadapt command.                                      #
+#                       By default Cascabel includes the values                #
+#                "--discard-untrimmed" and "--match-read-wildcards". The former# 
+#                will discard reads without adapters and the latest interprets #
+#                IUPAC wildcards in the reads. Notice that when using          #
+#                "--discard-untrimmed" Cascabel will redirect the untrimmed    #
+#                sequences to an output file so no need to add Cutadapt's      #
+#                option "--untrimmed-output".                                  #
 #------------------------------------------------------------------------------#
 demultiplexing:
   demultiplex: "T"
   create_fastq_files: "T"
   remove_bc: 12
-  order_by_strand: "T" 
-  add_unpair: "T" 
+  order_by_strand: "T"
+  add_unpair: "T"
   dmx_params: "--remove-header"
   primers:
     remove: "F"
@@ -698,19 +711,30 @@ align_vs_reference:
 # rule: cutadapt                                                               #
 #------------------------------------------------------------------------------#
 # This rule runs Cutadapt. Cutadapt searches for adapters in the reads and     #
-# removes them when it finds any. Unless you use a filtering option, all       #
-# reads that were present in the input file will also be present in the output #
-# file, some of them trimmed, some of them not.                                #
+# removes them when it finds any.                                              #
 # For details, see: http://cutadapt.readthedocs.io/en/stable/guide.html        #
-#                                                                              #
+#                         +++++++++++++++++++++++                              #                              
+#                              IMPORTANT NOTE!!                                #
+#                         ++++++++++++++++++++++++                             #  
+# Please be aware that Cascabel runs cutadapt when the reads are already merged# 
+# and thus, if adapters are supplied via de configuration file, be sure to use #
+# the reverse complement of the reverse primer, if any. If the adapters are    # 
+# supplied via the metadata file, Cascabel will reverse complement the reverse #
+# primer unless the header "ReverseLinkerPrimerSequenceRevCom"  or             # 
+# "ReversePrimerRevCom" is used.                                               #
+# Please visit Cascabel's wiki at                                              # 
+# https://github.com/AlejandroAb/CASCABEL/wiki#235-removing-primers for more   #
+# details.                                                                     #
 #-----------------------------       PARAMS       -----------------------------#
 #                                                                              #
-# - cutAdapters  if T (true) remove adapters, if F do not remove adapters      #
+# - cutAdapters  "F" do not remove primers                                     #
+#                "CFG" Remove adapters using values from the configuration file#
+#                "METADATA" Adapters are taken from the metadata/mapping file  #  
 #                [default: F].                                                 #
 # - command      Necessary command to invoke cutadapt [default: "cutadapt"].   #
 # - adapters     "-a ADAPTER" Remove adapters at the 3' end of the             #
 #                sequence. Cutadapt deals with 3' adapters by removing the     #
-#                adapter and any sequence that may follow. Add the "$"         # 
+#                adapter and any sequence that may follow. Add the "$"         #
 #                character to the end of an adapter sequence in order to anchor#
 #                the adapter to the end of the read, such as "-a ADAPTER$". The#
 #                adapter will only be removed if it is a suffix of the read.   #
@@ -724,22 +748,25 @@ align_vs_reference:
 #                want to use a linked adapter. A linked adapter combines an    #
 #                anchored 5' adapter and a 3' adapter. The 3' adapter can be   #
 #                regular or anchored. The idea is that a read is only trimmed  #
-#                if the anchored adapters occur. Thus, the 5' adapter is always# 
+#                if the anchored adapters occur. Thus, the 5' adapter is always#
 #                required, and if the 3' adapter was specified as anchored, it #
-#                also must exist for a successful match, e.g.                  #
+#                also must exist for a successful match, e.g.                  #      
 #                -a GTGYCAGCMGCCGCGGTAA...ATTAGAWACCCVNGTAGTCC                 #
-# - extra_params Any extra parameter. A useful extra parameter here is         #
-#                --match-read-wildcards which interprets IUPAC wildcards in    #
-#                reads or -O to ensure the minimum overlap between a read and  #
-#                one adapter to be found.                                      # 
+# - extra_params Any extra parameter. Here, users can supply any cutadapt      #
+#                option. By default Cascabel includes the values               #
+#                "--discard-untrimmed" and "--match-read-wildcards". The former# 
+#                will discard reads without adapters and the latest interprets #
+#                IUPAC wildcards in the reads. Notice that when using          #
+#                "--discard-untrimmed" Cascabel will redirect the untrimmed    #
+#                sequences to an output file so no need to add Cutadapt's      #
+#                option "--untrimmed-output".                                  #
 # More info and options at http://cutadapt.readthedocs.io/en/stable/guide.html #
 #------------------------------------------------------------------------------#
 cutAdapters: "F"
 cutadapt:
   command: "cutadapt"
   adapters: ""
-  extra_params: "--match-read-wildcards  -O 19"
-
+  extra_params: "--discard-untrimmed --match-read-wildcards"
 #------------------------------------------------------------------------------#
 # OTU_WF:                 Identify chimeric sequences                          #
 # rule: search_chimera                                                         #

@@ -3,25 +3,12 @@
 # Dada2- learn errors and run dada2
 #
 # @author: J. Engelmann
-# @author: A. ABdala
+# @author: A. Abdala
 
 library(dada2)
 library(Biostrings)
 
 args <- commandArgs(trailingOnly = T)
-#args<-c("/export/lv3/scratch/projects_AA/ITS_benchmark/CASCABEL","pseudo","5","F",
-#        "selfConsist=FALSE","ITS_Benchmark/runs/config_14/asv/","200", 
-#        "450","10","T","/export/data01/databases/unite/general_fastas/unite_fungi.dynamic.fasta",
-#        "nop","F","minBoot=45",12,0,
-#        "ITS_Benchmark/runs/config_14/SRR5838515_data/demultiplexed/summary.txt",
-#        "ITS_Benchmark/runs/config_14/asv/filter_summary.validation.txt")
-###or
-      #  "ITS_Benchmark/runs/config_14/SRR5838515_data/demultiplexed/summary.txt",
-      #  "ITS_Benchmark/runs/config_14/SRR5838516_data/demultiplexed/summary.txt",
-      #  "ITS_Benchmark/runs/config_14/SRR5838522_data/demultiplexed/summary.txt",
-      #  "ITS_Benchmark/runs/config_14/asv/filter_summary.validation.txt")
-#params <- snakemake@params
-#args <- unlist((strsplit(unlist(params), split=" ")))
 
 #args[1] = path for seting WD to use current dir use $PWD
 #args[2] = dada2 pool option
@@ -43,50 +30,18 @@ args <- commandArgs(trailingOnly = T)
 #args[18]... = add_sps extra_params
 #args[19]... = summary files from libraries
 
-# suppose that we expand and pass the summary.txt from the output
-# we should have a path {project}/runs/{run}/{sample}_data/demultiplexed/
-#args<-c("/export/lv3/scratch/projects_AA/dada2_CASCABEL/CASCABEL",
- #       "pseudo","5","T","to_remove",
-  #      "cascabel_project/runs/Test/asv/","250","255","10","T",
-   #     "/export/data01/databases/silva/r132/dada2/silva_nr_v132_train_set.fa.gz",
-    #   "/export/data01/databases/silva/r132/dada2/silva_species_assignment_v132.fa.gz",
-     #   "T",",minBoot=50",12,0,
-      #  "cascabel_project/runs/Test/summer_data/demultiplexed/summary.txt", 
-       # "cascabel_project/runs/Test/winter_data/demultiplexed/summary.txt","cascabel_project/runs/Test")
-#print(args)
 setwd(args[1])
-#print(getwd())
 #Set the different paths for all the supplied libraries
-#print(args[1])
-#paths = c()
-#with args
 paths <-NULL
 for(i in 19:(length(args)-1)) {
-  #paths <- c(paths,gsub('demultiplexed/','demultiplexed/filtered/',gsub("/summary.txt", '',args[i])))
    paths <- c(paths,gsub("summary.txt", 'filtered/',args[i]))
 }
-print(paths)
-#with params
-#inputs <- unlist((strsplit(unlist(snakemake@input[[2]]), split=" ")))
-#print(inputs)
-#for(i in 1:length(inputs)) {
-#    paths <- c(paths,gsub("/summary.txt", '',inputs[i]))
-#}
-#print(paths)
-#List files
-     #filesForw <- sort(list.files(paths, pattern="_1.fastq.gz", full.names = TRUE))
-     #filesRev <- sort(list.files(paths, pattern="_2.fastq.gz", full.names = TRUE))
-#Get sample names
-     #sample.names <- gsub('_1.fastq.gz', '', basename(filesForw))
-#Create path and file names for filtered samples"
-#filtFs <- file.path(paths, "filtered", paste0(sample.names, "_F_filt.fastq.gz"))
-#filtRs <- file.path(paths, "filtered", paste0(sample.names, "_R_filt.fastq.gz"))
-     #filtFs <- gsub('demultiplexed/','demultiplexed/filtered/',filesForw)
-     #filtRs <- gsub('demultiplexed/','demultiplexed/filtered/',filesRev)
+
 filtFs <-  sort(list.files(paths, pattern="_1.fastq.gz", full.names = TRUE))
 filtRs <-  sort(list.files(paths, pattern="_2.fastq.gz", full.names = TRUE))
-#Get sample names
-     sample.names <- gsub('_1.fastq.gz', '', basename(filtFs))
+
+#Obtain sample names
+sample.names <- gsub('_1.fastq.gz', '', basename(filtFs))
 #assign names to files
 names(filtFs) <- sample.names
 names(filtRs) <- sample.names
@@ -98,7 +53,7 @@ if (args[2] == "pseudo"){
 }else{
   pool <- eval(parse(text=args[2]))
 }
-cpus <- strtoi(args[3],10)
+cpus <<- strtoi(args[3],10)
 extra_params <- args[5]
 # learn error rates
 errF <- learnErrors(filtFs, multithread=cpus)
@@ -117,10 +72,6 @@ if (args[4] == "T" || args[4] == "TRUE" ){
   # or one per strand...
 }
 
-
-
-#dadaFs <- dada(filtFs, err=errF, multithread=cpus, pool=pool)
-#dadaRs <- dada(filtRs, err=errR, multithread=cpus, pool=pool)
 
 if (!startsWith( trimws(extra_params), ',') && nchar(trimws(extra_params))>1){
   extra_params <- paste(",",extra_params)
@@ -145,9 +96,6 @@ seq_hist <- table(nchar(getSequences(seqtab)))
 fname_seqh <- paste(args[6],"seq_hist.txt",sep="")
 write.table(seq_hist, file = fname_seqh  , sep = "\t", quote=FALSE, col.names = FALSE)
 
-#fname_asv_obj <- paste(args[6],"asv.rds")
-# Save an object to a file
-#saveRDS(object, file = fname_asv_obj)
 
 shorts <- as.integer(args[7])
 longs <- as.integer(args[8])
@@ -177,7 +125,8 @@ readintegerConsole <- function(x){
 
 createMenuConsole <- function()
 { 
-  cat("\nPlease enter the option which fits better for your data:\n")
+  cat("\n---This step can filter ASV based on user's expected fragmnt length---\n")
+  cat("Please enter the option which fits better for your data:\n")
   cat(paste("1. Use values from configuration file: length > ", shorts," and length < ", longs,"\n"))
   cat(paste("2. Use values from median + /- the offset: length > ", (m-offset)," and length < ", (m+offset),"\n"))
   cat("3. Specify new values\n")
@@ -208,6 +157,7 @@ createMenuConsole <- function()
     return(createMenuConsole())
   }
 }
+#for local instance i.e RStudio
 createMenu <- function()
 { 
   print("Please enter the option which fits better for your data:")
