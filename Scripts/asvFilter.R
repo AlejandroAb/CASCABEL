@@ -25,7 +25,7 @@ setwd(args[1])
 
 #Set the different paths for all the supplied libraries
 paths = c()
-if (args[11] == "T" || args[11] == "TRUE" ){
+if (args[11] != "F" && args[11] != "FALSE" ){
   for(i in 12:length(args)) {
     paths <- c(paths,gsub("/summary.txt", '/primer_removed',args[i]))
   }
@@ -118,7 +118,7 @@ createMenuConsole <- function()
 #filtFs <- file.path(paths, "filtered", paste0(sample.names, "_F_filt.fastq.gz"))
 #filtRs <- file.path(paths, "filtered", paste0(sample.names, "_R_filt.fastq.gz"))
 
-if (args[11] == "T" || args[11] == "TRUE" ){
+if (args[11] != "F" && args[11] != "FALSE" ){
   filtFs <- gsub('primer_removed/','filtered/',filesForw)
   filtRs <- gsub('primer_removed/','filtered/',filesRev)
 

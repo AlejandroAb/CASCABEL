@@ -53,7 +53,7 @@ except Exception as e:
     pearversion = "Problem reading version"
 
 #--cutadapt
-if snakemake.config["cutAdapters"] != "F":
+if snakemake.config["cutAdapters"].lower() != "f" or snakemake.config["demultiplexing"]["primers"]["remove"].lower() != "f":
     cutv = subprocess.run(['cutadapt', '--version'], stdout=subprocess.PIPE)
     cutVersion = "**cutadapt v" + cutv.stdout.decode('utf-8').strip() + "**"
     #cutVersion = "cutadapt v TBD"
@@ -349,21 +349,42 @@ if snakemake.config["demultiplexing"]["demultiplex"] == "T" and snakemake.config
     demultiplexFQ += "**Command:**\n\n"
     demultiplexFQ += ":commd:`"+snakemake.config["java"]["command"] + " -cp Scripts DemultiplexQiime --fasta -d "+snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/seqs_fw_rev_accepted.fna -o "+ snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/demultiplexed/ "
     ext=".gz"
-    if snakemake.config["gzip_input"] == "F":
+    if snakemake.config["gzip_input"].casefold() == "f":
         ext=""
     demultiplexFQ += "-r1 "+snakemake.wildcards.PROJECT+"/samples/"+snakemake.wildcards.sample+"/rawdata/fw.fastq"+ext+" -r2 "+snakemake.wildcards.PROJECT+"/samples/"+snakemake.wildcards.sample+"/rawdata/fw.fastq"+ext+"`\n\n"
     if snakemake.config["demultiplexing"]["remove_bc"]:
         demultiplexFQ +=":red:`Barcodes removed:` "+ str(snakemake.config["demultiplexing"]["remove_bc"]) + " first bases\n\n"
-    if snakemake.config["demultiplexing"]["primers"]["remove"] == "cfg":
+    if snakemake.config["demultiplexing"]["primers"]["remove"].lower() == "cfg":
         demultiplexFQ +=":red:`Primers removed:` **FW** " + snakemake.config["demultiplexing"]["primers"]["fw_primer"] + " **RV** " +snakemake.config["demultiplexing"]["primers"]["rv_primer"]+"\n\n"
     elif snakemake.config["demultiplexing"]["primers"]["remove"] == "metadata":
         demultiplexFQ +=":red:`Removed primers` were obtained from the metadata file.\n\n" 
-    demultiplexFQ += "**The demultiplexed fastq files are located at:**\n\n:green:`- demultiplexed directory:` "+snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/demultiplexed/\n\n"
-    demultiplexFQ += ":green:`- summary file:` "+snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/demultiplexed/summary.txt\n\n"
-    if snakemake.config["demultiplexing"]["primers"]["remove"] == "cfg" or snakemake.config["demultiplexing"]["primers"]["remove"] == "metadata":
-        demultiplexFQ += "**Reads discarded by cutadapt:**\n\n:green:`- demultiplexed directory:` "+snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/demultiplexed/primer_removed\n\n"
+    demultiplexFQ += "**The demultiplexed fastq files are located at:**\n\n:green:`- Demultiplexed directory:` "+snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/demultiplexed/\n\n"
+    demultiplexFQ += ":green:`- Summary file:` "+snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/demultiplexed/summary.txt\n\n"
     demultiplexFQ += demultiplexFQBench
-
+    if (snakemake.config["demultiplexing"]["primers"]["remove"].lower() == "cfg" or snakemake.config["demultiplexing"]["primers"]["remove"].lower() == "metadata"):
+        demultiplexFQ += "**Remove primers:**\n\nFollowing, primers were removed from the fastq files\n\n"
+        demultiplexFQ +=":red:`Tool:` [Cutadapt]_\n\n"
+        demultiplexFQ += ":red:`Version:` "+cutVersion+"\n\n"
+        demultiplexFQ += "**Command:**\n\n"
+        if snakemake.config["demultiplexing"]["primers"]["remove"].lower() == "cfg":
+            if snakemake.config["LIBRARY_LAYOUT"].casefold()=="pe":
+                demultiplexFQ += ":commd:`cutadapt -g "+ snakemake.config["demultiplexing"]["primers"]["fw_primer"]  + " -G " + snakemake.config["demultiplexing"]["primers"]["rv_primer"]  + " " +snakemake.config["demultiplexing"]["primers"]["extra_params"]+" -O "+ snakemake.config["demultiplexing"]["primers"]["min_overlap"] +" -o "+snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/demultiplexed/primer_removed/SAMPLE_1.fastq.gz -p "+snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/demultiplexed/primer_removed/SAMPLE_2.fastq.gz "+ snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/demultiplexed/SAMPLE_1.fq.gz  "+ snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/demultiplexed/SAMPLE_2.fq.gz  >> "+snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/demultiplexed/primer_removed/"+snakemake.wildcards.sample+".cutadapt.log`\n\n"
+            else:
+                demultiplexFQ += ":commd:`cutadapt -g "+ snakemake.config["demultiplexing"]["primers"]["fw_primer"]  + " " +snakemake.config["demultiplexing"]["primers"]["extra_params"]+" -O "+ snakemake.config["demultiplexing"]["primers"]["min_overlap"] +" -o "+snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/demultiplexed/primer_removed/SAMPLE_1.fastq.gz "+ snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/demultiplexed/SAMPLE_1.fq.gz  >> "+snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/demultiplexed/primer_removed/"+snakemake.wildcards.sample+".cutadapt.log`\n\n"
+            demultiplexFQ += "The above command ran once for each single sample fastq file(s) using the mentioned primers\n\n"
+        else: #is from metadata
+            if snakemake.config["LIBRARY_LAYOUT"].casefold()=="pe":
+                demultiplexFQ += ":commd:`cutadapt -g sample_FW_primer  -G sample_RV_primer " +snakemake.config["demultiplexing"]["primers"]["extra_params"]+" -O "+ snakemake.config["demultiplexing"]["primers"]["min_overlap"] +" -o "+snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/demultiplexed/primer_removed/SAMPLE_1.fastq.gz -p "+snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/demultiplexed/primer_removed/SAMPLE_2.fastq.gz "+ snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/demultiplexed/SAMPLE_1.fq.gz "+ snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/demultiplexed/SAMPLE_2.fq.gz  >> "+snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/demultiplexed/primer_removed/"+snakemake.wildcards.sample+".cutadapt.log`\n\n"
+            elif snakemake.config["LIBRARY_LAYOUT"].casefold()=="se":
+                demultiplexFQ += ":commd:`cutadapt -g sample_FW_primer "+ " " +snakemake.config["demultiplexing"]["primers"]["extra_params"]+" -O "+ snakemake.config["demultiplexing"]["primers"]["min_overlap"] +" -o "+snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/demultiplexed/primer_removed/SAMPLE_1.fastq.gz "+ snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/demultiplexed/SAMPLE_1.fq.gz  >> "+snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/demultiplexed/primer_removed/"+snakemake.wildcards.sample+".cutadapt.log`\n\n"
+            demultiplexFQ += "The above command ran once for each single sample fastq file(s) and primers were obtained from the mapping file accordingly to its sample\n\n"    
+        demultiplexFQ += ":green:`- Reads without primers:` "+snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/demultiplexed/primer_removed\n\n"
+        if "--discard-untrimmed" in snakemake.config["demultiplexing"]["primers"]["extra_params"]:
+            demultiplexFQ += ":green:`- Discarded reads (no primer):` "+snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/demultiplexed/reads_discarded_primer\n\n"
+        else:
+            demultiplexFQ += ":red:`- Given the options, reads without primers where not removed!`\n\n"
+        demultiplexFQ += ":green:`- Primer removal results by sample:` primers_removal_\n\n"
+        demultiplexFQ +=" .. _primers_removal: report_files/cutadapt."+snakemake.wildcards.sample+".fastq_summary.tsv\n\n"
 
 ################################################################################
 #                           Combine FW and Reverse reads                       #
@@ -384,22 +405,35 @@ if snakemake.config["demultiplexing"]["demultiplex"] != "F":
 #                          Cut adapters                                        #
 ################################################################################
 cutAdaptStr = ""
-if snakemake.config["cutAdapters"] != "F":
+if snakemake.config["cutAdapters"].casefold() != "F":
     cutAdaptStr = "Remove sequence primers\n------------------------\n\n" # title
     cutAdaptStr +="Remove the adapters / primers from the reads.\n\n"
-    demultiplexFQ +=":red:`Tool:` [Cutadapt]_\n\n"
+    cutAdaptStr +=":red:`Tool:` [Cutadapt]_\n\n"
     cutAdaptStr += ":red:`Version:` "+cutVersion+"\n\n"
     cutAdaptStr += "**Command:**\n\n"
-    if snakemake.config["cutAdapters"] == "cfg":
-        cutAdaptStr += ":commd:`cutadapt "+ str(snakemake.config["cutadapt"]["adapters"])+" " + str(snakemake.config["cutadapt"]["extra_params"]) + "-o " + snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/seqs_fw_rev_accepted_no_adapters.fna`\n\n"
-        cutAdaptStr +=  snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/seqs_fw_rev_accepted.fna > " +  snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/seqs_fw_rev_accepted_no_adapters.log`\n\n"
-    elif snakemake.config["cutAdapters"] == "metadata":
-        cutAdaptStr += ":commd:`cutadapt [PRIMERS]* " + str(snakemake.config["cutadapt"]["extra_params"]) + "-o " + snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/seqs_fw_rev_accepted_no_adapters.fna`\n\n"
-        cutAdaptStr += snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/seqs_fw_rev_accepted.fna > " +  snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/seqs_fw_rev_accepted_no_adapters.log`\n\n"
-        cutAdaptStr += "*[PRIMERS]: primer sequences were obtained from the metadata file\n\n"
+    if snakemake.config["cutAdapters"].lower() == "cfg":
+        #cutAdaptStr += ":commd:`cutadapt "+ str(snakemake.config["cutadapt"]["adapters"])+" " + str(snakemake.config["cutadapt"]["extra_params"]) + " -o " + snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/seqs_fw_rev_accepted_no_adapters.fna\n\n"
+        #cutAdaptStr +=  snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/seqs_fw_rev_accepted.fna > " +  snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/seqs_fw_rev_accepted_no_adapters.log`\n\n"
+        cutAdaptStr += ":commd:`cutadapt "+ str(snakemake.config["cutadapt"]["adapters"])+" " + str(snakemake.config["cutadapt"]["extra_params"]) + " -o " + snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/seqs_fw_rev_accepted_no_adapters.fna "+snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/seqs_fw_rev_accepted.fna > " +  snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/seqs_fw_rev_accepted_no_adapters.log`\n\n"
+    elif snakemake.config["cutAdapters"].lower() == "metadata":
+        primers=""
+        try:
+            with open(snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/primers.txt") as pfile:
+                primers=pfile.read()
+        except FileNotFoundError:
+            primers="-ERROR reading primer file-"
+        #cutAdaptStr += ":commd:`cutadapt "+primers +" " + str(snakemake.config["cutadapt"]["extra_params"]) + " -o " + snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/seqs_fw_rev_accepted_no_adapters.fna\n\n"
+        #cutAdaptStr += snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/seqs_fw_rev_accepted.fna > " +  snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/seqs_fw_rev_accepted_no_adapters.log`\n\n"
+        cutAdaptStr += ":commd:`cutadapt "+primers +" " + str(snakemake.config["cutadapt"]["extra_params"]) + " -o " + snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/seqs_fw_rev_accepted_no_adapters.fna "+  snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/seqs_fw_rev_accepted.fna > " +  snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/seqs_fw_rev_accepted_no_adapters.log`\n\n"
+        
+#cutAdaptStr += "*PRIMERS: primer sequences were obtained from the metadata file\n\n"
     cutAdaptStr += "**Output files:**\n\n:green:`- Reads without adapters:` "+snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/seqs_fw_rev_accepted_no_adapters.fna\n\n"
     if cutSequences:
-        cutAdaptStr += ":red:`Total number of reads after cutadapt:` "+ str(sequenceNoAdapters) + " = " + str(prcCut) + "% of the assigned reads or "+ str(prcCutRaw)+"% of the total reads"
+        cutAdaptStr += ":red:`Total number of reads after cutadapt:` "+ str(sequenceNoAdapters) + " = " + str(prcCut) + "% of the assigned reads or "+ str(prcCutRaw)+"% of the total reads\n\n"
+    #cutAdaptStr+=":\n\n"
+    cutAdaptStr+=":green:`- Primer removal by sample:` primers_OTU_\n\n"
+    cutAdaptStr+=" .. _primers_OTU: report_files/cutadapt."+snakemake.wildcards.sample+".summary.tsv\n\n"
+
     cutAdaptBench =readBenchmark(snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/cutadapt.benchmark")
     cutAdaptStr += cutAdaptBench+"\n\n"
 ################################################################################

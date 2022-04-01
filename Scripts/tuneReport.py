@@ -19,6 +19,8 @@ with open(snakemake.input[0]) as reportfile:
                 newReport += line
             elif line.startswith("div#metadata {"):
                 newReport = "div.document p.cmmd{ text-align: left;}\n"
+                newReport += "div.document p span{ text-align: left;}\n"
+                newReport += "p{text-align: left;}"
                 newReport += line
             elif "class=\"commd\"" in line:
                 newReport = line.replace("<p>","<p class=\"cmmd\">",1)

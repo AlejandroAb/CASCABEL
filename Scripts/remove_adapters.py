@@ -6,6 +6,8 @@ If found "ReverseLinkerPrimerSequenceRevCom" runs cutadapt with option -a LPS...
 """
 import os
 import subprocess
+#import benchmark_utils
+from benchmark_utils import countFasta
 
 def complement(seq):
     complement = {'A': 'T', 'C': 'G', 'G': 'C', 'T': 'A', 'Y':'R', 'R':'Y','S':'S','W':'W','K':'M','M':'K','N':'N','B':'V','V':'B','D':'H','H':'D'} 
@@ -71,7 +73,7 @@ no_primer=""
 extra=snakemake.params[0]
 
 if "--discard-untrimmed" in snakemake.params[0]:
-    no_primer=" --untrimmed-output " + snakemake.output[2]
+    no_primer=" --untrimmed-output " + snakemake.params[2]
     extra=snakemake.params[0].replace("--discard-untrimmed","")
 
 if snakemake.config["cutAdapters"].lower() == "metadata":
@@ -90,10 +92,26 @@ if snakemake.config["cutAdapters"].lower() == "metadata":
             #rc=reverse_complement(uniq_primers[key][0])
             #primer_set=primer_set+" -a "+uniq_primers[key][0]+" -a " + rc
             primer_set=primer_set+" -g "+uniq_primers[key][0] +" "
+    with open(snakemake.params[1], "w") as primers:
+            primers.write(primer_set)
+            primers.close()
+
     subprocess.run( ["cutadapt -f fasta "+ primer_set +" "+extra+" -o "+snakemake.output[0] + " "+ no_primer +" " + snakemake.input[0]+ ">"+ snakemake.output[1]],stdout=subprocess.PIPE, shell=True)
 else:
     subprocess.run( ["cutadapt -f fasta "+ snakemake.config["cutadapt"]["adapters"] +" "+extra+" -o "+snakemake.output[0] + " "+ no_primer +" " + snakemake.input[0]+ ">"+ snakemake.output[1]],stdout=subprocess.PIPE, shell=True)
 
-    
+if not os.path.exists(snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/report_files"):
+    os.makedirs(snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/report_files")
+subprocess.run( ["cat "+ snakemake.output[0]+"| grep '^>' | cut -f1 -d' ' | sed 's/>// ; s/_[0-9]*$//' |  sort | uniq -c | awk '{print $2\"\\t\"$1}' > " + snakemake.params[3]+".tmp1"],stdout=subprocess.PIPE, shell=True)
+subprocess.run( ["cat "+ snakemake.input[0]+"| grep '^>' | cut -f1 -d' ' | sed 's/>// ; s/_[0-9]*$//' |  sort | uniq -c | awk '{print $2\"\\t\"$1}'| awk -F'\t' 'NR==FNR{h[$1]=$2;next} BEGIN{print \"Sample\\tReads_before_cutadapt\\tSurviving_reads\\tPrc_surviving_reads\"}{if(h[$1]){print $1\"\\t\"h[$1]\"\\t\"$2\"\\t\"($2/h[$1])*100\"%\"}else{print $1\"\\t\"$2\"\\t0\\t0%\"}}' - "+snakemake.params[3]+".tmp1 > "+ snakemake.params[3]],stdout=subprocess.PIPE, shell=True)
+os.remove(snakemake.params[3]+".tmp1")
+#sample=snakemake.params[3].split("/")[3].split("_")[0]
+#summ_file = open(snakemake.params[3],"w")
+#summ_file.write("Sample\tReads_before_cutadapt\tSurviving_reads\tPrc_surviving_reads\n")
+#reads_ori=countFasta(snakemake.input[0],False)
+#reads_after=countFasta(snakemake.output[0],False)
+#prcOK="{:.2f}".format(float((reads_after/reads_ori)*100))
+#summ_file.write(sample+"\t"+str(reads_ori)+"\t"+str(reads_after)+"\t"+prcOK+"\n");
+#summ_file.close()    
 
 
