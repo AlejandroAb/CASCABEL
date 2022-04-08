@@ -13,7 +13,7 @@
 # ignored by Snakemake.                                                        #
 #                                                                              #
 # @Author: Julia Engelmann and Alejandro Abdala                                #
-# @Last update: 16/11/2020                                                     #
+# @Last update: 04/08/2022                                                     #
 ################################################################################
 
 ################################################################################
@@ -989,6 +989,12 @@ pickRep:
 #            available for each 'method', type on the command line             #
 #            'parallel_assign_taxonomy_<method>.py -h'.                        #
 # - tool     Which tool to use, options are "vsearch", "qiime" and "blast".    #
+# - map_lca  For Vsearch and BLAST methods, the pipeline will map to its LCA   #
+#            the taxonomy of hits whose identity is equal to the identity of   #
+#            the best hit (see option max_target_seqs). Set this to "F" to only#
+#            use the taxonomy of the best hit. The final biom (otuTable.biom)  #
+#            table always includes either the  accessiones mapped or the       #
+#            accessions discarded, depending on the case. [default: "T"]       #
 # ----blast parameters                                                         #
 #    - command         Command to invoke blastn.  [default: "blastn"].         #
 #    - blast_db        Full path to target BLAST database for the assignation. #

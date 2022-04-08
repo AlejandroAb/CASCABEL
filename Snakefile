@@ -1,8 +1,8 @@
 """
 CASCABEL
-Version: 4.6.1
+Version: 4.6.2
 Author: Julia Engelmann and Alejandro Abdala
-Last update: 31/03/2022
+Last update: 08/04/2022
 """
 run=config["RUN"]
 
@@ -26,14 +26,6 @@ rule all:
         expand("{PROJECT}/runs/{run}/report_"+config["assignTaxonomy"]["tool"]+".zip",PROJECT=config["PROJECT"], run=run)
         if config["ANALYSIS_TYPE"]=="OTU" else
         expand("{PROJECT}/runs/{run}/report_dada2.zip",PROJECT=config["PROJECT"], run=run)
-
-
-        #expand("{PROJECT}/runs/{run}/report_{sample}_"+config["assignTaxonomy"]["tool"]+".pdf" , PROJECT=config["PROJECT"],sample=config["LIBRARY"], run=run)
-        #if (config["pdfReport"] == "T" and config["portableReport"] == "F") else
-        #expand("{PROJECT}/runs/{run}/report_{sample}_"+config["assignTaxonomy"]["tool"]+".html", PROJECT=config["PROJECT"],sample=config["LIBRARY"], run=run)
-        #if (config["pdfReport"] == "F" and config["portableReport"] == "F") else
-        #expand("{PROJECT}/runs/{run}/report_"+config["assignTaxonomy"]["tool"]+".zip", PROJECT=config["PROJECT"],sample=config["LIBRARY"], run=run)
-
 
 if len(config["LIBRARY"])==1 and config["demultiplexing"]["demultiplex"] == "T" and len(config["input_files"])<2 and config["LIBRARY_LAYOUT"] != "SE":
     rule init_structure:
@@ -1504,6 +1496,22 @@ if  config["assignTaxonomy"]["tool"] == "blast":
             "cat {input}  | cut -f2 | sort | uniq | grep -F -w -f -  {config[assignTaxonomy][blast][mapFile]} | "
             "awk 'NR==FNR {{h[$1] = $2; next}} {{print $1\"\\t\"$3\"\\t\"$2\" \"h[$2]}}' FS=\"\\t\" - FS=\"\\t\" {input} "
             " > {output}"
+    rule skip_stampa:
+        """
+         skip stampa by selecting the best hit. It keeps the accesions from the other hits
+         and add them as metadata with the identity. If we use stampa the identities are the same
+         for all the best hits, for blast the identity can be different and we only report the best one.
+        """
+        input:
+            "{PROJECT}/runs/{run}/otu/taxonomy_"+config["assignTaxonomy"]["tool"]+"/hits.blast.out"
+        output:
+            temp("{PROJECT}/runs/{run}/otu/taxonomy_"+config["assignTaxonomy"]["tool"]+"/results.blast.no_stampa.out")
+        benchmark:
+            "{PROJECT}/runs/{run}/otu/taxonomy_"+config["assignTaxonomy"]["tool"]+"/stampa.benchmark"
+        shell:
+            #"cat {input}  | sed 's/ /\\t/1' | awk -F'\\t' 'BEGIN{{OFS=\"\\t\"}}{{if(!h[$1]){{if($3 == \"*\"){{print $1,1,$2,\"Unassigned\",$3;h[$1]=$1}}else{{print $1,1,$2,$4,$3;h[$1]=$1}}}}}}' > {output}"
+            "cat {input}  | sed 's/ /\t/1' | awk -F'\\t' -v current='' 'BEGIN{{OFS=\"\\t\"}}{{if(length(current)>0 && current != $1 && length(line)> 0){{print line\"\\t\"h[current];line=\"\";}};if(!h[$1]){{if($3 == \"*\"){{print $1,1,$2,\"Unassigned\",$3;h[$1]=$3;}}else{{line=$1\"\\t1\\t\"$2\"\\t\"$4;h[$1]=$3;current=$1}}}}else{{h[$1]=h[$1]\";\"$3}}}}END{{if(length(line)>0){{print line\"\\t\"h[current]}}}}' > {output}"
+
     rule run_stampa:
         """
          compute lca using stampa merge script
@@ -1524,7 +1532,8 @@ if  config["assignTaxonomy"]["tool"] == "blast":
          to continue with the pipeline
         """
         input:
-            "{PROJECT}/runs/{run}/otu/taxonomy_"+config["assignTaxonomy"]["tool"]+"/results.blast.out"
+            "{PROJECT}/runs/{run}/otu/taxonomy_"+config["assignTaxonomy"]["tool"]+"/results.blast.out" if config["assignTaxonomy"]["map_lca"].lower() == "t"
+            else "{PROJECT}/runs/{run}/otu/taxonomy_"+config["assignTaxonomy"]["tool"]+"/results.blast.no_stampa.out" 
         output:
             "{PROJECT}/runs/{run}/otu/taxonomy_"+config["assignTaxonomy"]["tool"]+"/representative_seq_set_tax_assignments.txt"
         benchmark:
@@ -1552,7 +1561,7 @@ elif  config["assignTaxonomy"]["tool"] == "vsearch":
 
     rule mapp_vsearch_taxo:
         """
-         Take completed blast output file and make some reformat in order to
+         Take vsearch output and make some reformat in order to
          fulfill stampa format.
         """
         input:
@@ -1580,6 +1589,22 @@ elif  config["assignTaxonomy"]["tool"] == "vsearch":
             "echo '*\\tUnassigned' | cat {input[0]} - | awk 'NR==FNR {{h[$1] = $2; next}} {{print $1\"\\t\"$2\"\\t\"$3\" \"h[$3]}}' FS=\"\\t\" - FS=\"\\t\" {input[1]} "
             " > {output}"
 
+    rule skip_stampa:
+        """
+         skip stampa by selecting the best hit. It keeps the accesions from the other hits
+         and add them as metadata with the identity. If we use stampa the identities are the same 
+         for all the best hits, for blast the identity can be different and we only report the best one. 
+        """
+        input:
+            "{PROJECT}/runs/{run}/otu/taxonomy_"+config["assignTaxonomy"]["tool"]+"/hits.vsearch.out"
+        output:
+            temp("{PROJECT}/runs/{run}/otu/taxonomy_"+config["assignTaxonomy"]["tool"]+"/results.vsearch.no_stampa.out")
+        benchmark:
+            "{PROJECT}/runs/{run}/otu/taxonomy_"+config["assignTaxonomy"]["tool"]+"/stampa.benchmark"
+        shell:
+            #"cat {input}  | sed 's/ /\\t/1' | awk -F'\\t' 'BEGIN{{OFS=\"\\t\"}}{{if(!h[$1]){{if($3 == \"*\"){{print $1,1,$2,\"Unassigned\",$3;h[$1]=$1}}else{{print $1,1,$2,$4,$3;h[$1]=$1}}}}}}' > {output}"
+            "cat {input}  | sed 's/ /\t/1' | awk -F'\\t' -v current='' 'BEGIN{{OFS=\"\\t\"}}{{if(length(current)>0 && current != $1 && length(line)> 0){{print line\"\\t\"h[current];line=\"\";}};if(!h[$1]){{if($3 == \"*\"){{print $1,1,$2,\"Unassigned\",$3;h[$1]=$3;}}else{{line=$1\"\\t1\\t\"$2\"\\t\"$4;h[$1]=$3;current=$1}}}}else{{h[$1]=h[$1]\";\"$3}}}}END{{if(length(line)>0){{print line\"\\t\"h[current]}}}}' > {output}"
+
     rule run_stampa:
         """
          compute lca using stampa merge script
@@ -1600,7 +1625,8 @@ elif  config["assignTaxonomy"]["tool"] == "vsearch":
          to continue with the pipeline
         """
         input:
-            "{PROJECT}/runs/{run}/otu/taxonomy_"+config["assignTaxonomy"]["tool"]+"/results.vsearch.out"
+            "{PROJECT}/runs/{run}/otu/taxonomy_"+config["assignTaxonomy"]["tool"]+"/results.vsearch.out" if config["assignTaxonomy"]["map_lca"].lower() == "t"
+            else "{PROJECT}/runs/{run}/otu/taxonomy_"+config["assignTaxonomy"]["tool"]+"/results.vsearch.no_stampa.out"  
         output:
             "{PROJECT}/runs/{run}/otu/taxonomy_"+config["assignTaxonomy"]["tool"]+"/representative_seq_set_tax_assignments.txt"
         benchmark:
@@ -1630,11 +1656,31 @@ rule make_otu_table:
         otus="{PROJECT}/runs/{run}/otu/seqs_fw_rev_combined_remapped_otus.txt" if (config["derep"]["dereplicate"] == "T" and config["pickOTU"]["m"] != "usearch") 
         or config["pickOTU"]["m"] == "swarm" else "{PROJECT}/runs/{run}/otu/seqs_fw_rev_combined_otus.txt"
     output:
-        "{PROJECT}/runs/{run}/otu/taxonomy_"+config["assignTaxonomy"]["tool"]+"/otuTable.biom"
+        "{PROJECT}/runs/{run}/otu/taxonomy_"+config["assignTaxonomy"]["tool"]+"/otuTable.tmp.biom" 
     benchmark:
         "{PROJECT}/runs/{run}/otu/taxonomy_"+config["assignTaxonomy"]["tool"]+"/otuTable.biom.benchmark"
     shell:
         "{config[qiime][path]}make_otu_table.py -i {input.otus} -t {input.tax} -o {output} {config[makeOtu][extra_params]}"
+
+rule prapare_obs_metadata:
+    '''
+    Prepare observation metadata 
+    '''
+    input:
+        "{PROJECT}/runs/{run}/otu/taxonomy_"+config["assignTaxonomy"]["tool"]+"/representative_seq_set_tax_assignments.txt"
+    output:
+        temp("{PROJECT}/runs/{run}/otu/taxonomy_"+config["assignTaxonomy"]["tool"]+"/otu.metadata.tsv")
+    shell:
+        "cat {input} | awk -F\"\\t\" 'BEGIN{{OFS=\"\\t\";print \"#OTUID\\tIdentity\\tACCs\"}}{{print $1,$3,$4}}' > {output}" 
+
+rule add_obs_metadata:
+    input:
+        metadata="{PROJECT}/runs/{run}/otu/taxonomy_"+config["assignTaxonomy"]["tool"]+"/otu.metadata.tsv",
+        otu="{PROJECT}/runs/{run}/otu/taxonomy_"+config["assignTaxonomy"]["tool"]+"/otuTable.tmp.biom"
+    output:
+        "{PROJECT}/runs/{run}/otu/taxonomy_"+config["assignTaxonomy"]["tool"]+"/otuTable.biom"
+    shell:
+        "{config[biom][command]} add-metadata -i {input.otu} -o {output} --observation-metadata-fp {input.metadata} --float-fields Identity"
 
 #filter OTU table
 rule summarize_taxa:
