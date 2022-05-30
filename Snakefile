@@ -1,6 +1,6 @@
 """
 CASCABEL
-Version: 4.6.2
+Version: 4.6.2.1
 Author: Julia Engelmann and Alejandro Abdala
 Last update: 08/04/2022
 """

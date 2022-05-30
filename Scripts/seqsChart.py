@@ -18,14 +18,14 @@ def createChart(numbers, labels, outfile):
     plt.tight_layout()
     plt.savefig(outfile)
 
-def createChartPrc(numbers, labels, prc, outfile):
+def createChartPrc(numbers, labels, prc, outfile,color_index):
     y_pos = np.arange(len(labels))
     colors=[]
     prcs=[]
     # create a color palette
     palette = plt.get_cmap('Set1')
     for i, label in enumerate(labels):
-        colors.append(palette(i))
+        colors.append(palette(i + color_index))
     bars = plt.bar(y_pos, numbers, color=colors)
     plt.xticks(y_pos, labels, color='blue',rotation=90)
     for i, rect in enumerate(bars):
@@ -35,3 +35,4 @@ def createChartPrc(numbers, labels, prc, outfile):
         plt.text(rect.get_x() + rect.get_width()/2.0, height, prc[i], ha='center', va='bottom',rotation=45)
     plt.tight_layout()
     plt.savefig(outfile)
+    plt.close()

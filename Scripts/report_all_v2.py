@@ -280,33 +280,44 @@ countTxt += make_table(fileData)
 ################################################################################
 #                         Generate sequence amounts chart                      #
 ################################################################################
-numbers=[intTotalReads];
-labels=["Combined\nreads"];
-prcs=[]
+#numbers=[intTotalReads];
+#labels=["Combined\nreads"];
+#prcs=[]
 
-prcs.append("100%")
+#prcs.append("100%")
+#Now we only create the 1st chart if we dereplicate, otherwise there is no sense to show one single bar
+sequence_bars=""
+color_index=0
 if  (snakemake.config["derep"]["dereplicate"] == "T" and  snakemake.config["pickOTU"]["m"] != "usearch") or snakemake.config["pickOTU"]["m"] == "swarm":
+    numbers=[intTotalReads];
+    labels=["Combined\nreads"];
+    prcs=[]
+    prcs.append("100%")
+
     numbers.append(intDerep)
     labels.append("Derep.")
     prcs.append("{:.2f}".format(float((intDerep/intTotalReads)*100))+"%")
+    createChartPrc(numbers, tuple(labels),prcs,snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/report_files/sequence_numbers_all.png",color_index)
+    sequence_bars=".. image:: report_files/sequence_numbers_all.png\n\n"
+    color_index=2
 
-numbers.append(intOtus)
-labels.append("OTUs")
-prcs.append("{:.2f}".format(float((intOtus/intTotalReads)*100))+"%")
+numbers2=[intOtus]
+labels2=["OTUs"]
+prcs2=["{:.2f}".format(float((intOtus/intTotalReads)*100))+"%"]
 
-numbers.append(assignedOtus)
-labels.append("Assigned\nOTUs")
-prcs.append("{:.2f}".format(float((assignedOtus/intOtus)*100))+"%")
+numbers2.append(assignedOtus)
+labels2.append("Assigned\nOTUs")
+prcs2.append("{:.2f}".format(float((assignedOtus/intOtus)*100))+"%")
 
-numbers.append(intSingletons)
-labels.append("No\nSingletons")
-prcs.append("{:.2f}".format(float((intSingletons/intOtus)*100))+"%")
+numbers2.append(intSingletons)
+labels2.append("No\nSingletons")
+prcs2.append("{:.2f}".format(float((intSingletons/intOtus)*100))+"%")
 
-numbers.append(assignedSingleOtus)
-labels.append("Assigned NO\n singletons")
-prcs.append("{:.2f}".format(float((assignedSingleOtus/intSingletons)*100))+"%")
+numbers2.append(assignedSingleOtus)
+labels2.append("Assigned NO\n singletons")
+prcs2.append("{:.2f}".format(float((assignedSingleOtus/intSingletons)*100))+"%")
 
-createChartPrc(numbers, tuple(labels),prcs,snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/report_files/sequence_numbers_all.png")
+createChartPrc(numbers2, tuple(labels2),prcs2,snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/report_files/sequence_numbers_all_2.png",color_index)
 
 ###############################################################################
 #                       Varaible sections                                     #
@@ -392,7 +403,7 @@ else:
     otuClusteringReport+=":green:`Method:` " + snakemake.config["pickOTU"]["m"]+"\n\n"
     otuClusteringReport+=":green:`Identity:` " + snakemake.config["pickOTU"]["s"]+"\n\n"
     otuClusteringReport+="**Command:**\n\n"
-    otuClusteringReport+=":commd:` pick_otus.py -m "+snakemake.config["pickOTU"]["m"] + "-i "+ snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/seqs_fw_rev_filtered.fasta -o "+ snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/otu/ "
+    otuClusteringReport+=":commd:`pick_otus.py -m "+snakemake.config["pickOTU"]["m"] + "-i "+ snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/seqs_fw_rev_filtered.fasta -o "+ snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/otu/ "
     otuClusteringReport+="-s "+snakemake.config["pickOTU"]["s"]+" " + snakemake.config["pickOTU"]["extra_params"] + " --threads "+ snakemake.config["pickOTU"]["cpus"] + "` \n\n"  
     otuClusteringReport+="**Output files:**\n\n"
     otuClusteringReport+=":green:`- OTU List:` "+snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/otu/seqs_fw_rev_filtered_otus.txt\n\n"
@@ -702,7 +713,9 @@ Final counts
 
 {countTxt}
 
-.. image:: report_files/sequence_numbers_all.png
+{sequence_bars}
+
+.. image:: report_files/sequence_numbers_all_2.png
 
 :red:`Note:`
 

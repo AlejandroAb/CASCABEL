@@ -13,8 +13,9 @@ with open(snakemake.input[0]) as reportfile:
                 findSD = True
             elif line.startswith("body {"):
                 newReport = "p.cmmd{ text-align: left; padding: 10px; border-style:solid; border-color:#99AAC7; max-width:95%; margin-left:2%; height: auto; background-color: #010101; color: white; word-wrap:normal; }\n commd{text-align: left;} \n span.red{color:red;}\nspan.green{color:#008800;}\n"
-                newReport += ".zui-table {border: solid 1px #DDDDDD; border-collapse: collapse; border-spacing: 0; font: normal 12px Arial, sans-serif;} .zui-table thead th { background-color: #EFEFEF; border: solid 1px #DDEEEE; color: #336B6B; padding: 10px; text-align: left; text-shadow: 1px 1px 1px #fff;} .zui-table tbody td { border: solid 1px #DDEEEE; color: #333; padding: 10px; text-shadow: 1px 1px 1px #fff; }\n"
+                newReport += ".zui-table {table-layout:fixed; border: solid 1px #DDDDDD; border-collapse: collapse; border-spacing: 0; font: normal 12px Arial, sans-serif;} .zui-table thead th { background-color: #EFEFEF; border: solid 1px #DDEEEE; color: #336B6B; padding: 10px; text-align: left; text-shadow: 1px 1px 1px #fff;} .zui-table tbody td { border: solid 1px #DDEEEE; color: #333; padding: 10px; text-shadow: 1px 1px 1px #fff; }\n"
                 newReport += "table, tr, td, th, tbody, thead, tfoot {page-break-inside: avoid !important;}\n"
+                newReport += "table  td:nth-child(2){word-break: break-word;}"
                 newReport += "p{page-break-inside: avoid !important;}\n"
                 newReport += line
             elif line.startswith("div#metadata {"):

@@ -373,7 +373,8 @@ if snakemake.config["dada2_asv"]["chimeras"] == "T":
 data.append("ASV table")
 data.append(snakemake.wildcards.PROJECT+ "/runs/" + snakemake.wildcards.run+ "/asv/asvTable.txt")
 data.append(str(intAsvs))
-data.append("{:.2f}".format(float((intAsvs/intTotalReads)*100))+"%")
+#data.append("{:.2f}".format(float((intAsvs/intTotalReads)*100))+"%")
+data.append("100%")
 fileData.append(data)
 data=[]
 #Taxonomy
@@ -434,29 +435,35 @@ prcs.append("{:.2f}".format(prcmerged)+"%")
 numbers.append(intlengthFReads)
 labels.append("Length\nfiltered")
 prcs.append("{:.2f}".format(prclengthF)+"%")
-
+color_index=4
 if snakemake.config["dada2_asv"]["chimeras"] == "T":
     numbers.append(intchimeraReads)
     labels.append("Chimera\nremoved")
     prcs.append("{:.2f}".format(prcchimera)+"%")
+    color_index=5
 
-numbers.append(intAsvs)
-labels.append("ASVs")
-prcs.append("{:.2f}".format(float((intAsvs/intTotalReads)*100))+"%")
+numbers2=[intAsvs];
+labels2=["ASVs"];
+prcs2=["100%"]
 
-numbers.append(assignedOtus)
-labels.append("Assigned\nASVs")
-prcs.append("{:.2f}".format(float((assignedOtus/intAsvs)*100))+"%")
+#numbers.append(intAsvs)
+#labels.append("ASVs")
+#prcs.append("{:.2f}".format(float((intAsvs/intTotalReads)*100))+"%")
 
-numbers.append(intSingletons)
-labels.append("No\nSingletons")
-prcs.append("{:.2f}".format(float((intSingletons/intAsvs)*100))+"%")
+numbers2.append(assignedOtus)
+labels2.append("Assigned\nASVs")
+prcs2.append("{:.2f}".format(float((assignedOtus/intAsvs)*100))+"%")
 
-numbers.append(assignedSingleOtus)
-labels.append("Assigned no\nsingletons")
-prcs.append("{:.2f}".format(prcSingle)+"%")
+numbers2.append(intSingletons)
+labels2.append("No\nSingletons")
+prcs2.append("{:.2f}".format(float((intSingletons/intAsvs)*100))+"%")
 
-createChartPrc(numbers, tuple(labels),prcs,snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/report_files/sequence_numbers_asv.png")
+numbers2.append(assignedSingleOtus)
+labels2.append("Assigned no\nsingletons")
+prcs2.append("{:.2f}".format(prcSingle)+"%")
+
+createChartPrc(numbers, tuple(labels),prcs,snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/report_files/sequence_numbers_asv.png",0)
+createChartPrc(numbers2, tuple(labels2),prcs2,snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/report_files/sequence_numbers_asv_2.png",color_index)
 
 ###############################################################################
 #                       Varaible sections                                     #
@@ -864,6 +871,10 @@ Final counts
 {countTxt}
 
 .. image:: report_files/sequence_numbers_asv.png
+
+
+.. image:: report_files/sequence_numbers_asv_2.png
+
 
 :red:`Note:`
 
