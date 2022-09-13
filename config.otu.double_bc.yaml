@@ -767,6 +767,9 @@ cutadapt:
   command: "cutadapt"
   adapters: ""
   extra_params: "--discard-untrimmed --match-read-wildcards"
+  threads: 10
+  min_prc: 50 #minimum percenatge (0-100) of reads passing filters for the non interactive mode to stop
+
 #------------------------------------------------------------------------------#
 # OTU_WF:                 Identify chimeric sequences                          #
 # rule: search_chimera                                                         #

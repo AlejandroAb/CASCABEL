@@ -53,7 +53,8 @@ except Exception as e:
     pearversion = "Problem reading version"
 
 #--cutadapt
-if snakemake.config["cutAdapters"].lower() != "f" or snakemake.config["demultiplexing"]["primers"]["remove"].lower() != "f":
+cutVersion = "**TBD**"
+if snakemake.config["cutAdapters"].casefold() == "metadata" or snakemake.config["cutAdapters"].casefold() == "cfg" or snakemake.config["demultiplexing"]["primers"]["remove"].lower() != "f":
     cutv = subprocess.run(['cutadapt', '--version'], stdout=subprocess.PIPE)
     cutVersion = "**cutadapt v" + cutv.stdout.decode('utf-8').strip() + "**"
     #cutVersion = "cutadapt v TBD"
@@ -135,7 +136,7 @@ else:
 
 #--cutadapt
 cutSequences = False
-if snakemake.config["cutAdapters"] != "F":
+if snakemake.config["cutAdapters"].casefold() == "metadata" or snakemake.config["cutAdapters"].casefold() == "cfg":
     sequenceNoAdapters = countFasta(snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/seqs_fw_rev_accepted_no_adapters.fna", False)
     if (totalAssigned - sequenceNoAdapters) > 0:
         cutSequences = True
@@ -169,12 +170,12 @@ labels=["Raw", "Assembled"];
 if snakemake.config["demultiplexing"]["demultiplex"] == "T":
     numbers.append(totalAssigned)
     labels.append("Demultiplexed")
-if snakemake.config["cutAdapters"] != "F":
+if snakemake.config["cutAdapters"].casefold() == "metadata" or snakemake.config["cutAdapters"].casefold() == "cfg":
     numbers.append(sequenceNoAdapters)
     labels.append("Cutadapt")
 numbers.append(trimmedCounts)
 labels.append("Length filtering")
-if snakemake.config["chimera"]["search"] == "T":
+if snakemake.config["chimera"]["search"] == "T" and removeChimeras:
     numbers.append(sequenceNoChimeras)
     labels.append("No Chimera")
 createChart(numbers, tuple(labels),snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/report_files/sequence_numbers."+snakemake.wildcards.sample+".png")
@@ -356,7 +357,7 @@ if snakemake.config["demultiplexing"]["demultiplex"] == "T" and snakemake.config
         demultiplexFQ +=":red:`Barcodes removed:` "+ str(snakemake.config["demultiplexing"]["remove_bc"]) + " first bases\n\n"
     if snakemake.config["demultiplexing"]["primers"]["remove"].lower() == "cfg":
         demultiplexFQ +=":red:`Primers removed:` **FW** " + snakemake.config["demultiplexing"]["primers"]["fw_primer"] + " **RV** " +snakemake.config["demultiplexing"]["primers"]["rv_primer"]+"\n\n"
-    elif snakemake.config["demultiplexing"]["primers"]["remove"] == "metadata":
+    elif snakemake.config["demultiplexing"]["primers"]["remove"].lower() == "metadata":
         demultiplexFQ +=":red:`Removed primers` were obtained from the metadata file.\n\n" 
     demultiplexFQ += "**The demultiplexed fastq files are located at:**\n\n:green:`- Demultiplexed directory:` "+snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/demultiplexed/\n\n"
     demultiplexFQ += ":green:`- Summary file:` "+snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/demultiplexed/summary.txt\n\n"
@@ -405,12 +406,13 @@ if snakemake.config["demultiplexing"]["demultiplex"] != "F":
 #                          Cut adapters                                        #
 ################################################################################
 cutAdaptStr = ""
-if snakemake.config["cutAdapters"].casefold() != "F":
+if snakemake.config["cutAdapters"].casefold() == "metadata" or snakemake.config["cutAdapters"].casefold() == "cfg":
     cutAdaptStr = "Remove sequence primers\n------------------------\n\n" # title
     cutAdaptStr +="Remove the adapters / primers from the reads.\n\n"
     cutAdaptStr +=":red:`Tool:` [Cutadapt]_\n\n"
     cutAdaptStr += ":red:`Version:` "+cutVersion+"\n\n"
     cutAdaptStr += "**Command:**\n\n"
+    primer_lines=0
     if snakemake.config["cutAdapters"].lower() == "cfg":
         #cutAdaptStr += ":commd:`cutadapt "+ str(snakemake.config["cutadapt"]["adapters"])+" " + str(snakemake.config["cutadapt"]["extra_params"]) + " -o " + snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/seqs_fw_rev_accepted_no_adapters.fna\n\n"
         #cutAdaptStr +=  snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/seqs_fw_rev_accepted.fna > " +  snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/seqs_fw_rev_accepted_no_adapters.log`\n\n"
@@ -418,8 +420,17 @@ if snakemake.config["cutAdapters"].casefold() != "F":
     elif snakemake.config["cutAdapters"].lower() == "metadata":
         primers=""
         try:
-            with open(snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/primers.txt") as pfile:
+            #with open(snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/primers.txt") as pfile:
+            with open(snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/report_files/primers."+snakemake.wildcards.sample+".txt") as pfile:
                 primers=pfile.read()
+                #primer_lines=len(pfile.readlines())
+                primer_lines=len(primers.split("\n"))
+                if primer_lines > 1:
+                    if snakemake.config["LIBRARY_LAYOUT"].casefold()=="pe":
+                        primers="-g sample_FW_primer...sampleRV_primer"
+                    else:
+                        primers="-g sample_FW_primer"
+
         except FileNotFoundError:
             primers="-ERROR reading primer file-"
         #cutAdaptStr += ":commd:`cutadapt "+primers +" " + str(snakemake.config["cutadapt"]["extra_params"]) + " -o " + snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/seqs_fw_rev_accepted_no_adapters.fna\n\n"
@@ -427,11 +438,14 @@ if snakemake.config["cutAdapters"].casefold() != "F":
         cutAdaptStr += ":commd:`cutadapt "+primers +" " + str(snakemake.config["cutadapt"]["extra_params"]) + " -o " + snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/seqs_fw_rev_accepted_no_adapters.fna "+  snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/seqs_fw_rev_accepted.fna > " +  snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/seqs_fw_rev_accepted_no_adapters.log`\n\n"
         
 #cutAdaptStr += "*PRIMERS: primer sequences were obtained from the metadata file\n\n"
+    if primer_lines > 1:
+        cutAdaptStr += ":green:`- Primers used by sample:` primers_sample_\n\n"
+        cutAdaptStr +=  ".. _primers_sample: report_files/primers."+snakemake.wildcards.sample+".txt\n\n"
     cutAdaptStr += "**Output files:**\n\n:green:`- Reads without adapters:` "+snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/seqs_fw_rev_accepted_no_adapters.fna\n\n"
     if cutSequences:
         cutAdaptStr += ":red:`Total number of reads after cutadapt:` "+ str(sequenceNoAdapters) + " = " + str(prcCut) + "% of the assigned reads or "+ str(prcCutRaw)+"% of the total reads\n\n"
     #cutAdaptStr+=":\n\n"
-    cutAdaptStr+=":green:`- Primer removal by sample:` primers_OTU_\n\n"
+    cutAdaptStr+=":green:`- Primer removal results by sample:` primers_OTU_\n\n"
     cutAdaptStr+=" .. _primers_OTU: report_files/cutadapt."+snakemake.wildcards.sample+".summary.tsv\n\n"
 
     cutAdaptBench =readBenchmark(snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/cutadapt.benchmark")
@@ -500,7 +514,7 @@ if snakemake.config["demultiplexing"]["demultiplex"] == "T":
     fileData.append(data)
     data=[]
 #adapters
-if snakemake.config["cutAdapters"] != "F":
+if snakemake.config["cutAdapters"].casefold() == "metadata" or snakemake.config["cutAdapters"].casefold() == "cfg":
     data.append("Adapter removed")
     data.append(snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/seqs_fw_rev_accepted_no_adapters.fna")
     data.append(str(sequenceNoAdapters))
@@ -515,7 +529,7 @@ data.append("{:.2f}".format(float((trimmedCounts/rawCounts)*100))+"%")
 fileData.append(data)
 data=[]
 #chimera
-if snakemake.config["chimera"]["search"] == "T":
+if snakemake.config["chimera"]["search"] == "T" and removeChimeras:
     data.append("Non chimeric reads")
     data.append(snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/seqs_fw_rev_filtered_nc.fasta")
     data.append(str(sequenceNoChimeras))

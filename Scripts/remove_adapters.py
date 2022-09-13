@@ -86,8 +86,8 @@ if snakemake.config["cutAdapters"].lower() == "metadata":
             #Here we use to build all the combinations, but maybe we only want the FWP...rc(RVP)
             #primer_set=primer_set+" -a "+uniq_primers[key][0]+"..."+uniq_primers[key][1]+" -a "+uniq_primers[key][0]+"..."+ rc + " " 
             primer_set=primer_set+" -g "+uniq_primers[key][0]+"..."+uniq_primers[key][1]+" "
-            #print("cutadapt -f fasta -a "+uniq_primers[key][0]+"..."+uniq_primers[key][1]+" -a "+uniq_primers[key][0]+"..."+ rc + " "+snakemake.params[0]+" -o "+snakemake.output[0]+"_"+str(i) +" "+snakemake.input[0] + " > "+ snakemake.output[1]+"_"+str(i))
-            #subprocess.run( ["cutadapt -f fasta -a "+uniq_primers[key][0]+"..."+uniq_primers[key][1]+" -a "+uniq_primers[key][0]+"..."+ rc + " "+snakemake.params[0]+" -o "+snakemake.output[0]+"_"+str(i) + " " + snakemake.input[0]+ ">"+ snakemake.output[1]+"_"+str(i)],stdout=subprocess.PIPE, shell=True)
+            #print("cutadapt  -a "+uniq_primers[key][0]+"..."+uniq_primers[key][1]+" -a "+uniq_primers[key][0]+"..."+ rc + " "+snakemake.params[0]+" -o "+snakemake.output[0]+"_"+str(i) +" "+snakemake.input[0] + " > "+ snakemake.output[1]+"_"+str(i))
+            #subprocess.run( ["cutadapt  -a "+uniq_primers[key][0]+"..."+uniq_primers[key][1]+" -a "+uniq_primers[key][0]+"..."+ rc + " "+snakemake.params[0]+" -o "+snakemake.output[0]+"_"+str(i) + " " + snakemake.input[0]+ ">"+ snakemake.output[1]+"_"+str(i)],stdout=subprocess.PIPE, shell=True)
         else:
             #rc=reverse_complement(uniq_primers[key][0])
             #primer_set=primer_set+" -a "+uniq_primers[key][0]+" -a " + rc
@@ -96,9 +96,9 @@ if snakemake.config["cutAdapters"].lower() == "metadata":
             primers.write(primer_set)
             primers.close()
 
-    subprocess.run( ["cutadapt -f fasta "+ primer_set +" "+extra+" -o "+snakemake.output[0] + " "+ no_primer +" " + snakemake.input[0]+ ">"+ snakemake.output[1]],stdout=subprocess.PIPE, shell=True)
+    subprocess.run( ["cutadapt  "+ primer_set +" "+extra+" -o "+snakemake.output[0] + " "+ no_primer +" " + snakemake.input[0]+ ">"+ snakemake.output[1]],stdout=subprocess.PIPE, shell=True)
 else:
-    subprocess.run( ["cutadapt -f fasta "+ snakemake.config["cutadapt"]["adapters"] +" "+extra+" -o "+snakemake.output[0] + " "+ no_primer +" " + snakemake.input[0]+ ">"+ snakemake.output[1]],stdout=subprocess.PIPE, shell=True)
+    subprocess.run( ["cutadapt  "+ snakemake.config["cutadapt"]["adapters"] +" "+extra+" -o "+snakemake.output[0] + " "+ no_primer +" " + snakemake.input[0]+ ">"+ snakemake.output[1]],stdout=subprocess.PIPE, shell=True)
 
 if not os.path.exists(snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/report_files"):
     os.makedirs(snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/report_files")

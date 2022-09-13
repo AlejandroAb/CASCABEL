@@ -1,8 +1,8 @@
 """
 CASCABEL
-Version: 4.6.2.1
+Version: 4.7.0.0
 Author: Julia Engelmann and Alejandro Abdala
-Last update: 08/04/2022
+Last update: 13/09/2022
 """
 run=config["RUN"]
 
@@ -1065,7 +1065,7 @@ if config["cutAdapters"] != "F":
     thus, we need to rev com the sequences, concatenate them and then when we run cutadapt
     always in this step, discard-untrimmed so this way we end up with the sequences in the correct orientation
     """
-    if config["demultiplexing"]["demultiplex"] != "T" and config["align_vs_reference"]["align"] != "T":
+    if config["demultiplexing"]["demultiplex"] != "T" :
         rule rev_com_seqs:
             input:
                 "{PROJECT}/runs/{run}/{sample}_data/seqs_fw_rev_accepted.fna"
@@ -1084,15 +1084,25 @@ if config["cutAdapters"] != "F":
 
         rule cutadapt:
             input:
-                "{PROJECT}/runs/{run}/{sample}_data/seqs_revcomplement.concat.fna"
+                #"{PROJECT}/runs/{run}/{sample}_data/seqs_fw_rev_accepted.align" if config["align_vs_reference"]["align"] == "T"
+                #else 
+                "{PROJECT}/runs/{run}/{sample}_data/seqs_fw_rev_accepted.fna",
+                config["metadata"]
             output:
-                out="{PROJECT}/runs/{run}/{sample}_data/seqs_fw_rev_accepted_no_adapters.fna",
-                log="{PROJECT}/runs/{run}/{sample}_data/seqs_fw_rev_accepted_no_adapters.log"
+                out="{PROJECT}/runs/{run}/{sample}_data/seqs_fw_rev_accepted_no_adapters.fna"
+                #log="{PROJECT}/runs/{run}/{sample}_data/seqs_fw_rev_accepted_no_adapters.log"
             benchmark:
                 "{PROJECT}/runs/{run}/{sample}_data/cutadapt.benchmark"
-            shell:
-                "{config[cutadapt][command]} -f fasta {config[cutadapt][adapters]}  --discard-untrimmed "
-                "{config[cutadapt][extra_params]} -o {output.out} {input}  > {output.log}"
+            params:
+                config["cutadapt"]["extra_params"],
+                "{PROJECT}/runs/{run}/report_files/primers.{sample}.txt",
+                "{PROJECT}/runs/{run}/{sample}_data/seqs_fw_rev_accepted_removed.fna",
+                "{PROJECT}/runs/{run}/report_files/cutadapt.{sample}.summary.tsv",
+                "{sample}",
+                "{PROJECT}/runs/{run}/{sample}_data/seqs_fw_rev_accepted_no_adapters.log"
+            script:
+                "Scripts/remove_adapters_by_sample.py"
+
     else:
         if config["cutAdapters"].lower() == "metadata":
             rule cutadapt:
@@ -1103,17 +1113,18 @@ if config["cutAdapters"] != "F":
                     else config["metadata"]
                 output:
                     out="{PROJECT}/runs/{run}/{sample}_data/seqs_fw_rev_accepted_no_adapters.fna",
-                    log="{PROJECT}/runs/{run}/{sample}_data/seqs_fw_rev_accepted_no_adapters.log"
+                   # log="{PROJECT}/runs/{run}/{sample}_data/seqs_fw_rev_accepted_no_adapters.log"
                 benchmark:
                     "{PROJECT}/runs/{run}/{sample}_data/cutadapt.benchmark"
                 params:
                     config["cutadapt"]["extra_params"],
-                    "{PROJECT}/runs/{run}/{sample}_data/primers.txt",
+                    "{PROJECT}/runs/{run}/report_files/primers.{sample}.txt",
                     "{PROJECT}/runs/{run}/{sample}_data/seqs_fw_rev_accepted_removed.fna",
                     "{PROJECT}/runs/{run}/report_files/cutadapt.{sample}.summary.tsv",
-                    "{PROJECT}/runs/{run}/{sample}_data/cutadapt.summary.tsv"
+                    "{PROJECT}/runs/{run}/{sample}_data/cutadapt_tmp/",
+                    "{PROJECT}/runs/{run}/{sample}_data/seqs_fw_rev_accepted_no_adapters.log"
                 script:
-                     "Scripts/remove_adapters.py" # && ln -s ../../report_files/cutadapt.{wildcards.sample}.summary.tsv {params[4]}   "
+                     "Scripts/remove_adapters_v2.py" # && ln -s ../../report_files/cutadapt.{wildcards.sample}.summary.tsv {params[4]}   "
         elif config["cutAdapters"].lower() == "cfg":
             rule cutadapt:
                 input:
@@ -1121,22 +1132,23 @@ if config["cutAdapters"] != "F":
                     else "{PROJECT}/runs/{run}/{sample}_data/seqs_fw_rev_accepted.fna"
                     
                 output:
-                    out="{PROJECT}/runs/{run}/{sample}_data/seqs_fw_rev_accepted_no_adapters.fna",
-                    log="{PROJECT}/runs/{run}/{sample}_data/seqs_fw_rev_accepted_no_adapters.log"
+                    out="{PROJECT}/runs/{run}/{sample}_data/seqs_fw_rev_accepted_no_adapters.fna"
+                    #log="{PROJECT}/runs/{run}/{sample}_data/seqs_fw_rev_accepted_no_adapters.log"
 
                 benchmark:
                     "{PROJECT}/runs/{run}/{sample}_data/cutadapt.benchmark"
                 params:
                     config["cutadapt"]["extra_params"],
-                    "{PROJECT}/runs/{run}/{sample}_data/primers.txt", 
+                    "{PROJECT}/runs/{run}/report_files/primers.{sample}.txt", 
                     "{PROJECT}/runs/{run}/{sample}_data/seqs_fw_rev_accepted_removed.fna",
                     "{PROJECT}/runs/{run}/report_files/cutadapt.{sample}.summary.tsv",
-                    "{PROJECT}/runs/{run}/{sample}_data/cutadapt.summary.tsv"
+                    "{PROJECT}/runs/{run}/{sample}_data/cutadapt_tmp/"
+                    "{PROJECT}/runs/{run}/{sample}_data/seqs_fw_rev_accepted_no_adapters.log"
                 script:
-                    "Scripts/remove_adapters.py"# && ln -s ../../report_files/cutadapt.{wildcards.sample}.summary.tsv {params[4]}  "
-                    #"{config[cutadapt][command]} -f fasta {config[cutadapt][adapters]} "
+                    "Scripts/remove_adapters_v2.py"# && ln -s ../../report_files/cutadapt.{wildcards.sample}.summary.tsv {params[4]}  "
+                    #"{config[cutadapt][command]}  {config[cutadapt][adapters]} "
                     #"{config[cutadapt][extra_params]} -o {output.out} --untrimmed-output {output.no_trim} {input}  > {output.log}" if "--discard-untrimmed" in config["cutadapt"]["extra_params"] 
-                    #else "{config[cutadapt][command]} -f fasta {config[cutadapt][adapters]} "
+                    #else "{config[cutadapt][command]}  {config[cutadapt][adapters]} "
                     #"{config[cutadapt][extra_params]} -o {output.out} {input}  > {output.log}"  
           
 

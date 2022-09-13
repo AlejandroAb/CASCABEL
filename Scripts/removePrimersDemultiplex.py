@@ -116,8 +116,8 @@ for fw in fq_files:
                 reads_ori=countFasta(fw_fq,True)
                 reads_after=countFasta(snakemake.params[0]+"/primer_removed/"+sample+"_1.fastq",True)
             prcOK="{:.2f}".format(float((reads_after/reads_ori)*100))
-            summ_file.write(sample+"\t"+str(reads_ori)+"\t"+str(reads_after)+"\t"+prcOK);
-            summ_file2.write(sample+"\t"+str(reads_ori)+"\t"+str(reads_after)+"\t"+prcOK);
+            summ_file.write(sample+"\t"+str(reads_ori)+"\t"+str(reads_after)+"\t"+prcOK+"\n");
+            summ_file2.write(sample+"\t"+str(reads_ori)+"\t"+str(reads_after)+"\t"+prcOK+"\n");
  
     else:
         print("\033[93m WARNING: No primers found for sample: "+sample +" \033[0m")
