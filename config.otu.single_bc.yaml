@@ -13,7 +13,7 @@
 # ignored by Snakemake.                                                        #
 #                                                                              #
 # @Author: Julia Engelmann and Alejandro Abdala                                #
-# @Last update: 04/08/2022                                                     #
+# @Last update: 13/12/2022                                                     #
 ################################################################################
 
 ################################################################################
@@ -92,6 +92,15 @@ description: ""
 # if the input files are regular fastq files.                                  #
 #------------------------------------------------------------------------------#
 gzip_input: "F"
+
+#------------------------------------------------------------------------------#
+#                      INTERMEDIATE FILES                                      #
+#------------------------------------------------------------------------------#
+# By default CASCABEL will delete most of the generated intermediate files.    #
+# Set this flag to true ("T") in order to keep all the intermediate files.     #
+# Default: "F" remove the files!                                               #
+#------------------------------------------------------------------------------#
+KEEP_TMP: "F"
 
 #------------------------------------------------------------------------------#
 #                             INPUT FILES                                      #
@@ -672,7 +681,7 @@ dada2_asv:
 #------------------------------------------------------------------------------#
 dada2_taxonomy:
   db: "/{FULL_PATH}/silva_nr_v132_train_set.fa.gz"
-    extra_params: "minBoot=45"
+    extra_params: "minBoot=50"
   add_sps: 
     add: "T"
     db_sps: "/{FULL_PATH}/silva_species_assignment_v132.fa.gz"

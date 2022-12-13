@@ -58,7 +58,7 @@ asvFilterBenchmark =  readBenchmark(snakemake.wildcards.PROJECT+"/runs/"+snakema
 otuTableBenchmark = readBenchmark(snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/asv/taxonomy_dada2/dada2.table.benchmark")
 convertOtuBenchmark = readBenchmark(snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/asv/taxonomy_dada2/dada2.biom.benchmark")
 #convertOtuBenchmark = readBenchmark(snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/otu/taxonomy_"+snakemake.config["assignTaxonomy"]["tool"]+"/otuTable.txt.benchmark")
-summTaxaBenchmark = readBenchmark(snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/otu/taxonomy_"+snakemake.config["assignTaxonomy"]["tool"]+"/summary/summarize_taxa.benchmark")
+summTaxaBenchmark = readBenchmark(snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/asv/taxonomy_dada2/summary/summarize_taxa.benchmark")
 asvNoSingletonsBenchmark = readBenchmark(snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/asv/taxonomy_dada2/asvTable_nosingletons.bio.benchmark")
 filterASVTableBenchmark =  readBenchmark(snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/asv/taxonomy_dada2/asvTable_nosingletons.txt.benchmark")
 filterBenchmark = readBenchmark(snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/asv/taxonomy_dada2/representative_seq_set_noSingletons.benchmark")
@@ -74,7 +74,7 @@ if snakemake.config["alignRep"]["align"] == "T":
     makePhyloBenchmark = readBenchmark(snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/asv/taxonomy_dada2/aligned/filtered/representative_seq_set_noSingletons_aligned_pfiltered.benchmark")
 kronaBenchmark=""
 if snakemake.config["krona"]["report"].casefold() == "t" or snakemake.config["krona"]["report"].casefold() == "true":
-    kronaBenchmark = readBenchmark(snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/otu/taxonomy_"+snakemake.config["assignTaxonomy"]["tool"]+"/krona_report.benchmark")
+    kronaBenchmark = readBenchmark(snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/asv/taxonomy_dada2/krona_report.benchmark")
 
 #dada2FilterBenchmark = readBenchmark(snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/asv/filter.benchmark")
 #dada2Benchmark = readBenchmark(snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/asv/dada2.benchmark")
@@ -475,47 +475,13 @@ if snakemake.config["ANALYSIS_TYPE"] == "ASV":
     assignTaxoStr += ":green:`Function:` assignTaxonomy() *implementation of RDP Classifier within dada2*\n\n"
     assignTaxoStr += ":green:`Reference database:` " + str(snakemake.config["dada2_taxonomy"]["db"])+ "\n\n"
     if snakemake.config["dada2_taxonomy"]["add_sps"]["add"].casefold() == "T":
+        assignTaxoStr += ":green:`Species information.` After assigning taxonomy, genus-species binomials were assigned with assignSpecies() function.\n\n" 
+        assignTaxoStr += ":green:`Function:` addSpecies()* wraps the assignSpecies function to assign genus-species binomials to the input sequences by exact matching against a reference fasta.*\n\n"
         assignTaxoStr += ":green:`Taxonomy species file:` " + str(snakemake.config["dada2_taxonomy"]["add_sps"]["db_sps"])+ "\n\n"
-    variable_refs+=".. [RDP]  Wang, Q, G. M. Garrity, J. M. Tiedje, and J. R. Cole. 2007. Naive Bayesian Classifier for Rapid Assignment of rRNA Sequences into the New Bacterial Taxonomy. Appl Environ Microbiol. 73(16):5261-7.\n\n"
-elif snakemake.config["assignTaxonomy"]["tool"] == "blast":
-    assignTaxoStr =":red:`Tool:` RDP_\n\n"
-    assignTaxoStr += ":red:`Version:` " + blastnVersion + "\n\n"
-    variable_refs+= ".. [blast] Altschul SF, Gish W, Miller W, Myers EW, Lipman DJ. 1990. Basic local alignment search tool. J Mol Biol 215(3):403-410\n\n"
-    ref = ""
-    if len(str(snakemake.config["assignTaxonomy"]["blast"]["blast_db"])) > 1:
-        assignTaxoStr +=  ":green:`Reference database:` "+ str(snakemake.config["assignTaxonomy"]["blast"]["blast_db"])+"\n\n"
-        ref= "-db " + str(snakemake.config["assignTaxonomy"]["blast"]["blast_db"])
     else:
-        assignTaxoStr +=  ":green:`Reference fasta file:` "+ str(snakemake.config["assignTaxonomy"]["blast"]["fasta_db"])+"\n\n"
-        ref= "-subject "+ str(snakemake.config["assignTaxonomy"]["blast"]["fasta_db"])
-    assignTaxoStr +=  ":green:`Taxonomy mapping file:` "+ str(snakemake.config["assignTaxonomy"]["blast"]["mapFile"])+"\n\n"
-    assignTaxoStr += "**Command:**\n\n"
-    assignTaxoStr += ":commd:`"+ str(snakemake.config["assignTaxonomy"]["blast"]["command"] )+" " +ref + "-evalue " + str(snakemake.config["assignTaxonomy"]["blast"]["evalue"]) + "-outfmt '6 qseqid sseqid pident qcovs evalue bitscore' -num_threads " + str(snakemake.config["assignTaxonomy"]["blast"]["jobs"]) + " -max_target_seqs "
-    assignTaxoStr += str(snakemake.config["assignTaxonomy"]["blast"]["max_target_seqs"]) +" -perc_identity "+ str(snakemake.config["assignTaxonomy"]["blast"]["identity"]) + " -out representative_seq_set_tax_blastn.out`\n\n"
-    if snakemake.config["assignTaxonomy"]["blast"]["max_target_seqs"] != 1:
-        assignTaxoStr += "After blast assignation, **results were mapped to their LCA using stampa_merge.py** script\n\n"
+        assignTaxoStr += ":green:`Species information:` The *'add species'* (add_sps) option from the configuration file is set to **false**. Set it to **true** and supply a *species database* if you want to add species-level annotation to the taxonomic table.\n\n"
+    variable_refs+=".. [RDP]  Wang, Q, G. M. Garrity, J. M. Tiedje, and J. R. Cole. 2007. Naive Bayesian Classifier for Rapid Assignment of rRNA Sequences into the New Bacterial Taxonomy. Appl Environ Microbiol. 73(16):5261-7.\n\n"
 
-elif snakemake.config["assignTaxonomy"]["tool"] == "qiime":
-    assignTaxoStr =":red:`Tool:` [QIIME]_\n\n"
-    assignTaxoStr += ":red:`Version:` "+assignTaxaVersion
-    assignTaxoStr += ":green:`Method:` **" + str(snakemake.config["assignTaxonomy"]["qiime"]["method"])+ "**\n\n"
-    assignTaxoStr += "Reference database: " + str(snakemake.config["assignTaxonomy"]["qiime"]["dbFile"])+ "\n\n"
-    assignTaxoStr += "Taxonomy mapping file: " + str(snakemake.config["assignTaxonomy"]["qiime"]["mapFile"])+ "\n\n"
-    assignTaxoStr += "**Command:**\n\n"
-    assignTaxoStr += ":commd:`parallel_assign_taxonomy_" + str(snakemake.config["assignTaxonomy"]["qiime"]["method"])+ ".py -i " + str(snakemake.wildcards.PROJECT)+ "/runs/" + str(snakemake.wildcards.run)+ "/otu/representative_seq_set.fasta --id_to_taxonomy_fp " + str(snakemake.config["assignTaxonomy"]["qiime"]["mapFile"])+ " --reference_seqs_fp "
-    assignTaxoStr += str(snakemake.config["assignTaxonomy"]["qiime"]["dbFile"])+ " --jobs_to_start " + str(snakemake.config["assignTaxonomy"]["qiime"]["jobs"])+ " " + str(snakemake.config["assignTaxonomy"]["qiime"]["extra_params"])+ " "
-    assignTaxoStr += "--output_dir " + str(snakemake.wildcards.PROJECT)+ "/runs/" + str(snakemake.wildcards.run)+ "/otu/taxonomy_" + str(snakemake.config["assignTaxonomy"]["tool"])+ "/`\n\n"
-elif snakemake.config["assignTaxonomy"]["tool"] == "vsearch":
-    assignTaxoStr =":red:`Tool:` [vsearch]_\n\n"
-    assignTaxoStr += ":red:`Version:` " + vsearchVersion_tax + "\n\n"
-    assignTaxoStr +=  ":green:`Reference fasta file:` "+ str(snakemake.config["assignTaxonomy"]["vsearch"]["db_file"])+"\n\n"
-    assignTaxoStr +=  ":green:`Taxonomy mapping file:` "+ str(snakemake.config["assignTaxonomy"]["vsearch"]["mapFile"])+"\n\n"
-    assignTaxoStr += "**Command:**\n\n"
-    assignTaxoStr += ":commd:`"+ str(snakemake.config["assignTaxonomy"]["vsearch"]["command"] )+ "--usearch_global "+ str(snakemake.wildcards.PROJECT)+ "/runs/" + str(snakemake.wildcards.run)+ "/otu/representative_seq_set.fasta --db "+ str(snakemake.config["assignTaxonomy"]["vsearch"]["db_file"])
-    assignTaxoStr += " --dbmask none --qmask none --rowlen 0 --id "+ str(snakemake.config["assignTaxonomy"]["vsearch"]["identity"])+" --iddef " + str(snakemake.config["assignTaxonomy"]["vsearch"]["identity_definition"])+" --userfields query+id" + str(snakemake.config["assignTaxonomy"]["vsearch"]["identity_definition"])+"+target "
-    assignTaxoStr += " --maxaccepts "+ str(snakemake.config["assignTaxonomy"]["vsearch"]["max_target_seqs"]) + " --threads " + str(snakemake.config["assignTaxonomy"]["vsearch"]["jobs"]) + " "+ str(snakemake.config["assignTaxonomy"]["vsearch"]["extra_params"]) + " --output_no_hits --userout  representative_seq_set_tax_vsearch.out`\n\n"
-    if (snakemake.config["assignTaxonomy"]["vsearch"]["max_target_seqs"]) != 1:
-        assignTaxoStr += "After vsearch assignation, **results were mapped to their LCA using stampa_merge.py** script\n\n"
 
 #Alignment report
 alignmentReport = ""

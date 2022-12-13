@@ -1,8 +1,8 @@
 """
 CASCABEL
-Version: 4.7.0.0
+Version: 4.8.0.0
 Author: Julia Engelmann and Alejandro Abdala
-Last update: 13/09/2022
+Last update: 13/12/2022
 """
 run=config["RUN"]
 
@@ -156,7 +156,8 @@ if config["LIBRARY_LAYOUT"] != "SE":
             "{PROJECT}/runs/{run}/{sample}_data/peared/seqs.assembled.fastq",# if config["UNPAIRED_DATA_PIPELINE"] != "T" else
             "{PROJECT}/runs/{run}/{sample}_data/peared/seqs.unassembled.forward.fastq",
             "{PROJECT}/runs/{run}/{sample}_data/peared/pear.log",
-            "{PROJECT}/runs/{run}/{sample}_data/peared/seqs.unassembled.reverse.fastq" 
+            "{PROJECT}/runs/{run}/{sample}_data/peared/seqs.unassembled.reverse.fastq"
+
         benchmark:
             "{PROJECT}/runs/{run}/{sample}_data/peared/pear.benchmark"
         params:
@@ -1710,8 +1711,10 @@ rule summarize_taxa:
         "{PROJECT}/runs/{run}/asv/taxonomy_dada2/summary/" 
     benchmark:
         "{PROJECT}/runs/{run}/otu/taxonomy_"+config["assignTaxonomy"]["tool"]+"/summary/summarize_taxa.benchmark"
+        if config["ANALYSIS_TYPE"] == "OTU" else
+        "{PROJECT}/runs/{run}/asv/taxonomy_dada2/summary/summarize_taxa.benchmark"
     shell:
-        "{config[qiime][path]}summarize_taxa.py -i {input} -o {params} {config[summTaxa][extra_params]}"
+        "{config[qiime][path]}summarize_taxa.py -i {input} -o {params} -a  {config[summTaxa][extra_params]}"
 
 #Converts otu table from biom format to tsv
 rule convert_table:
@@ -1787,9 +1790,11 @@ rule summarize_taxa_no_singletons:
         if config["ANALYSIS_TYPE"] == "OTU" else
         "{PROJECT}/runs/{run}/asv/taxonomy_dada2/summary_noSingletons/"
     benchmark:
-        "{PROJECT}/runs/{run}/otu/taxonomy_"+config["assignTaxonomy"]["tool"]+"/summary/summarize_taxa.benchmark"
+        "{PROJECT}/runs/{run}/otu/taxonomy_"+config["assignTaxonomy"]["tool"]+"/summary_noSingletons/summarize_taxa.benchmark"
+        if config["ANALYSIS_TYPE"] == "OTU" else
+        "{PROJECT}/runs/{run}/asv/taxonomy_dada2/summary_noSingletons/summarize_taxa.benchmark"
     shell:
-        "{config[qiime][path]}summarize_taxa.py -i {input} -o {params} {config[summTaxa][extra_params]}"
+        "{config[qiime][path]}summarize_taxa.py -i {input} -o {params} -a {config[summTaxa][extra_params]}"
 
 if  config["krona"]["report"].casefold() == "t" or config["krona"]["report"].casefold() == "true":
     rule krona_report:
@@ -1806,15 +1811,19 @@ if  config["krona"]["report"].casefold() == "t" or config["krona"]["report"].cas
             if config["ANALYSIS_TYPE"] == "ASV" else
             "{PROJECT}/runs/{run}/report_files/krona_report."+config["assignTaxonomy"]["tool"]+".html"
         params:
-            "{PROJECT}/runs/{run}/otu/taxonomy_"+config["assignTaxonomy"]["tool"]+"/"
+            "{PROJECT}/runs/{run}/asv/taxonomy_dada2/" 
+            if config["ANALYSIS_TYPE"] == "ASV"  else 
+            "{PROJECT}/runs/{run}/otu/taxonomy_"+config["assignTaxonomy"]["tool"]+"/" 
         benchmark:
-              "{PROJECT}/runs/{run}/otu/taxonomy_"+config["assignTaxonomy"]["tool"]+"/krona_report.benchmark"
+            "{PROJECT}/runs/{run}/asv/taxonomy_dada2/krona_report.benchmark" if config["ANALYSIS_TYPE"] == "ASV"
+            else  "{PROJECT}/runs/{run}/otu/taxonomy_"+config["assignTaxonomy"]["tool"]+"/krona_report.benchmark"
         script:
             "Scripts/otu2krona.py"
 else:
     rule skip_krona:
         output:
-            "{PROJECT}/runs/{run}/otu/taxonomy_"+config["assignTaxonomy"]["tool"]+"/skip.krona"
+            "{PROJECT}/runs/{run}/asv/taxonomy_dada2/skip.krona" if config["ANALYSIS_TYPE"] == "ASV"
+            else "{PROJECT}/runs/{run}/otu/taxonomy_"+config["assignTaxonomy"]["tool"]+"/skip.krona"
         shell:
             "touch {output}"
 #OTU map-based filtering: Keep all sequences that show up in an OTU map.
@@ -2003,6 +2012,33 @@ if config["pdfReport"].casefold() == "t":
         shell:
             "{config[wkhtmltopdf_command]} {input.toTranslate} {output}"
 
+rule clean_data_sample:
+#"""
+#In this case, we use only dummy input files to maintain the
+#workflow. The script clean all the intermedita files.
+#the cleaning steps are divid into two rules du to wildcard restriction
+#with the samples. 
+#"""
+    input:
+        "{PROJECT}/runs/{run}/{sample}_data/report.html"
+    output:
+        "{PROJECT}/runs/{run}/clean_files_{sample}.log"
+    script:
+        "Scripts/clean_data_sample.py"
+
+rule clean_data_project:
+    input:
+        expand("{PROJECT}/runs/{run}/report_{sample}_"+config["assignTaxonomy"]["tool"]+".html", PROJECT=config["PROJECT"],sample=config["LIBRARY"], run=run)
+        if config["ANALYSIS_TYPE"] == "OTU" else
+        expand("{PROJECT}/runs/{run}/report_{sample}_dada2.html", PROJECT=config["PROJECT"],sample=config["LIBRARY"], run=run),
+        expand("{PROJECT}/runs/{run}/clean_files_{sample}.log", PROJECT=config["PROJECT"],sample=config["LIBRARY"], run=run)
+    output:
+        "{PROJECT}/runs/{run}/clean_files.log"
+    script:
+        "Scripts/clean_data_otu.py"
+
+
+
 rule create_portable_report:
     input:
         expand("{PROJECT}/runs/{run}/report_{sample}_"+config["assignTaxonomy"]["tool"]+".html", PROJECT=config["PROJECT"],sample=config["LIBRARY"], run=run)
@@ -2010,7 +2046,8 @@ rule create_portable_report:
         expand("{PROJECT}/runs/{run}/report_{sample}_dada2.html", PROJECT=config["PROJECT"],sample=config["LIBRARY"], run=run),
         "{PROJECT}/runs/{run}/otu_report_"+config["assignTaxonomy"]["tool"]+".html"
         if config["ANALYSIS_TYPE"] == "OTU" else
-        "{PROJECT}/runs/{run}/asv_report_dada2.html"
+        "{PROJECT}/runs/{run}/asv_report_dada2.html",
+        "{PROJECT}/runs/{run}/clean_files.log"
     output:
         "{PROJECT}/runs/{run}/report_"+config["assignTaxonomy"]["tool"]+".zip"
         if config["ANALYSIS_TYPE"] == "OTU" else
@@ -2018,4 +2055,4 @@ rule create_portable_report:
     params:
         "{PROJECT}/runs/{run}/report_files"
     shell:
-        "zip -r {output} {params} {input}"
+        "zip -r {output} {params} {input[0]} {input[1]}"

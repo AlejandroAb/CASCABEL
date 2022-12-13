@@ -559,6 +559,17 @@ txtDescription = ""
 if len(desc) > 0:
     txtDescription = "\n**User description:** "+desc+"\n"
 
+
+################################################################################
+#                       controls warning section                               #
+################################################################################
+"""
+We want to include a small section to warn the user about the use of controls. This could be
+the case if they are demultiplexing a complete library. 
+"""
+ctrlWarning =""
+if snakemake.config["demultiplexing"]["demultiplex"] == "T":
+    ctrlWarning="\n:warn:`Note: Library demultiplexing has been carried out, if you have controls among your samples, please be aware that Cascabel won't perform any special operation with them. They are treated as any other sample within this workflow. Please make sure to analyze your controls with other tools, and correct your sample counts for potential contamination.`\n"
 ################################################################################
 #                                Report                                        #
 ################################################################################
@@ -569,6 +580,7 @@ Amplicon Analysis Report for Library: {snakemake.wildcards.sample}
     .. role:: commd
     .. role:: red
     .. role:: green
+    .. role:: warn
 
 **CASCABEL** is designed to run amplicon sequence analysis across single or multiple read libraries.
 
@@ -577,6 +589,8 @@ The objective of this pipeline is to create different output files which allow t
 Another aim of **CASCABEL** is also to encourage the documentation process, by creating this report in order to assure data analysis reproducibility.
 
 {txtDescription}
+
+{ctrlWarning}
 
 Following you can see all the steps that were taken in order to get the final results of the pipeline.
 
