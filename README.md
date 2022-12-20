@@ -8,7 +8,7 @@ CASCABEL was designed for short read high-throughput sequence data. It covers qu
 
 Our pipeline is implemented with Snakemake as workflow management engine and allows customizing the analyses by offering several choices for most of the steps. The pipeline can make use of multiple computing nodes and scales from personal computers to computing servers. The analyses and results are fully reproducible and documented in an html and optional pdf report.
 
-**Current version:** 4.6.2
+**Current version:** 4.8.0
 
 ## Installation
 
