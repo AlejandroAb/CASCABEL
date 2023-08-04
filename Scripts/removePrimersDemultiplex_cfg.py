@@ -1,13 +1,15 @@
 """
-This Script use a mapping file to identify primer sequences and run cutadapt.
+This Script use the primer values from the config file to run cutadapt.
 If only found "LinkerPrimerSequence" runs cutadapt with option -g LPS
 If found "ReverseLinkerPrimerSequence" runs cutadapt with option -a LPS...rc(RvLPS)
 If found "ReverseLinkerPrimerSequenceRevCom" runs cutadapt with option -a LPS...RvLPSRevComp 
 """
 import os
 import subprocess
+from sys import stdin
 from benchmark_utils import countFasta
 from benchmark_utils import countFastaGZ
+import shutil
 
 def complement(seq):
     complement = {'A': 'T', 'C': 'G', 'G': 'C', 'T': 'A', 'Y':'R', 'R':'Y','S':'S','W':'W','K':'M','M':'K','N':'N','B':'V','V':'B','D':'H','H':'D'} 
@@ -28,43 +30,107 @@ if not os.path.exists(snakemake.params[0]+"/primer_removed/"):
 if not os.path.exists(snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/report_files"):
     os.makedirs(snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/report_files")
 
-summ_file = open(snakemake.output[0],"w")
-summ_file2 = open(snakemake.params[4],"w")
+summ_file = open(snakemake.output[0],"w") # this iss a log for the wf
+summ_file2 = open(snakemake.params[4],"w") # this is for the report
 summ_file.write("Sample\tReads_before_cutadapt\tSurviving_reads\tPrc_surviving_reads\n");
 summ_file2.write("Sample\tReads_before_cutadapt\tSurviving_reads\tPrc_surviving_reads\n");
+log_str = "Sample\tReads_before_cutadapt\tSurviving_reads\tPrc_surviving_reads\n"
+log_zero = "Sample\tReads_before_cutadapt\tSurviving_reads\tPrc_surviving_reads\n"
+has_zero_length_reads = False
+zero_samples = 0;
+to_remove = []
+
 for fw in fq_files:
     sample=fw.replace("_1."+snakemake.params[2],"")
     fw_fq= snakemake.params[0]+"/"+fw
     rv=fw.replace("_1."+snakemake.params[2],"_2."+snakemake.params[2])
     rv_fq= snakemake.params[0]+"/"+rv
     discard_untrimmed=""
-    extra_params=snakemake.params[1] 
-    if snakemake.params[3] == "PE":
-        if "--discard-untrimmed" in snakemake.params[1]:
-            discard_untrimmed=" --untrimmed-output "+snakemake.params[0]+"/reads_discarded_primer/"+sample+"_1.fastq.gz --untrimmed-paired-output  "+snakemake.params[0]+"/reads_discarded_primer/"+sample+"_2.fastq.gz"
-            extra_params=snakemake.params[1].replace("--discard-untrimmed","")
-        #print("cutadapt -g "+ primer_by_sample[sample][0] + " -G " + primer_by_sample[sample][1] + " " +extra_params+" -O "+ snakemake.config["demultiplexing"]["primers"]["min_overlap"] +" -o "+snakemake.params[0]+"/primer_removed/"+sample+"_1.fastq.gz -p "+snakemake.params[0]+"/primer_removed/"+sample+"_2.fastq.gz "+discard_untrimmed +" "+ fw_fq + " " +  rv_fq + " >> "+snakemake.params[0]+"/primer_removed/"+sample+".cutadapt.log")
-        subprocess.run(["cutadapt -g "+ snakemake.config["demultiplexing"]["primers"]["fw_primer"]  + " -G " + snakemake.config["demultiplexing"]["primers"]["rv_primer"]  + " " +extra_params+" -O "+ snakemake.config["demultiplexing"]["primers"]["min_overlap"] +" -o "+snakemake.params[0]+"/primer_removed/"+sample+"_1.fastq.gz -p "+snakemake.params[0]+"/primer_removed/"+sample+"_2.fastq.gz "+discard_untrimmed +" "+ fw_fq + " " +  rv_fq + " >> "+snakemake.params[0]+"/primer_removed/"+sample+".cutadapt.log"],stdout=subprocess.PIPE, shell=True)
-        #subprocess.run(["grep \"(passing filters)\" "+snakemake.params[0]+"/primer_removed/"+sample+".cutadapt.log | awk '{print \""+sample+"\t\"$5\"\t\"$6}' >> "+snakemake.output[0]],stdout=subprocess.PIPE, shell=True)
-        #subprocess.run( ["cutadapt "+ primer_set +" "+snakemake.params[0]+" -o "+snakemake.output[0] + " " + snakemake.input[0]+ ">"+ snakemake.output[1]],stdout=subprocess.PIPE, shell=True)
-    elif snakemake.params[3] == "SE":
-        if "--discard-untrimmed" in snakemake.params[0]:
-            discard_untrimmed=" --untrimmed-output "+snakemake.params[0]+"/reads_discarded_primer/"+sample+"_1.fastq.gz"
-            extra_params=snakemake.params[1].replace("--discard-untrimmed","") 
-        subprocess.run(["cutadapt -g "+ snakemake.config["demultiplexing"]["primers"]["fw_primer"] +" " +extra_params+" -O "+ snakemake.config["demultiplexing"]["primers"]["min_overlap"] +" -o "+snakemake.params[0]+"/primer_removed/"+sample+"_1.fastq.gz "+ discard_untrimmed + " " + fw_fq + " >> "+ snakemake.params[0]+"/primer_removed/"+sample+".cutadapt.log"],stdout=subprocess.PIPE, shell=True)  
-        #subprocess.run(["grep \"(passing filters)\" "+snakemake.params[0]+"/primer_removed/"+sample+".cutadapt.log | awk '{print \""+sample+"\t\"$5\"\t\"$6}' >> "+snakemake.output[0]],stdout=subprocess.PIPE, shell=True)
-    #cmd="cat"
+    extra_params=snakemake.params[1]
+#Count reads before trimming
     if snakemake.params[2].endswith("gz"):
-        #cmd="zcat"
         reads_ori=countFastaGZ(fw_fq,True)
-        reads_after=countFastaGZ(snakemake.params[0]+"/primer_removed/"+sample+"_1.fastq.gz",True)
     else:
         reads_ori=countFasta(fw_fq,True)
-        reads_after=countFasta(snakemake.params[0]+"/primer_removed/"+sample+"_1.fastq.gz",True)
-    prcOK="{:.2f}".format(float((reads_after/reads_ori)*100))
+#no cutadapt if no reads 
+    if reads_ori > 0:
+        if snakemake.params[3] == "PE":
+            if "--discard-untrimmed" in snakemake.params[1]:
+                discard_untrimmed=" --untrimmed-output "+snakemake.params[0]+"/reads_discarded_primer/"+sample+"_1.fastq.gz --untrimmed-paired-output  "+snakemake.params[0]+"/reads_discarded_primer/"+sample+"_2.fastq.gz"
+                extra_params=snakemake.params[1].replace("--discard-untrimmed","")
+            subprocess.run(["cutadapt -g "+ snakemake.config["primers"]["fw_primer"]  + " -G " + snakemake.config["primers"]["rv_primer"]  + " " +extra_params+" -O "+ snakemake.config["primers"]["min_overlap"]+" -m "+ snakemake.config["primers"]["min_length"] +" -o "+snakemake.params[0]+"/primer_removed/"+sample+"_1.fastq.gz -p "+snakemake.params[0]+"/primer_removed/"+sample+"_2.fastq.gz "+discard_untrimmed +" "+ fw_fq + " " +  rv_fq + " >> "+snakemake.params[0]+"/primer_removed/"+sample+".cutadapt.log"],stdout=subprocess.PIPE, shell=True)
+        elif snakemake.params[3] == "SE":
+            if "--discard-untrimmed" in snakemake.params[0]:
+                discard_untrimmed=" --untrimmed-output "+snakemake.params[0]+"/reads_discarded_primer/"+sample+"_1.fastq.gz"
+                extra_params=snakemake.params[1].replace("--discard-untrimmed","") 
+            subprocess.run(["cutadapt -g "+ snakemake.config["primers"]["fw_primer"] +" " +extra_params+" -O "+ snakemake.config["primers"]["min_overlap"]+" -m "+ snakemake.config["primers"]["min_length"] +" -o "+snakemake.params[0]+"/primer_removed/"+sample+"_1.fastq.gz "+ discard_untrimmed + " " + fw_fq + " >> "+ snakemake.params[0]+"/primer_removed/"+sample+".cutadapt.log"],stdout=subprocess.PIPE, shell=True)  
+        
+        if snakemake.params[2].endswith("gz"):
+            reads_after=countFastaGZ(snakemake.params[0]+"/primer_removed/"+sample+"_1.fastq.gz",True)
+        else:
+            reads_after=countFasta(snakemake.params[0]+"/primer_removed/"+sample+"_1.fastq",True)
+        
+        prcOK="{:.2f}".format(float((reads_after/reads_ori)*100))
+
+    else:
+        reads_after = 0
+        prcOK="{:.2f}".format(float((reads_after/1)*100))
+        to_copy=snakemake.params[0]+"/primer_removed/"+sample+"_1."+snakemake.params[2]
+        os.symlink(fw_fq,to_copy)
+        if snakemake.params[3] == "PE":
+            to_copy_rv=snakemake.params[0]+"/primer_removed/"+sample+"_2."+snakemake.params[2]
+            os.symlink(rv_fq,to_copy_rv)
+
+    if reads_after < 1:
+        has_zero_length_reads = True
+        log_zero = log_zero + sample+"\t"+str(reads_ori)+"\t"+str(reads_after)+"\t"+prcOK+"\n"
+        to_remove.append(snakemake.params[0]+"/primer_removed/"+sample+"_1."+snakemake.params[2])
+        if snakemake.params[3] == "PE":
+            to_remove.append(snakemake.params[0]+"/primer_removed/"+sample+"_2."+snakemake.params[2])
+        zero_samples = zero_samples + 1
+
+    log_str = log_str + sample+"\t"+str(reads_ori)+"\t"+str(reads_after)+"\t"+prcOK+"\n"
     summ_file.write(sample+"\t"+str(reads_ori)+"\t"+str(reads_after)+"\t"+prcOK+"\n");
     summ_file2.write(sample+"\t"+str(reads_ori)+"\t"+str(reads_after)+"\t"+prcOK+"\n");
 
 summ_file.close()
-summ_file2.close()    
+summ_file2.close()
 
+user_input="0"
+show_menu = True
+if zero_samples > 0:
+    while show_menu:
+        print("\033[91m\n###########  Primer removal validation    ###########\033[0m")
+        print("\033[91m You have " + str(zero_samples) + " samples without reads surviving filters. \033[0m")
+        print("\033[92m LIBRARY: "+snakemake.wildcards.sample+" \033[0m")
+        print("\033[92m cutadapt_log: "+snakemake.params[0]+"/primer_removed/"+sample+".cutadapt.log \033[0m")
+        print("\033[93m Please select one of the following options: \033[0m")
+        print("\033[93m   1. Print samples with 0 reads \033[0m")
+        print("\033[93m   2. Print summary (all the samples) \033[0m")
+        print("\033[93m   3. Remove from this analysis samples with 0 reads\033[0m")
+        print("\033[93m      and continue with the workflow. \033[0m")
+        print("\033[93m   4. Interrupt the workflow and re-do primer removal step. \033[0m")
+        print("\033[93m      Adjust primer values in your configuration and/or mapping file \033[0m")
+        print("\033[93m      and restart the pipeline. \033[0m")
+        print("\033[93m      This action will remove:"+snakemake.params[0]+"/primer_removed \033[0m")
+        print("\033[93m   5. Interrupt the workflow \033[0m")
+        print("\033[93m   6. Continue with the workflow\n      (an error will be raised during dada2)\n      Pointless option... \033[0m")
+        print("\033[93m Select an option: \033[0m")
+        user_input = stdin.readline() #READS A LINE
+        user_input = user_input[:-1]
+        if user_input == "1":
+            print(log_zero)
+        elif user_input == "2":
+            print(log_str)
+        elif user_input == "3":
+            for file in to_remove:
+                newn = file+"_NOK"
+                os.rename(file, newn)
+                show_menu = False
+        elif user_input == "4":
+            shutil.rmtree(snakemake.params[0]+"/primer_removed")
+            exit(1) 
+        elif user_input == "5":
+            exit(1)
+
+exit(0)

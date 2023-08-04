@@ -244,11 +244,11 @@ ANALYSIS_TYPE: "ASV"
 
 
 #------------------------------------------------------------------------------#
-# BOTH_WF:                  UNPAIRED DATA WORK FLOW                             #
+# BOTH_WF:                  UNPAIRED DATA WORK FLOW                            #
 #------------------------------------------------------------------------------#
 # A regular workflow for marker gene analysis using paired-end data,           #
 # comprehends the merging of forward and reverse reads, prior to continuing    #
-# with downstream analysis implemented within this pipeline.   	  	           #
+# with downstream analysis implemented within this pipeline.   	  	       #
 # However, primers can intentially amplify fragments which are so large that   #
 # forward and reverse reads do not overlap. A regular analysis would discard   #
 # all those "unpaired" reads during the FW and RV read assembly. For this      #
@@ -256,7 +256,7 @@ ANALYSIS_TYPE: "ASV"
 # continuing with assembled reads, un-assembled reads are concatenated together# 
 # with a degenerated base 'N' between the FW read and the reverse complemented #
 # RV read (which does not significantly influence k-mer based classification   #
-# methods such as RDP).                                                        #                                                                             #
+# methods such as RDP).                                                        #
 #-----------------------------       PARAMS       -----------------------------#
 #                                                                              #
 #                                                                              # 
@@ -393,7 +393,7 @@ java:
 
 #------------------------------------------------------------------------------#
 # BOTH_WF:          Demultiplex input files                                    #
-# rule: write_dmx_files                                                        #
+# rule: write_dmx_files, correct_barcodes                                      #
 #------------------------------------------------------------------------------#
 # Cascabel optionally performs library demultiplexing for barcoded reads.      #
 # This feature can be turned ON/OFF with the following options:                #
@@ -424,29 +424,52 @@ java:
 #                       For example, the user can change the prefix and suffix #
 #                       of the output files. To see the available parameters,  #
 #                       run: java -cp Scripts DemultiplexQiime.                #
-# - primers             In the same sense as for "remove_bc" option,           #
-#                       demultiplexed reads may contain adapters or primers.   #
-#                       The following parameters supply options for removing   #
-#                       these sequences by using cutadapt.                     #
-#   ** remove           Removing or not any kind of adapter.                   #
-#                       This option can remove primer even though the          #
-#                       "demultiplex" option is set to false ("F"). Useful when#
-#                       starting with demultiplexed reads containing adapters  #
-#                       for a ASV workflow. Valid options for this entry are:  #
-#                       "F" do not remove primers.                             #
-#                       "CFG" Remove adapters using values from the            #
-#                       configuration file.                                    #
-#                       "METADATA" Adapters are taken from the metadata/mapping#
-#                       file.                                                  #  
-#                       [default: F].                                          #
+# - bc_mismatch         Number of allowed mismatches for barcode correction    #
+#                       (computed using the Levenshtein distance).             #
+#                        bc_mismatch = 0: don't allow mismatches in the barcode#
+#                        bc_mismatch > 0: correct bc_mismatch bases at maximum.#
+# - bcc_params:         Extra parameters for the barcode corrector tool.       #  
+#                       Use: java -jar Scripts/BarcodeCorrector.jar to see     #
+#                       available options.                                     # 
+# - create_tag_pairs_heatmap: "T"   The barcode correction tool is useful for  #
+#                       detecting tag jumps. Set this to true "T" to create a  #
+#                       heatmap with the different tag pairs along a paired-end#
+#                       library.                                               #
+#------------------------------------------------------------------------------#
+demultiplexing:                                  
+  demultiplex: "T"                               
+  create_fastq_files: "T"                        
+  remove_bc: 12                                  
+  order_by_strand: "T"                           
+  add_unpair: "T"                                
+  dmx_params: "--remove-header"                  
+  bc_mismatch: 0                                 
+  extra_params: ""       
+  create_tag_pairs_heatmap: "T"                  
+                                                 
+#------------------------------------------------------------------------------#
+# BOTH_WF:             Remove adapters / primers                               #
+# rule: cutadapt                                                               #
+#------------------------------------------------------------------------------#
+# This rule runs Cutadapt. Cutadapt searches for primers in the reads and      #
+# removes them when it finds any.                                              #
+# For details, see: http://cutadapt.readthedocs.io/en/stable/guide.html        #
+# - remove      "F" do not remove primers.                                     #
+#               "CFG" Remove adapters using values from the configuration file #
+#               "METADATA" Adapters are taken from the metadata/mapping file   #
+#               [default: F].                                                  #
 #   ** fw_primer        Sequence to be removed from forward reads. It accepts  #
 #                       IUPAC wildcards, e.g., "^GTGYCAGCMGCCGCGGTAA".         #
 #                       Only use it whit - remove: "CFG" -                     #
 #   ** rv_primer        Sequence to be removed from reverse reads. It accepts  #
 #                       IUPAC wildcards, e.g., "^GGACTACNVGGGTWTCTAAT".        #
-#                       Only use it whit - remove: "CFG" - 
+#                       Only use it whit - remove: "CFG" -                     #
 #   ** min_overlap      Minimum overlap between a primer and a sequence to be  #
 #                       identified.                                            #
+#   ** min_len          Minimum sequence length after removing primes.         #
+#   ** min_prc          Minimum percentage of reads passing filters for        #
+#                       Cascabe to stop the workflow. [def. 50%]               #
+#   ** threads          Number of cpus for cutadapt. [def. 10]                 # 
 #   ** extra_params     Any extra parameter that you wish to supply to  the    #
 #                       cutadapt command.                                      #
 #                       By default Cascabel includes the values                #
@@ -457,19 +480,17 @@ java:
 #                sequences to an output file so no need to add Cutadapt's      #
 #                option "--untrimmed-output".                                  #
 #------------------------------------------------------------------------------#
-demultiplexing:
-  demultiplex: "T"
-  create_fastq_files: "T"
-  remove_bc: 12
-  order_by_strand: "T"
-  add_unpair: "T"
-  dmx_params: "--remove-header"
-  primers:
-    remove: "F"
-    fw_primer: ""
-    rv_primer: ""
-    min_overlap: "5"
-    extra_params: "--discard-untrimmed --match-read-wildcards"
+primers:                                                      
+  remove: "F"                                          
+  fw_primer: ""                                               
+  rv_primer: ""                                               
+  min_overlap: "5"                                            
+  min_length: "100"                                           
+  min_prc: 50                                                 
+  threads: 10                                                 
+  extra_params: "--discard-untrimmed --match-read-wildcards " 
+
+
     
 #------------------------------------------------------------------------------#
 # BOTH_WF:                  Extract barcodes                                   #
@@ -483,7 +504,7 @@ demultiplexing:
 #                                                                              #
 # - c             This parameter allows to choose the barcode configuration:   #
 #                 "barcode_single_end". The merged fragments start with the    #
-#		          barcode sequence.                                    #
+#		          barcode sequence.                                            #
 #                 "barcode_paired_stitched". Input has barcodes at the         #
 #                 beginning and end of the merged fragment.                    #
 #                 "barcode_paired_end". This option is not valid here since    #
@@ -498,22 +519,6 @@ ext_bc:
   c: "barcode_paired_stitched"
   bc_length: "--bc1_len 12 --bc2_len 12"
   extra_params: ""
-
-#------------------------------------------------------------------------------#
-# BOTH_WF:                    Barcode correction                               #
-# rules: correct_barcodes, correct_barcodes_unassigned                         #
-#------------------------------------------------------------------------------#
-# This parameter allows error correction of barcodes. First, barcodes perfectly#
-# matching a sample barcode in the mapping file will be assigned to the        #
-# samples. If error correction is enabled, barcodes will be assigned to the    #
-# closest barcode with increasing number of mismatches until the maximum number# 
-# of mismatches has been reached, e.g. if the mismatch is equal to "2", first  #
-# barcodes with one mismatch will be assigned, then barcodes with 2 mismatches.#
-#    bc_mismatch:  Number of allowed missmatches.                              # 
-#                  bc_mismatch = 0: don't allow mismatches in the barcode.     #
-#                  bc_mismatch > 0: correct bc_mismatch bases at maximum.      #
-#------------------------------------------------------------------------------#
-bc_mismatch: 2
 
 #------------------------------------------------------------------------------#
 # BOTH_WF:                    Split libraries                                  #
@@ -551,7 +556,7 @@ split:
 #                                                                              #
 # - generateQAplots   Cascabel already generates FastQC reports, however dada2 #
 #                     quality plots can be generated by passing "T".           #
-#                     Default "F".                                             #
+#                     Default "T".                                             #
 # - truncFW           Truncate forward reads after truncFW bases. Reads shorter# 
 #                     than this are discarded. Your reads must still overlap   #
 #                     after truncation in order to merge them later.           #      
@@ -582,7 +587,7 @@ split:
 # merge them later."                                                           #
 #------------------------------------------------------------------------------# 
 dada2_filter:
-  generateQAplots: "F"
+  generateQAplots: "T"
   truncFW: 0
   truncRV: 0
   maxEE_FW: 3
@@ -605,7 +610,7 @@ dada2_filter:
 #                   region.                                                    #
 #------------------------------------------------------------------------------#
 dada2_merge:
-  minOverlap: 10
+  minOverlap: 12
   maxMismatch: 0
 
 #------------------------------------------------------------------------------#
@@ -617,7 +622,7 @@ dada2_merge:
 #                                                                              #
 #-----------------------------       PARAMS       -----------------------------#
 #                                                                              #
-# - generateErrPLots    Default "F". Use "T" to generate the error plots       #
+# - generateErrPLots    Default "T". Use "T" to generate the error plots       #
 #                       generated with the learned errors from the             #
 #                       learnErrors() function.                                #
 # - pool                If pool = "TRUE", the algorithm will pool together all #
@@ -639,7 +644,7 @@ dada2_merge:
 dada2_asv:
   generateErrPlots: "T"
   pool: "pseudo"
-  cpus: 10
+  cpus: 15
   chimeras : "T"
   extra_params: "selfConsist=FALSE"
 
@@ -680,11 +685,11 @@ dada2_asv:
 # downloaded.                                                                  #  
 #------------------------------------------------------------------------------#
 dada2_taxonomy:
-  db: "/Full_Path/to/DB"
+  db: "/Absolute/Path/to/db/i.e./silva_nr_v132_train_set.fa.gz"
   extra_params: "minBoot=50"
   add_sps: 
-    add: "T"
-    db_sps: "NONE"
+    add: "F"
+    db_sps: "/Absolute/Path/to/sp_db/i.e./silva_species_assignment_v132.fa.gz"
     extra_params: "allowMultiple=TRUE"
 
 #------------------------------------------------------------------------------#
@@ -714,70 +719,6 @@ align_vs_reference:
   align: "F"
   dbAligned: ""
   cpus: 4
-
-#------------------------------------------------------------------------------#
-# OTU_WF:             Remove adapters / primers                                #
-# rule: cutadapt                                                               #
-#------------------------------------------------------------------------------#
-# This rule runs Cutadapt. Cutadapt searches for adapters in the reads and     #
-# removes them when it finds any.                                              #
-# For details, see: http://cutadapt.readthedocs.io/en/stable/guide.html        #
-#                         +++++++++++++++++++++++                              #                              
-#                              IMPORTANT NOTE!!                                #
-#                         ++++++++++++++++++++++++                             #  
-# Please be aware that Cascabel runs cutadapt when the reads are already merged# 
-# and thus, if adapters are supplied via de configuration file, be sure to use #
-# the reverse complement of the reverse primer, if any. If the adapters are    # 
-# supplied via the metadata file, Cascabel will reverse complement the reverse #
-# primer unless the header "ReverseLinkerPrimerSequenceRevCom"  or             # 
-# "ReversePrimerRevCom" is used.                                               #
-# Please visit Cascabel's wiki at                                              # 
-# https://github.com/AlejandroAb/CASCABEL/wiki#235-removing-primers for more   #
-# details.                                                                     #
-#-----------------------------       PARAMS       -----------------------------#
-#                                                                              #
-# - cutAdapters  "F" do not remove primers                                     #
-#                "CFG" Remove adapters using values from the configuration file#
-#                "METADATA" Adapters are taken from the metadata/mapping file  #  
-#                [default: F].                                                 #
-# - command      Necessary command to invoke cutadapt [default: "cutadapt"].   #
-# - adapters     "-a ADAPTER" Remove adapters at the 3' end of the             #
-#                sequence. Cutadapt deals with 3' adapters by removing the     #
-#                adapter and any sequence that may follow. Add the "$"         #
-#                character to the end of an adapter sequence in order to anchor#
-#                the adapter to the end of the read, such as "-a ADAPTER$". The#
-#                adapter will only be removed if it is a suffix of the read.   #
-#                "-g ADAPTER" Removes adapters at the 5' end. If you want to   #
-#                trim only if the sequence starts with the adapter, use        #
-#                "-g ^ADAPTER". The "^" character indicates that the adapter is#
-#                'anchored' at the beginning of the read. In other words: The  #
-#                adapter is expected to be a prefix of the read.               #
-#                If your sequence of interest is 'framed' by a 5' and a 3'     #
-#                adapter and you want to remove both adapters, then you may    #
-#                want to use a linked adapter. A linked adapter combines an    #
-#                anchored 5' adapter and a 3' adapter. The 3' adapter can be   #
-#                regular or anchored. The idea is that a read is only trimmed  #
-#                if the anchored adapters occur. Thus, the 5' adapter is always#
-#                required, and if the 3' adapter was specified as anchored, it #
-#                also must exist for a successful match, e.g.                  #      
-#                -a GTGYCAGCMGCCGCGGTAA...ATTAGAWACCCVNGTAGTCC                 #
-# - extra_params Any extra parameter. Here, users can supply any cutadapt      #
-#                option. By default Cascabel includes the values               #
-#                "--discard-untrimmed" and "--match-read-wildcards". The former# 
-#                will discard reads without adapters and the latest interprets #
-#                IUPAC wildcards in the reads. Notice that when using          #
-#                "--discard-untrimmed" Cascabel will redirect the untrimmed    #
-#                sequences to an output file so no need to add Cutadapt's      #
-#                option "--untrimmed-output".                                  #
-# More info and options at http://cutadapt.readthedocs.io/en/stable/guide.html #
-#------------------------------------------------------------------------------#
-cutAdapters: "F"
-cutadapt:
-  command: "cutadapt"
-  adapters: ""
-  extra_params: "--discard-untrimmed --match-read-wildcards"
-  threads: 10
-  min_prc: 50 #minimum percenatge (0-100) of reads passing filters for the non interactive mode to stop
 
 #------------------------------------------------------------------------------#
 # OTU_WF:                 Identify chimeric sequences                          #
@@ -821,7 +762,7 @@ chimera:
   search: "F"
   method: "uchime_ref"
   threads: 10
-  extra_params: "--db /{FULL_PATH}/gold.fa"
+  extra_params: "--db /Absolute/Path/gold.fa"
 
 #------------------------------------------------------------------------------#
 # BOTH_WF:           Length filtering for OTU or ASV                           #
@@ -869,8 +810,8 @@ chimera:
 rm_reads:
   non_interactive_behaviour: "AVG"
   offset: 10
-  longs: 220
-  shorts: 260
+  longs: 260
+  shorts: 220
 
 
 #------------------------------------------------------------------------------#
@@ -1105,18 +1046,18 @@ assignTaxonomy:
     extra_params: ""
   vsearch:
     command: "vsearch"
-    db_file: "/{FULL_PATH}/silva132_99.fna" #available at https://www.arb-silva.de/fileadmin/silva_databases/qiime/Silva_132_release.zip
-    mapFile: "/{FULL_PATH}/taxonomy_7_levels.txt" #available at https://www.arb-silva.de/fileadmin/silva_databases/qiime/Silva_132_release.zip
-    identity: 0.7
+    db_file: "/ABSOLUTE/PATH/silva132_99.fna" #available at https://www.arb-silva.de/fileadmin/silva_databases/qiime/Silva_132_release.zip
+    mapFile: "/ABSOLUTE/PATH/taxonomy_7_levels.txt" #available at https://www.arb-silva.de/fileadmin/silva_databases/qiime/Silva_132_release.zip
+    identity: 0.8
     taxo_separator: "';'" 
     max_target_seqs: 5 
     identity_definition: 2  
     jobs: 10
     extra_params: "--top_hits_only --maxrejects 32"
   qiime:
-    method: "uclust"
-    mapFile: "97_otu_taxonomy.txt."
-    dbFile: "97_otus.fasta"
+    method: "rdp"
+    mapFile: "/ABSOLUTE/PATH/pr2_version_4.12.0_18S_UTAX_8l.tax.tsv" #available at https://github.com/pr2database/pr2database/releases
+    dbFile: "/ABSOLUTE/PATH/pr2_version_4.12.0_18S_mothur.fasta" #available at https://github.com/pr2database/pr2database/releases
     dbType: "-r"
     jobs: 10
     extra_params: ""
@@ -1229,7 +1170,7 @@ filterFasta:
 #-----------------------------       PARAMS       -----------------------------#
 #                                                                              #
 # - align          [T/F] The user can skip this rule by setting 'align' to "F" #
-#                  [default: "T"].                                             #
+#                  [default: "F"].                                             #
 # -m               Method for aligning sequences. Valid choices are: "pynast", #
 #                  "infernal", "clustalw", "muscle", "mafft".                  #
 #                  [default: "pynast"].                                        #        
@@ -1237,7 +1178,7 @@ filterFasta:
 #                  options.                                                    #
 #------------------------------------------------------------------------------#
 alignRep:
-  align: "T"
+  align: "F"
   m: "pynast"
   extra_params: ""
 

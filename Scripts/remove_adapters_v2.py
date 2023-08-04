@@ -36,7 +36,7 @@ if "--discard-untrimmed" in snakemake.params[0]:
 if not os.path.exists(snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/report_files"):
     os.makedirs(snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/report_files")
 
-if snakemake.config["cutAdapters"].lower() == "metadata":
+if snakemake.config["primers"]["remove"].lower() == "metadata":
     with open(snakemake.input[1]) as mappingFile:
         l=0
         for line in mappingFile:
@@ -48,7 +48,7 @@ if snakemake.config["cutAdapters"].lower() == "metadata":
                 c=0
                 #Find target headers
                 for col in columns:
-                    if col == "ReversePrimer" or col == "LinkerPrimerSequenceReverse"  or col == "ReverseLinkerPrimerSequence"  or col == "RvLinkerPrimerSequence" :
+                    if col == "ReversePrimer" or col == "LinkerPrimerSequenceReverse"  or col == "ReverseLinkerPrimerSequence"  or col == "RvLinkerPrimerSequence" or col == "ReversePrimerSequence" :
                         idx_rv_primer=c
                     elif col == "LinkerPrimerSequence":
                         idx_fw_primer=c
@@ -138,8 +138,12 @@ if snakemake.config["cutAdapters"].lower() == "metadata":
             primers.write(primer_set)
             primers.close()
 else: #values come at the CFG, run only once
-    subprocess.run( ["cutadapt  "+ snakemake.config["cutadapt"]["adapters"] +" "+extra+" -o "+snakemake.output[0] + " "+ no_primer +" " + snakemake.input[0]+ ">"+ snakemake.params[5]],stdout=subprocess.PIPE, shell=True)
-    primer_set = snakemake.config["cutadapt"]["adapters"]
+    primer_set="-g " + snakemake.config["primers"]["fw_primer"]
+    if snakemake.config["primers"]["rv_primer"].len() > 2 :
+        primer_set=primer_set+"..."+reverse_complement(snakemake.config["primers"]["rv_primer"])
+
+    subprocess.run( ["cutadapt  "+ primer_set  +" "+extra+" -o "+snakemake.output[0] + " "+ no_primer +" " + snakemake.input[0]+ ">"+ snakemake.params[5]],stdout=subprocess.PIPE, shell=True)
+  #  primer_set = snakemake.config["cutadapt"]["adapters"]
     with open(snakemake.params[1], "w") as primers:
         primers.write(primer_set)
         primers.close()
@@ -155,11 +159,11 @@ while (user_input != "1" and user_input !=  "2"):
     print("\033[93m Total number of initial reads: " + str(initialReads) + " \033[0m")
     print("\033[93m Total number of surviving reads: " + str(survivingReads) + " = "+ prc_str + "% \033[0m")
     print("\033[93m You can find cutadapt's log file at: " + snakemake.params[5] +"\n \033[0m")
-    if snakemake.config["interactive"] != "F" or prc < snakemake.config["cutadapt"]["min_prc"]:
+    if snakemake.config["interactive"] != "F" or prc < snakemake.config["primers"]["min_prc"]:
         print("\033[92m What would you like to do? \033[0m")
         print("\033[92m 1. Continue with the workflow. \033[0m")
         print("\033[92m 2. Interrupt the workflow. \033[0m")
-        if snakemake.config["cutAdapters"].lower() == "metadata" and  len(uniq_primers)>1:
+        if snakemake.config["primers"]["remove"].lower() == "metadata" and  len(uniq_primers)>1:
             print("\033[92m 3. Print results by sample. \033[0m")
         user_input = stdin.readline() #READS A LINE
         user_input = user_input[:-1]
@@ -181,7 +185,7 @@ while (user_input != "1" and user_input !=  "2"):
         print("\033[93m" +" Removing primers...\033[0m")
         user_input="1"
 # if we ran multiple cutadap tasks, now delete tmp files and logs. 
-if snakemake.config["cutAdapters"].lower() == "metadata" and  len(uniq_primers)>1: 
+if snakemake.config["primers"]["remove"].lower() == "metadata" and  len(uniq_primers)>1: 
     print("\033[96mCleaning intermediate files...\033[0m")
     subprocess.run( ["rm -fr " + snakemake.params[4]],stdout=subprocess.PIPE, shell=True)
 

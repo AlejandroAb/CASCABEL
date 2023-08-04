@@ -9,8 +9,8 @@ library(Biostrings)
 
 args <- commandArgs(trailingOnly = T)
 #args[1] = path for seting WD to use current dir use $PWD
-#args[2] = Generate QAplots
-#args[3] = trunc FW
+#args[2] = Generate QAplots (T or F)
+#args[3] = trunc FW 
 #args[4] = trunc RV
 #args[5] = maxEE FW
 #args[6] = maxEE RV
@@ -18,7 +18,8 @@ args <- commandArgs(trailingOnly = T)
 #args[8] = filterAndTrim function extra params
 #args[9] = interactive behavior
 #args[10] = output filter summary
-#args[11]... = summary files from libraries
+#args[11] = remove primers: config["demultiplexing"]["primers"]["remove"]
+#args[12]... = summary files from libraries
 
 
 setwd(args[1])
@@ -36,12 +37,13 @@ if (args[11] != "F" && args[11] != "FALSE" ){
 }
 
 #List files
-filesForw <- sort(list.files(paths, pattern="_1.fastq.gz", full.names = TRUE))
-filesRev <- sort(list.files(paths, pattern="_2.fastq.gz", full.names = TRUE))
+filesForw <- sort(list.files(paths, pattern="_1.fastq.gz$", full.names = TRUE))
+filesRev <- sort(list.files(paths, pattern="_2.fastq.gz$", full.names = TRUE))
 
 #Get sample names
 sample.names <- gsub('_1.fastq.gz', '', basename(filesForw))
 
+print(sample.names)
 
 #if we want to save the plot we can do the following
 asv_dir <- gsub("filter_summary.out","", args[10])
@@ -84,7 +86,7 @@ createMenuConsole <- function()
     cat("then update your settings with \"dada2_filter: generateQAplots = T\" and \n")
     cat("re-run the pipeline.\n\n") 
   }
-  cat("Your current values are:\n")
+  cat("\nYour current values are:\n")
   cat(paste(" * Forward: ",args[3],"\n"))
   cat(paste(" * Reverse: ",args[4],"\n"))
   cat("\nA value of \"0\" means no truncation.\n")

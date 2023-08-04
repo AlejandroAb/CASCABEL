@@ -2,7 +2,7 @@ from sys import stdin
 if snakemake.config["interactive"] == "F":
     print("\033[93m" +"Interactive mode off \033[0m")
     print("\033[93m" +"We suggest to review the full FastQC report at: "+ snakemake.input[1]+ "\033[0m")
-    with open(snakemake.output[i], "w") as tmplog:
+    with open(snakemake.output[0], "w") as tmplog:
         tmplog.write("Interactive mode. QC validation skipped")
         tmplog.close()
 else:

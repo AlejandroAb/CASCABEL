@@ -60,8 +60,8 @@ def main():
         taxonomies = list()
         accessions = list()
         output_file = input_file.replace("hits.", "results.")
-        with open(input_file, "rb") as input_file:
-            with open(output_file, "wb") as output_file:
+        with open(input_file, "r") as input_file:
+            with open(output_file, "w") as output_file:
                 for line in input_file:
                     amplicon, identity, hit = line.strip().split("\t")
                     #DO NOT WORK WITH THE ABUNDANCE 

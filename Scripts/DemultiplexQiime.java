@@ -12,9 +12,9 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- * Create single sample fastq files 
+ *
  * @author aabdala
- * @version 1.1
+ * @version 1.0
  */
 public class DemultiplexQiime {
 
@@ -26,7 +26,8 @@ public class DemultiplexQiime {
     private String forward = "";
     private String reverse = "";
     private String paired = "";
-    private boolean fastq = true;
+    private boolean fastq = true; //if the input file is a fastq file.
+    private boolean textFile = false; //if the input file is a txt file with one header per line
     private boolean raw_fastq = true;
     private String orientation = "fw_rv";
     int bc_length = 0;
@@ -136,6 +137,9 @@ public class DemultiplexQiime {
 
             } else if (args[i].equals("--fasta")) {
                 dmx.setFastq(false);
+            } else if (args[i].equals("--txt")) {
+                dmx.setTextFile(true);
+                dmx.setFastq(false);
             } else if (args[i].equals("--out-fasta")) {
                 dmx.setRaw_fastq(false);
             } else if (args[i].equals("-v") || args[i].equals("--verbose")) {
@@ -190,6 +194,14 @@ public class DemultiplexQiime {
             dmx.processFastQ();
         }
 
+    }
+
+    public boolean isTextFile() {
+        return textFile;
+    }
+
+    public void setTextFile(boolean textFile) {
+        this.textFile = textFile;
     }
 
     /**
@@ -267,6 +279,7 @@ public class DemultiplexQiime {
             String nl = System.getProperty("line.separator");
             FileWriter currentWriter = null;
             int factor = fastq ? 4 : 2;
+            factor = textFile ? 1 : factor;
             while ((linea = reader.readLine()) != null) {
                 try {
                     String sample;
@@ -303,15 +316,15 @@ public class DemultiplexQiime {
             String fw_header = "";
             if (forward.length() > 0) {
                 fw_header = evaluateHeader(forward);
-                if(fw_header.equals("")){
-                    fw_header="1:N:0:1";
+                if (fw_header.equals("")) {
+                    fw_header = "1:N:0:1";
                 }
             }
             String rv_header = "";
             if (reverse.length() > 0) {
                 rv_header = evaluateHeader(reverse);
-                 if(rv_header.equals("")){
-                    rv_header="2:N:0:1";
+                if (rv_header.equals("")) {
+                    rv_header = "2:N:0:1";
                 }
             }
             for (String key : writers.keySet()) {
@@ -423,7 +436,7 @@ public class DemultiplexQiime {
      * @param extra extra string to put to the names of the resultant files, for
      * example for forward reads "_1" or "_2" for reverse reads or "" for single
      * libraries
-     * @param header_extra When we create fastq files we need two use @ID
+     * @param header_extra When we create fastq files we need to use @ID
      * extra_info. The "extra_info" is useful to differentiate between forward
      * and reverse reads, since they have the same @ID. This validation can be
      * performed by some sequence repository platforms or also for tools. So,
@@ -435,7 +448,7 @@ public class DemultiplexQiime {
         String command = "";
         String file_extenssion = raw_fastq ? "fastq" : "fasta";
         int start_idx = bc_length + 1;
-        String header = removeHeader ? "$1 "  + "\" "+header_extra+"\"" : "$0";//all the header
+        String header = removeHeader ? "$1 " + "\" " + header_extra + "\"" : "$0";//all the header
         /*if (extra.equals("_1") && header.equals("$1")) {
             //header = "$1  \" 1:N:0:1\"";
             
@@ -500,7 +513,7 @@ public class DemultiplexQiime {
     private static void printHelp() {
         String helpHeader = "\n#################################################################\n"
                 + "###                      Sequence Demultiplexer               ###\n"
-                + "###                            v 1.1                          ###\n"
+                + "###                            v 1.2                          ###\n"
                 + "###                                       @company       NIOZ ###\n"
                 + "###                                       @author   A. Abdala ###\n"
                 + "#################################################################\n";
@@ -517,6 +530,8 @@ public class DemultiplexQiime {
         String help = ""
                 + "  -d  --dmx-file <file>    Fastq/Fasta file with the the sequences already demultiplexed on sequences header. \n"
                 + "      --fasta              If the input file (-d) is on fasta format pass this flag (defult input is fastq)\n"
+                + "      --txt                If the input file (-d) is a txt file with the headers, use this flag.\n"
+                + "                           This flag has precedence over the '--fasta' flag. (defult input is fastq)\n"
                 + "  -o  --out <dir>          Base directory to write the demultiplexed files\n"
                 + "      --out-fasta          If the output will be on fasta format pass this flag to use propper extension\n"
                 + "      --over-write         Overwrite generated files if exists at output directory. Default False\n"

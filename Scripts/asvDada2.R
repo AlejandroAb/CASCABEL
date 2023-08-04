@@ -41,65 +41,24 @@ args <- commandArgs(trailingOnly = T)
 #args[16]... = maxMismatch merge
 #args[17]... = mergePairs
 #args[18]... = add_sps extra_params
-#args[19]... = summary files from libraries
+#args[19]... = Interactive
+#args[20]... = NON Interactive behav.
+#args[21]... = summary files from libraries
 
-# suppose that we expand and pass the summary.txt from the output
-# we should have a path {project}/runs/{run}/{sample}_data/demultiplexed/
-#args<-c("/export/lv3/scratch/projects_AA/dada2_CASCABEL/CASCABEL",
- #       "pseudo","5","T","to_remove",
-  #      "cascabel_project/runs/Test/asv/","250","255","10","T",
-   #     "/export/data01/databases/silva/r132/dada2/silva_nr_v132_train_set.fa.gz",
-    #   "/export/data01/databases/silva/r132/dada2/silva_species_assignment_v132.fa.gz",
-     #   "T",",minBoot=50",12,0,
-      #  "cascabel_project/runs/Test/summer_data/demultiplexed/summary.txt", 
-       # "cascabel_project/runs/Test/winter_data/demultiplexed/summary.txt","cascabel_project/runs/Test")
-#Params testing QA Plots
-#args<-c("/export/lv3/scratch/projects_AA/PalRat_issue/CASCABEL", "pseudo",  
-#        10, T,  "selfConsist=FALSE", 
-#         "PalRat2013-14_Ev4/runs/Ev4_AdaptersTrimmed_dada2_17Feb2022/asv_test/",  
-#         "200", "500", "0", "T",  
-#        "/export/data01/databases/protist_ribosomal_db/pr2_v_4.12.0/pr2_version_4.12.0_18S_dada2.fasta", 
-#        "NONE",  "F", "minBoot=45, taxLevels = c('Kingdom','Supergroup','Division','Class','Order','Family','Genus','Species')",
-#        "12", "2",  "F",  "allowMultiple=TRUE", 
-#        "PalRat2013-14_Ev4/runs/Ev4_AdaptersTrimmed_dada2_17Feb2022/PAL_027_20130720_RF02_data/demultiplexed/summary.txt", 
-#        "PalRat2013-14_Ev4/runs/Ev4_AdaptersTrimmed_dada2_17Feb2022/PAL_027_20130720_RF30_data/demultiplexed/summary.txt", 
-#        "PalRat2013-14_Ev4/runs/Ev4_AdaptersTrimmed_dada2_17Feb2022/PAL_028_20130720_RF02_data/demultiplexed/summary.txt",
-#        "PalRat2013-14_Ev4/runs/Ev4_AdaptersTrimmed_dada2_17Feb2022/asv/filter_summary.validation.txt") 
 
-#print(args)
+
 setwd(args[1])
-#print(getwd())
-#Set the different paths for all the supplied libraries
-#print(args[1])
-#paths = c()
-#with args
 paths <-NULL
-for(i in 19:(length(args)-1)) {
+for(i in 21:(length(args)-1)) {
   #paths <- c(paths,gsub('demultiplexed/','demultiplexed/filtered/',gsub("/summary.txt", '',args[i])))
    paths <- c(paths,gsub("summary.txt", 'filtered/',args[i]))
 }
 print(paths)
-#with params
-#inputs <- unlist((strsplit(unlist(snakemake@input[[2]]), split=" ")))
-#print(inputs)
-#for(i in 1:length(inputs)) {
-#    paths <- c(paths,gsub("/summary.txt", '',inputs[i]))
-#}
-#print(paths)
-#List files
-     #filesForw <- sort(list.files(paths, pattern="_1.fastq.gz", full.names = TRUE))
-     #filesRev <- sort(list.files(paths, pattern="_2.fastq.gz", full.names = TRUE))
-#Get sample names
-     #sample.names <- gsub('_1.fastq.gz', '', basename(filesForw))
-#Create path and file names for filtered samples"
-#filtFs <- file.path(paths, "filtered", paste0(sample.names, "_F_filt.fastq.gz"))
-#filtRs <- file.path(paths, "filtered", paste0(sample.names, "_R_filt.fastq.gz"))
-     #filtFs <- gsub('demultiplexed/','demultiplexed/filtered/',filesForw)
-     #filtRs <- gsub('demultiplexed/','demultiplexed/filtered/',filesRev)
 filtFs <-  sort(list.files(paths, pattern="_1.fastq.gz", full.names = TRUE))
 filtRs <-  sort(list.files(paths, pattern="_2.fastq.gz", full.names = TRUE))
 #Get sample names
-     sample.names <- gsub('_1.fastq.gz', '', basename(filtFs))
+sample.names <- gsub('_1.fastq.gz', '', basename(filtFs))
+
 #assign names to files
 names(filtFs) <- sample.names
 names(filtRs) <- sample.names
@@ -113,10 +72,12 @@ if (args[2] == "pseudo"){
 }
 cpus <<- strtoi(args[3],10)
 extra_params <- args[5]
+
 # learn error rates
 errF <- learnErrors(filtFs, multithread=cpus)
 #errF <- eval(parse(text=paste("learnErrors(filtFs, multithread=cpus,",extra_params,")")))
 errR <- learnErrors(filtRs, multithread=cpus)
+
 #errR <- eval(parse(text=paste("learnErrors(filtRs, multithread=cpus)")))
 #plotErrors(errF, nominalQ=TRUE)
 if (args[4] == "T" || args[4] == "TRUE" ){
@@ -139,7 +100,7 @@ if (!startsWith( trimws(extra_params), ',') && nchar(trimws(extra_params))>1){
   extra_params <- paste(",",extra_params)
 }
 dadaFs <- eval(parse(text=paste("dada(filtFs, err=errF, multithread=cpus, pool=pool, ",extra_params,")")))   
-dadaRs <- eval(parse(text=paste("dada(filtRs, err=errF, multithread=cpus, pool=pool, ",extra_params,")")))   
+dadaRs <- eval(parse(text=paste("dada(filtRs, err=errR, multithread=cpus, pool=pool, ",extra_params,")")))   
 
 #merge
 minOv <- as.integer(args[15])
@@ -151,6 +112,7 @@ if (args[17] == "T" || args[17] == "TRUE" ){
 }
 # ASV table 
 seqtab <- makeSequenceTable(mergers)
+
 #rownames= samples #colnames= sequences
 
 #this show sequence length distributions
@@ -166,7 +128,7 @@ shorts <- as.integer(args[7])
 longs <- as.integer(args[8])
 offset <- as.integer(args[9])
 m <- mean(nchar(getSequences(seqtab)))
-
+mx <- max(nchar(getSequences(seqtab)))
 readinteger <- function(x)
 { 
   n <- readline(prompt=x)
@@ -210,7 +172,7 @@ createMenuConsole <- function()
     longs  <<- as.integer(m +offset)
   }else if(n == 3){
     
-    shorts <<- readintegerConsole("Enter the shortes length allowed:")
+    shorts <<- readintegerConsole("Enter the shortest length allowed:")
     longs <<- readintegerConsole("Enter the longest length allowed:")
   }
   else if(n == 4){
@@ -242,20 +204,45 @@ createMenu <- function()
     longs  <<- as.integer((m +offset))
   }else if(n == 3){
     
-    shorts <<- readinteger("Enter the shortes length allowed:")
+    shorts <<- readinteger("Enter the shortest length allowed:")
     longs <<- readinteger("Enter the longest length allowed:")
   }
   else if(n == 4){
     print(seq_hist)
     return(createMenu())
   }else if(n == 5){
-    exit(1)
+    quit("no",1)
   }else {
     return(createMenu())
   }
 }
 
-createMenuConsole()
+if (args[19] == "T" || args[19] == "TRUE" ){
+  createMenuConsole()
+}else if (args[20] == "AVG") {
+  shorts <<- as.integer((m-offset))
+  longs <<- as.integer((m+offset))
+}else if (args[20] == "CFG") {
+  #shorts <- strtoi(args[3], 10)
+  #longs <- strtoi(args[4], 10)
+  shorts <<- as.integer(args[7])
+  longs <<- as.integer(args[8])
+}else if (args[20] == "NONE") {
+  #shorts <- strtoi(args[3], 10)
+  #longs <- strtoi(args[4], 10)
+  shorts <<- 0
+  longs <<- mx + 1
+}else{
+ write("Invalid option for [rm_reads][non_interactive_behaviour] values at --configfile", stderr())
+ quit("no",1)
+}
+
+
+
+
+
+
+#createMenuConsole()
 write.table(c(shorts,longs),paste0(args[6],"shorts_longs.log"), quote=F,sep="\t", row.names = F, col.names = F)
 #This is analogous to “cutting a band” in-silico to get amplicons of the targeted length
 seqtab2 <- seqtab[,nchar(colnames(seqtab)) %in% shorts:longs] 

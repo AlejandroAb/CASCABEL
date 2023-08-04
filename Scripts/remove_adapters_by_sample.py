@@ -31,7 +31,7 @@ idx_rv_revcomp_primer=-1
 isRC = False
 foundSample=False  
 primer=""
-if snakemake.config["cutAdapters"].lower() == "metadata":
+if snakemake.config["primers"]["remove"].lower() == "metadata":
     with open(snakemake.input[1]) as mappingFile:
         l=0
         for line in mappingFile:
@@ -43,7 +43,7 @@ if snakemake.config["cutAdapters"].lower() == "metadata":
                 c=0
                 #Find target headers
                 for col in columns:
-                    if col == "ReversePrimer" or col == "LinkerPrimerSequenceReverse"  or col == "ReverseLinkerPrimerSequence"  or col == "RvLinkerPrimerSequence" :
+                    if col == "ReversePrimer" or col == "LinkerPrimerSequenceReverse"  or col == "ReverseLinkerPrimerSequence"  or col == "RvLinkerPrimerSequence" or col == "ReversePrimerSequence" :
                         idx_rv_primer=c
                     elif col == "LinkerPrimerSequence":
                         idx_fw_primer=c
@@ -75,20 +75,29 @@ if snakemake.config["cutAdapters"].lower() == "metadata":
         print("\033[91m Aborting the pipeline \033[0m")
         exit(1)
 
+elif snakemake.config["primers"]["remove"].lower() == "cfg":
+    primer="-g " + snakemake.config["primers"]["fw_primer"]
+    if snakemake.config["primers"]["rv_primer"].len() > 2 :
+        primer=primer+"..."+reverse_complement(snakemake.config["primers"]["rv_primer"]) 
+
     
+discard = True
 if "--discard-untrimmed" in snakemake.params[0]:
     extra=snakemake.params[0].replace("--discard-untrimmed","")
 else: 
     extra=snakemake.params[0]
+    discard = False
    
 #This file will contain the untrimmed reads for the first pass
 no_primer=" --untrimmed-output " + snakemake.params[2]+".tmp"
 
-if snakemake.config["cutAdapters"].lower() == "metadata":
+if snakemake.config["primers"]["remove"].lower() == "metadata":
     subprocess.run( ["cutadapt  "+ primer +" "+ extra+" -o "+snakemake.output[0] + ".1 "+ no_primer +" " + snakemake.input[0]+ ">"+ snakemake.params[5]],stdout=subprocess.PIPE, shell=True)
 else:
-    subprocess.run( ["cutadapt  "+ snakemake.config["cutadapt"]["adapters"] +" "+extra+" -o "+snakemake.output[0] + ".1 "+ no_primer +" " + snakemake.input[0]+ ">"+ snakemake.params[5]],stdout=subprocess.PIPE, shell=True)
-    primer=snakemake.config["cutadapt"]["adapters"]
+    subprocess.run( ["cutadapt  "+ primer +" "+extra+" -o "+snakemake.output[0] + ".1 "+ no_primer +" " + snakemake.input[0]+ ">"+ snakemake.params[5]],stdout=subprocess.PIPE, shell=True)
+#    primer=snakemake.config["cutadapt"]["adapters"]
+#comment above line because we just add the primer generation in the elif above....
+
 
 initialReads=countFasta(snakemake.input[0],False)
 disscardedReads=countFasta(snakemake.params[2]+".tmp",False)
@@ -100,16 +109,35 @@ extra=snakemake.params[0]
 if disscardedReads>0:
     #reverse complement disscardedReads
     subprocess.run( ["vsearch --fastx_revcomp "+ snakemake.params[2]+".tmp  --fastaout "+ snakemake.params[2]+".tmp2"],stdout=subprocess.PIPE, shell=True)
-    if snakemake.config["cutAdapters"].lower() == "metadata":
+    if snakemake.config["primers"]["remove"].lower() == "metadata":
+        if discard:
         #Run cutadapt on disscarded reads
-        subprocess.run( ["cutadapt  "+ primer +" "+ extra+" -o "+snakemake.output[0] + ".2 " + snakemake.params[2]+".tmp2"+ ">>"+ snakemake.params[5]],stdout=subprocess.PIPE, shell=True)
+            subprocess.run( ["cutadapt  "+ primer +" "+ extra+" -o "+snakemake.output[0] + ".2 " + snakemake.params[2]+".tmp2"+ ">>"+ snakemake.params[5]],stdout=subprocess.PIPE, shell=True)
+        else:
+            print("Running second cutadapt")
+            print("cutadapt  "+ primer +" "+ extra+" -o "+snakemake.output[0] + ".2 --untrimmed-output "+ snakemake.output[0] + ".3 " + snakemake.params[2]+".tmp2"+ ">>"+ snakemake.params[5])
+            subprocess.run( ["cutadapt  "+ primer +" "+ extra+" -o "+snakemake.output[0] + ".2 --untrimmed-output "+ snakemake.output[0] + ".3 " + snakemake.params[2]+".tmp2"+ ">>"+ snakemake.params[5]],stdout=subprocess.PIPE, shell=True)
+            #reverse complement untrimmed disscardedReads
+            subprocess.run( ["vsearch --fastx_revcomp "+ snakemake.output[0]+".3  --fastaout "+ snakemake.params[2]+".tmp3"],stdout=subprocess.PIPE, shell=True)
     else:
-        subprocess.run( ["cutadapt "+ snakemake.config["cutadapt"]["adapters"] +" "+extra+" -o "+snakemake.output[0] + ".2 " + snakemake.params[2]+".tmp2 >>"+ snakemake.params[5]],stdout=subprocess.PIPE, shell=True)
-    #Concatenate results
-    subprocess.run( ["cat "+snakemake.output[0] + ".1 "+ snakemake.output[0] + ".2 > "+ snakemake.output[0]],stdout=subprocess.PIPE, shell=True)
-    #remove intermediate files: disscarded reads first round, disscarded reads RC, accepted reads first round, accepted reads second round
-    subprocess.run( ["rm -f "+ snakemake.params[2]+".tmp "+ snakemake.params[2]+".tmp2 "+snakemake.output[0] + ".1 "+ snakemake.output[0] + ".2"],stdout=subprocess.PIPE, shell=True)
+        if discard:
+            subprocess.run( ["cutadapt "+ primer  +" "+extra+" -o "+snakemake.output[0] + ".2 " + snakemake.params[2]+".tmp2 >>"+ snakemake.params[5]],stdout=subprocess.PIPE, shell=True)
+        else:
+            subprocess.run( ["cutadapt "+ primer  +" "+extra+" -o "+snakemake.output[0] + ".2 --untrimmed-output "+ snakemake.output[0] + ".3 "  + snakemake.params[2]+".tmp2 >>"+ snakemake.params[5]],stdout=subprocess.PIPE, shell=True)
+            subprocess.run( ["vsearch --fastx_revcomp "+ snakemake.output[0]+".3  --fastaout "+ snakemake.params[2]+".tmp3"],stdout=subprocess.PIPE, shell=True)
+    
+    if discard:        
+        #Concatenate results
+        subprocess.run( ["cat "+snakemake.output[0] + ".1 "+ snakemake.output[0] + ".2 > "+ snakemake.output[0]],stdout=subprocess.PIPE, shell=True)
+        #remove intermediate files: disscarded reads first round, disscarded reads RC, accepted reads first round, accepted reads second round
+        subprocess.run( ["rm -f "+ snakemake.params[2]+".tmp "+ snakemake.params[2]+".tmp2 "+snakemake.output[0] + ".1 "+ snakemake.output[0] + ".2"],stdout=subprocess.PIPE, shell=True)
+    else:
+        #Concatenate results
+        subprocess.run( ["cat "+snakemake.output[0] + ".1 "+ snakemake.output[0] + ".2 " + snakemake.params[2] + ".tmp3  > " + snakemake.output[0]],stdout=subprocess.PIPE, shell=True)
+        #remove intermediate files: disscarded reads first round, disscarded reads RC, accepted reads first round, accepted reads second round
+        #subprocess.run( ["rm -f "+ snakemake.params[2]+".tmp "+ snakemake.params[2]+".tmp2 "+snakemake.output[0] + ".1 "+ snakemake.output[0] + ".2 "+ snakemake.params[2]+".tmp3"],stdout=subprocess.PIPE, shell=True)
 else: #no reads to evaluate just rename file
+    print("No untrimmed output!!!!")
     subprocess.run( ["mv "+snakemake.output[0] + ".1  > "+ snakemake.output[0]],stdout=subprocess.PIPE, shell=True)
 
 survivingReads=countFasta(snakemake.output[0],False)
@@ -124,7 +152,7 @@ print("\033[91m This step removes primers \033[0m")
 print("\033[93m Total number of initial reads: " + str(initialReads) + " \033[0m")
 print("\033[93m Total number of surviving reads: " + str(survivingReads) + " = "+ prc_str + "% \033[0m")
 print("\033[93m You can find cutadapt's log file at: " + snakemake.params[5] +"\n \033[0m")
-if snakemake.config["interactive"] != "F" or prc < snakemake.config["cutadapt"]["min_prc"]:
+if snakemake.config["interactive"] != "F" or prc < snakemake.config["primers"]["min_prc"]:
     print("\033[92m Do you want to continue?(y/n): \033[0m")
     user_input = stdin.readline() #READS A LINE
     user_input = user_input[:-1]
