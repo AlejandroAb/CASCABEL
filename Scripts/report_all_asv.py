@@ -592,6 +592,18 @@ with open(snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/asv/sho
         else:
             longs = line
 
+trunc_fw = str(snakemake.config["dada2_filter"]["truncFW"])
+trunc_rv = str(snakemake.config["dada2_filter"]["truncRV"])
+with open(snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/asv/trunc_val.log") as trunclog:
+    i=0
+    for line in trunclog:
+        i=i+1
+        #tokens = line.split("\t")
+        if i== 1:
+            trunc_fw = line
+        else:
+            trunc_rv = line
+
 chimeras="" 
 if snakemake.config["dada2_asv" ]["chimeras"].casefold() == "t" or snakemake.config["dada2_asv" ]["chimeras"].casefold() == "true":
     chimeras="Remove chimeras\n~~~~~~~~~~~~~~~~\n\n"
@@ -625,9 +637,9 @@ The filter and trimming steps were both performed with the **filterAndTrim()** f
 
 :green:`Max Expected Errors (maxEE) RV:` {snakemake.config[dada2_filter][maxEE_RV]}
 
-:green:`Forward read truncation:` {snakemake.config[dada2_filter][truncFW]}
+:green:`Forward read truncation:` {trunc_fw}
 
-:green:`Reverse read truncation:` {snakemake.config[dada2_filter][truncRV]}
+:green:`Reverse read truncation:` {trunc_rv}
 
 **Command:**
 

@@ -142,6 +142,8 @@ if (args[9] == "T" || args[9] == "TRUE" ){
   rv_len <- strtoi(args[4], 10)
   
 }
+trunc_len_file<-gsub("filter_summary.out", 'trunc_val.log',args[10])
+write.table(c(fw_len,rv_len),trunc_len_file, quote=F,sep="\t", row.names = F, col.names = F)
 maxEE_fw <- strtoi(args[5], 10) 
 maxEE_rv <- strtoi(args[6],10)
 cpus <- strtoi(args[7],10)

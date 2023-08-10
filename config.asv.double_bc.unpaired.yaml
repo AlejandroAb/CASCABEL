@@ -445,7 +445,7 @@ demultiplexing:
   add_unpair: "T"                                
   dmx_params: "--remove-header"                  
   bc_mismatch: 0                                 
-  extra_params: ""      
+  bcc_params: ""      
   create_tag_pairs_heatmap: "T"                  
                                                  
 #------------------------------------------------------------------------------#
