@@ -1,6 +1,6 @@
 """
 CASCABEL
-Version: 5.0.0
+Version: 5.0.1
 Author: Julia Engelmann and Alejandro Abdala
 Last update: 01/08/2023
 """
@@ -1251,19 +1251,14 @@ if config["primers"]["remove"] != "F":
                 benchmark:
                     "{PROJECT}/runs/{run}/{sample}_data/cutadapt.benchmark"
                 params:
-                    config["cutadapt"]["extra_params"],
+                    config["primers"]["extra_params"],
                     "{PROJECT}/runs/{run}/report_files/primers.{sample}.txt", 
                     "{PROJECT}/runs/{run}/{sample}_data/seqs_fw_rev_accepted_removed.fna",
                     "{PROJECT}/runs/{run}/report_files/cutadapt.{sample}.summary.tsv",
                     "{PROJECT}/runs/{run}/{sample}_data/cutadapt_tmp/"
                     "{PROJECT}/runs/{run}/{sample}_data/seqs_fw_rev_accepted_no_adapters.log"
                 script:
-                    "Scripts/remove_adapters_v2.py"# && ln -s ../../report_files/cutadapt.{wildcards.sample}.summary.tsv {params[4]}  "
-                    #"{config[cutadapt][command]}  {config[cutadapt][adapters]} "
-                    #"{config[cutadapt][extra_params]} -o {output.out} --untrimmed-output {output.no_trim} {input}  > {output.log}" if "--discard-untrimmed" in config["cutadapt"]["extra_params"] 
-                    #else "{config[cutadapt][command]}  {config[cutadapt][adapters]} "
-                    #"{config[cutadapt][extra_params]} -o {output.out} {input}  > {output.log}"  
-          
+                    "Scripts/remove_adapters_v2.py"          
 
 
 if config["align_vs_reference"]["align"] == "T":
