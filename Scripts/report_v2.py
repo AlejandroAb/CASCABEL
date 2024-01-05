@@ -13,6 +13,16 @@ from seqsChart import createChart
 #Parse the total number of counts
 #countTxt = parseCounts(snakemake.input.counts)
 
+########################################################
+#      Base directories for paths                      #
+########################################################
+base_sample= snakemake.wildcards.PROJECT+"/samples/"+snakemake.wildcards.sample
+base_run= snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run
+base_sample_data=snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data"
+base_barcodes=base_sample+"/barcodes"  if snakemake.config["UNPAIRED_DATA_PIPELINE"] != "T" else base_sample+"/barcodes_unpaired"
+base_split=base_sample+"/splitLibs"  if snakemake.config["UNPAIRED_DATA_PIPELINE"] != "T" else base_sample+"/splitLibs_unpaired"
+base_demultiplexed=base_sample+"/demultiplexed"  if snakemake.config["UNPAIRED_DATA_PIPELINE"] != "T" else base_sample+"/demultiplexed/unpaired"
+#snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/peared/pear.benchmark")
 ################################################################################
 #                         TOOLS VERSION SECTION                          #
 ################################################################################
@@ -73,7 +83,7 @@ if snakemake.config["chimera"]["search"] == "T":
     ################################################################################
     chimera_log = ""
     try:
-        with open(snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/chimera/chimera.log") as chimlog:
+        with open(base_sample_data+"/chimera/chimera.log") as chimlog:
             for line in chimlog:
                 chimera_log += line
             chimlog.close()
@@ -88,35 +98,35 @@ if snakemake.config["chimera"]["search"] == "T":
 # This section is to generate a pre-formatted text with the benchmark info for #
 # All the executed rules.                                                      #
 ################################################################################
-fqBench = readBenchmark(snakemake.wildcards.PROJECT+"/samples/"+snakemake.wildcards.sample+"/qc/fq.benchmark")
-pearBench =readBenchmark(snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/peared/pear.benchmark")
+fqBench = readBenchmark(base_sample+"/qc/fq.benchmark")
+pearBench =readBenchmark(base_sample+"/peared/pear.benchmark")
 if snakemake.config["demultiplexing"]["demultiplex"] != "F":
-    barBench =readBenchmark(snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/barcodes/barcodes.benchmark")
-    splitLibsBench =readBenchmark(snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/splitLibs/splitLibs.benchmark")
-    #splitLibsRCBench =readBenchmark(snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/splitLibsRC/splitLibs.benchmark")
-   # combineBench =readBenchmark(snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/combine_seqs_fw_rev.benchmark")
+    barBench =readBenchmark(base_barcodes+"/barcodes.benchmark")
+    splitLibsBench =readBenchmark(base_split+"/splitLibs.benchmark")
+    #splitLibsRCBench =readBenchmark(base_sample_data+"/splitLibsRC/splitLibs.benchmark")
+   # combineBench =readBenchmark(base_sample_data+"/combine_seqs_fw_rev.benchmark")
 else:
     combineBench=pearBench #THIS IS ONLY FOR TESTING REMOVE!!! 
-rmShorLongBench =readBenchmark(snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/filter.benchmark")
+rmShorLongBench =readBenchmark(base_sample_data+"/filter.benchmark")
 demultiplexFQBench=""
 if snakemake.config["demultiplexing"]["demultiplex"] == "T" and snakemake.config["demultiplexing"]["create_fastq_files"] == "T":
-    demultiplexFQBench =readBenchmark(snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/demultiplexed/demultiplex_fq.benchmark")
+    demultiplexFQBench =readBenchmark(base_demultiplexed+"/demultiplex_fq.benchmark")
 
 ################################################################################
 #                           Compute Counts                                     #
 ################################################################################
 if snakemake.config["gzip_input"] == "F":
-    rawCounts = countFasta(snakemake.wildcards.PROJECT+"/samples/"+snakemake.wildcards.sample+"/rawdata/fw.fastq", True);
+    rawCounts = countFasta(base_sample+"/rawdata/fw.fastq", True);
 else:
-    rawCounts = countFastaGZ(snakemake.wildcards.PROJECT+"/samples/"+snakemake.wildcards.sample+"/rawdata/fw.fastq.gz", True);
+    rawCounts = countFastaGZ(base_sample+"/rawdata/fw.fastq.gz", True);
 #rawCountsStr= '{0:g}'.format(float(rawCounts))
 rawCountsStr= str(int(rawCounts))
 #-peared
 pearedCounts = 0
 if snakemake.config["UNPAIRED_DATA_PIPELINE"] != "T":
-    pearedCounts = countFasta(snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/peared/seqs.assembled.fastq", True);
+    pearedCounts = countFasta(base_sample+"/peared/seqs.assembled.fastq", True);
 else:
-    pearedCounts = countFasta(snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/peared/seqs.assembled.UNPAIRED.fastq", True);
+    pearedCounts = countFasta(base_sample+"/peared/seqs.assembled.UNPAIRED.fastq", True);
 
 #pearedCountsStr='{0:g}'.format(float(pearedCounts))
 pearedCountsStr=str(int(pearedCounts))
@@ -124,9 +134,9 @@ prcPeared = "{:.2f}".format(float((pearedCounts/rawCounts)*100))
 #-dumultiplex
 if snakemake.config["demultiplexing"]["demultiplex"] != "F": #starting to test this  and snakemake.config["demultiplexing"]["bc_mismatch"]>0:
     #in the past we had two files fw and reverse nos everything is on one file
-    #fwAssignedCounts = countFasta(snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/splitLibs/seqs.assigned.fna", False)
+    #fwAssignedCounts = countFasta(base_sample_data+"/splitLibs/seqs.assigned.fna", False)
     #barcodes.fastq_corrected_toRC
-    #rvAssignedCounts = countFasta(snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/splitLibsRC/seqs.assigned.fna", False)
+    #rvAssignedCounts = countFasta(base_sample_data+"/splitLibsRC/seqs.assigned.fna", False)
     
     #prcFwAssigned = "{:.2f}".format(float((fwAssignedCounts/pearedCounts)*100))
     #prcRvAssigned = "{:.2f}".format(float((rvAssignedCounts/pearedCounts)*100))
@@ -134,8 +144,8 @@ if snakemake.config["demultiplexing"]["demultiplex"] != "F": #starting to test t
     #prcPearedAssigned = "{:.2f}".format(float((totalAssigned/pearedCounts)*100))
     #prcRawAssigned = "{:.2f}".format(float((totalAssigned/rawCounts)*100))
     #New implementation
-    totalAssigned =  countFasta(snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/splitLibs/seqs.assigned.fna", False)
-    rvAssignedCounts = countTxt(snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/barcodes/barcodes.fastq_corrected_toRC")
+    totalAssigned =  countFasta(base_split+"/seqs.assigned.fna", False)
+    rvAssignedCounts = countTxt(base_sample+"/barcodes/barcodes.fastq_corrected_toRC")
     fwAssignedCounts = totalAssigned - rvAssignedCounts 
     prcFwAssigned = "{:.2f}".format(float((fwAssignedCounts/pearedCounts)*100))
     prcRvAssigned = "{:.2f}".format(float((rvAssignedCounts/pearedCounts)*100))
@@ -150,20 +160,20 @@ else:
 #--cutadapt
 cutSequences = False
 if snakemake.config["primers"]["remove"].casefold() == "metadata" or snakemake.config["primers"]["remove"].casefold() == "cfg":
-    sequenceNoAdapters = countFasta(snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/seqs_fw_rev_accepted_no_adapters.fna", False)
+    sequenceNoAdapters = countFasta(base_sample_data+"/seqs_fw_rev_accepted_no_adapters.fna", False)
     if (totalAssigned - sequenceNoAdapters) > 0:
         cutSequences = True
         prcCut = "{:.2f}".format(float((sequenceNoAdapters/totalAssigned)*100))
         prcCutRaw = "{:.2f}".format(float((sequenceNoAdapters/rawCounts)*100))
 
 if removeChimeras:
-    sequenceNoChimeras = countFasta(snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/seqs_fw_rev_filtered_nc.fasta", False)
+    sequenceNoChimeras = countFasta(base_sample_data+"/seqs_fw_rev_filtered_nc.fasta", False)
     prcChim = "{:.2f}".format(float((sequenceNoChimeras/totalAssigned)*100))
     prcChimRaw = "{:.2f}".format(float((sequenceNoChimeras/rawCounts)*100))
     if cutSequences:
         prcChimCut = "{:.2f}".format(float((sequenceNoChimeras/sequenceNoAdapters)*100))
 #out="{PROJECT}/runs/{run}/{sample}_data/"
-trimmedCounts = countFasta(snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/seqs_fw_rev_filtered.fasta", False)
+trimmedCounts = countFasta(base_sample_data+"/seqs_fw_rev_filtered.fasta", False)
 prcTrimmedSplit ="{:.2f}".format(float((trimmedCounts/totalAssigned)*100))
 prcTrimmedRaw= "{:.2f}".format(float((trimmedCounts/rawCounts)*100))
 if cutSequences:
@@ -171,7 +181,7 @@ if cutSequences:
 #if removeChimeras:
 #    prcTrimmedChimera="{:.2f}".format(float((trimmedCounts/sequenceNoChimeras)*100))
 try:
-    samplesLib = subprocess.run( ["cat " + snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/seqs_fw_rev_filtered.dist.txt | wc -l"], stdout=subprocess.PIPE, shell=True)
+    samplesLib = subprocess.run( ["cat " + base_sample_data+"/seqs_fw_rev_filtered.dist.txt | wc -l"], stdout=subprocess.PIPE, shell=True)
     samplesLibInt = int(samplesLib.stdout.decode('utf-8').strip())
 except Exception as e:
     totalReads = "Problem reading outputfile"
@@ -191,7 +201,7 @@ labels.append("Length filtering")
 if snakemake.config["chimera"]["search"] == "T" and removeChimeras:
     numbers.append(sequenceNoChimeras)
     labels.append("No Chimera")
-createChart(numbers, tuple(labels),snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/report_files/sequence_numbers."+snakemake.wildcards.sample+".png")
+createChart(numbers, tuple(labels),base_run+"/report_files/sequence_numbers."+snakemake.wildcards.sample+".png")
 ################################################################################
 #                          Chimera check                                       #
 ################################################################################
@@ -214,17 +224,17 @@ if snakemake.config["chimera"]["search"] == "T":
         quimeraStr += ":red:`Method:` "+ str(snakemake.config["chimera"]["method"]) +" - uses [uchime]_ \n\n"    
     quimeraStr += "**Command:**\n\n"
     if snakemake.config["chimera"]["method"] == "usearch61":
-         quimeraStr+=":commd:`identify_chimeric_seqs.py -m "+ str(snakemake.config["chimera"]["method"])+" -i "+ str(snakemake.wildcards.PROJECT)+"/runs/"+str(snakemake.wildcards.run)+"/"+str(snakemake.wildcards.sample)+"_data/seqs_fw_rev_accepted.fna "+str(snakemake.config["chimera"]["extra_params"])
-         quimeraStr+=" -o "+ str(snakemake.wildcards.PROJECT)+"/runs/"+str(snakemake.wildcards.run)+"/"+str(snakemake.wildcards.sample)+"_data/chimera/` \n\n"
+         quimeraStr+=":commd:`identify_chimeric_seqs.py -m "+ snakemake.config["chimera"]["method"]+" -i "+ base_sample_data+ "/seqs_fw_rev_accepted.fna "+str(snakemake.config["chimera"]["extra_params"])
+         quimeraStr+=" -o "+ base_sample_data + "/chimera/` \n\n"
     else:
-         quimeraStr+=":commd:`vsearch --"+ str(snakemake.config["chimera"]["method"])+" "+ str(snakemake.wildcards.PROJECT)+"/runs/"+str(snakemake.wildcards.run)+"/"+str(snakemake.wildcards.sample)+"_data/seqs_fw_rev_accepted.fna --threads "+ str(snakemake.config["chimera"]["threads"]) +" " +str(snakemake.config["chimera"]["extra_params"])   
-         quimeraStr+=" --uchimeout "+ str(snakemake.wildcards.PROJECT)+"/runs/"+str(snakemake.wildcards.run)+"/"+str(snakemake.wildcards.sample)+"_data/chimera/chimeras.summary.txt` \n\n"
+         quimeraStr+=":commd:`vsearch --"+ str(snakemake.config["chimera"]["method"])+" "+ base_sample_data + "/seqs_fw_rev_accepted.fna --threads "+ str(snakemake.config["chimera"]["threads"]) +" " +str(snakemake.config["chimera"]["extra_params"])   
+         quimeraStr+=" --uchimeout "+ base_sample_data + "/chimera/chimeras.summary.txt` \n\n"
     quimeraStr+="**Output files:**\n\n"
     if snakemake.config["chimera"]["method"] == "usearch61":
-        quimeraStr+=":green:`- File with the possible chimeric sequences:` "+str(snakemake.wildcards.PROJECT)+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/chimera/chimeras.txt\n\n"
+        quimeraStr+=":green:`- File with the possible chimeric sequences:` "+base_sample_data + "/chimera/chimeras.txt\n\n"
     else:
-        quimeraStr+=":green:`- File with the possible chimeric sequences:` "+str(snakemake.wildcards.PROJECT)+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/chimera/chimeras.summary.txt\n\n"
-    identifyChimeraBench=readBenchmark(snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/chimera/chimera.benchmark")
+        quimeraStr+=":green:`- File with the possible chimeric sequences:` "+base_sample_data + "/chimera/chimeras.summary.txt\n\n"
+    identifyChimeraBench=readBenchmark(base_sample_data+"/chimera/chimera.benchmark")
     quimeraStr+=identifyChimeraBench
     quimeraStr+=chimera_log
     if removeChimeras:
@@ -247,10 +257,10 @@ if snakemake.config["fastQCPear"] == "T":
     fastQCPearStr += ":red:`Tool:` [FastQC]_\n\n"
     fastQCPearStr += ":red:`Version:` "+ fqVersion +"\n\n"
     fastQCPearStr += "**Command:**\n\n"
-    fastQCPearStr += ":commd:`fastqc "+snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/peared/seqs.assembled.fastq --extract -o  "+ snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/peared/qc`\n\n"
-    fastQCPearStr += "**Output files:**\n\n:green:`- FastQC report:` "+snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/peared/qc/seqs.assembled_fastqc.html FQ_Report_ \n\n"
+    fastQCPearStr += ":commd:`fastqc "+base_sample+"/peared/seqs.assembled.fastq --extract -o  "+ base_sample+"/peared/qc`\n\n"
+    fastQCPearStr += "**Output files:**\n\n:green:`- FastQC report:` "+base_sample+"/peared/qc/seqs.assembled_fastqc.html FQ_Report_ \n\n"
     fastQCPearStr += ".. _FQ_Report: peared/qc/seqs.assembled_fastqc.html \n\n"
-    fastQCPearStrBench =readBenchmark(snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/peared/qc/fq.benchmark")
+    fastQCPearStrBench =readBenchmark(base_sample+"/peared/qc/fq.benchmark")
     fastQCPearStr += fastQCPearStrBench
 
 ################################################################################
@@ -263,10 +273,10 @@ if snakemake.config["demultiplexing"]["demultiplex"] != "F":
     extractBCStr +=":red:`Tool:` [QIIME]_ - extract_barcodes.py\n\n"
     extractBCStr +=":red:`Version:` "+ebVersion+"\n\n"
     extractBCStr +="**Command:**\n\n"
-    extractBCStr +=":commd:`extract_barcodes.py -f "+snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/peared/seqs.assembled.fastq -c "+str(snakemake.config["ext_bc"]["c"])+ " " + str(snakemake.config["ext_bc"]["bc_length"])+ " " + snakemake.config["ext_bc"]["extra_params"] + " -o "+snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/barcodes/`\n\n"
+    extractBCStr +=":commd:`extract_barcodes.py -f "+base_sample+"/peared/seqs.assembled.fastq -c "+str(snakemake.config["ext_bc"]["c"])+ " " + str(snakemake.config["ext_bc"]["bc_length"])+ " " + snakemake.config["ext_bc"]["extra_params"] + " -o "+base_barcodes+"/`\n\n"
     extractBCStr +="**Output files:**\n\n"
-    extractBCStr +=":green:`- Fastq file with barcodes:` "+snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/barcodes/barcodes.fastq\n\n"
-    extractBCStr +=":green:`- Fastq file with the reads:` "+snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/barcodes/reads.fastq\n\n"
+    extractBCStr +=":green:`- Fastq file with barcodes:` "+base_barcodes+"/barcodes.fastq\n\n"
+    extractBCStr +=":green:`- Fastq file with the reads:` "+base_barcodes+"/reads.fastq\n\n"
     extractBCStr +=barBench
 ################################################################################
 #                           CORRECT Barcodes                                   #
@@ -279,11 +289,11 @@ if snakemake.config["demultiplexing"]["demultiplex"] != "F": # and snakemake.con
     correctBCStr += "Maximum number of mismatches **"  + str(snakemake.config["demultiplexing"]["bc_mismatch"]) + "**.\n\n"
     correctBCStr +=":red:`Tool:` Cascabel Java application\n\n"
     correctBCStr +="**Command:**\n\n"
-    correctBCStr += ":commd:`java -jar Scripts/BarcodeCorrector.jar -b "+snakemake.wildcards.PROJECT+"/metadata/sampleList_mergedBarcodes_"+snakemake.wildcards.sample+".txt -fb "+snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/barcodes/barcodes.fastq -fr "+ snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/barcodes/reads.fastq  -m "  + str(snakemake.config["demultiplexing"]["bc_mismatch"]) + " -o  " + snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/barcodes/barcodes.fastq_corrected -or  " + snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/barcodes/reads.fastq_corrected -rc -x " + snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/barcodes/sample_matrix.txt  >  " + snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/barcodes/demux.log`\n\n"
-    correctBCStr += "**Output files:**\n\n:green:`- Barcode corrected file:` "+snakemake.wildcards.PROJECT+ "/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/barcodes/barcodes.fastq_corrected\n\n"
-    correctBCStr += ":green:`- Reads corrected file:` "+snakemake.wildcards.PROJECT+ "/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/barcodes/reads.fastq_corrected\n\n"
-    correctBCStr += ":green:`- Error correction summary:` "+snakemake.wildcards.PROJECT+ "/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/barcodes/demux.log\n\n"
-    correctBarBench =readBenchmark(snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/barcodes/barcodes_corrected.benchmark")
+    correctBCStr += ":commd:`java -jar Scripts/BarcodeCorrector.jar -b "+snakemake.wildcards.PROJECT+"/metadata/sampleList_mergedBarcodes_"+snakemake.wildcards.sample+".txt -fb "+base_barcodes+"/barcodes.fastq -fr "+ base_barcodes+"/reads.fastq  -m "  + str(snakemake.config["demultiplexing"]["bc_mismatch"]) + " -o  " + base_barcodes+"/barcodes.fastq_corrected -or  " + base_barcodes+"/reads.fastq_corrected -rc -x " + base_barcodes+"/sample_matrix.txt  >  " + base_barcodes+"/demux.log`\n\n"
+    correctBCStr += "**Output files:**\n\n:green:`- Barcode corrected file:` "+base_barcodes+"/barcodes.fastq_corrected\n\n"
+    correctBCStr += ":green:`- Reads corrected file:` "+base_barcodes+"/reads.fastq_corrected\n\n"
+    correctBCStr += ":green:`- Error correction summary:` "+base_barcodes+"/demux.log\n\n"
+    correctBarBench =readBenchmark(base_barcodes+"/barcodes_corrected.benchmark")
     correctBCStr += correctBarBench
     bcFile="barcodes.fastq_corrected"
 
@@ -297,25 +307,25 @@ if snakemake.config["demultiplexing"]["demultiplex"] != "F":
     splitStr+=":red:`Tool:` [QIIME]_ - split_libraries_fastq.py\n\n"
     splitStr+=":red:`version:` "+ spVersion+"\n\n"
     splitStr+="**Command:**\n\n"
-    splitStr+=":commd:`split_libraries_fastq.py -m "+snakemake.wildcards.PROJECT+"/metadata/sampleList_mergedBarcodes_"+snakemake.wildcards.sample+".txt -i "+snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/barcodes/reads.fastq -o  "+snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/splitLibs -b "+snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/barcodes/"+bcFile+" -q "+str(snakemake.config["split"]["q"])+" -r "+str(snakemake.config["split"]["r"])+" --retain_unassigned_reads "+str(snakemake.config["split"]["extra_params"])+" --barcode_type "+str(snakemake.config["split"]["barcode_type"])+"`\n\n"
+    splitStr+=":commd:`split_libraries_fastq.py -m "+snakemake.wildcards.PROJECT+"/metadata/sampleList_mergedBarcodes_"+snakemake.wildcards.sample+".txt -i "+base_barcodes+"/reads.fastq -o  "+base_split+" -b "+base_barcodes+"/"+bcFile+" -q "+str(snakemake.config["split"]["q"])+" -r "+str(snakemake.config["split"]["r"])+" --retain_unassigned_reads "+str(snakemake.config["split"]["extra_params"])+" --barcode_type "+str(snakemake.config["split"]["barcode_type"])+"`\n\n"
     splitStr+=splitLibsBench
 
     splitStr+="Retain assigned reads\n"
     splitStr+="~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n\n"
     splitStr+="**Command:**\n\n"
-    splitStr+=":commd:`cat "+snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/splitLibs/seqs.fna | grep -P -A1 \"(?!>Unass)^>\" | sed '/^--$/d' > "+snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/splitLibs/seqs.assigned.fna`\n\n"
+    splitStr+=":commd:`cat "+base_split+"/seqs.fna | grep -P -A1 \"(?!>Unass)^>\" | sed '/^--$/d' > "+base_split+"/seqs.assigned.fna`\n\n"
 
     splitStr+="Create file with only unassigned reads\n"
     splitStr+="~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n\n"
     splitStr+="**Command:**\n\n"
-    splitStr+=":commd:`cat "+snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/splitLibs/seqs.fna | grep \"^>Unassigned\" |  sed 's/>Unassigned_[0-9]* /@/g' | sed 's/ .*//' | grep -F -w -A3  -f - "+snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/peared/seqs.assembled.fastq |  sed '/^--$/d' >"+snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/splitLibs/unassigned.fastq`\n\n"
+    splitStr+=":commd:`cat "+base_split+"/seqs.fna | grep \"^>Unassigned\" |  sed 's/>Unassigned_[0-9]* /@/g' | sed 's/ .*//' | grep -F -w -A3  -f - "+base_sample+"/peared/seqs.assembled.fastq |  sed '/^--$/d' >"+base_split+"/unassigned.fastq`\n\n"
 
 #    splitStr+="Reverse complement unassigned reads\n"
 #    splitStr+="~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n\n"
 #    splitStr+=":red:`Tool:` [Vsearch]_\n\n"
 #    splitStr+=":red:`version:`  "+vsearchVersion+"\n\n"
 #    splitStr+="**Command:**\n\n"
-#    splitStr+=":commd:`vsearch --fastx_revcomp "+snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/splitLibs/unassigned.fastq  --fastqout "+snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/splitLibs/unassigned.reversed.fastq`\n\n"
+#    splitStr+=":commd:`vsearch --fastx_revcomp "+base_sample_data+"/splitLibs/unassigned.fastq  --fastqout "+base_sample_data+"/splitLibs/unassigned.reversed.fastq`\n\n"
 
 
 #    splitStr+="Barcode extraction for reverse complemented, unassigned reads\n"
@@ -323,16 +333,16 @@ if snakemake.config["demultiplexing"]["demultiplex"] != "F":
 #    splitStr +=":red:`Tool:` [QIIME]_ - extract_barcodes.py\n\n"
 #    splitStr +=":red:`Version:` "+ebVersion+"\n\n"
 #    splitStr+="**Command:**\n\n"
-#    splitStr +=":commd:`extract_barcodes.py -f "+snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/splitLibs/unassigned.reversed.fastq -c "+str(snakemake.config["ext_bc"]["c"])+" "+str(snakemake.config["ext_bc"]["bc_length"])+" "+snakemake.config["ext_bc"]["extra_params"]+" -o "+snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/barcodes_unassigned/`\n\n"
+#    splitStr +=":commd:`extract_barcodes.py -f "+base_sample_data+"/splitLibs/unassigned.reversed.fastq -c "+str(snakemake.config["ext_bc"]["c"])+" "+str(snakemake.config["ext_bc"]["bc_length"])+" "+snakemake.config["ext_bc"]["extra_params"]+" -o "+base_sample_data+"/barcodes_unassigned/`\n\n"
 
 #    if snakemake.config["bc_mismatch"]:
 #        splitStr += "Correct reverse complemented barcodes \n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n"
 #        splitStr += "Maximum number of mismatches **"  + str(snakemake.config["bc_mismatch"]) + "**.\n\n"
 #        splitStr +=":red:`Tool:` Cascabel Java application\n\n"
 #        splitStr +="**Command:**\n\n"
-#        splitStr += ":commd:`java -cp Scripts/BarcodeCorrector/build/classes/  barcodecorrector.BarcodeCorrector -b "+snakemake.wildcards.PROJECT+"/metadata/sampleList_mergedBarcodes_"+snakemake.wildcards.sample+".txt -f "+snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/barcodes_unassigned/barcodes.fastq_corrected -m "  + str(snakemake.config["bc_mismatch"]) + "`\n\n"
-#        splitStr += "**Output file:**\n\n:green:`- Barcode corrected file:` "+snakemake.wildcards.PROJECT+ "/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/barcodes/barcodes.fastq_corrected\n\n"
-#        splitStrBench =readBenchmark(snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/barcodes_unassigned/barcodes_corrected.benchmark")
+#        splitStr += ":commd:`java -cp Scripts/BarcodeCorrector/build/classes/  barcodecorrector.BarcodeCorrector -b "+snakemake.wildcards.PROJECT+"/metadata/sampleList_mergedBarcodes_"+snakemake.wildcards.sample+".txt -f "+base_sample_data+"/barcodes_unassigned/barcodes.fastq_corrected -m "  + str(snakemake.config["bc_mismatch"]) + "`\n\n"
+#        splitStr += "**Output file:**\n\n:green:`- Barcode corrected file:` "+base_barcodes+"/barcodes.fastq_corrected\n\n"
+#        splitStrBench =readBenchmark(base_sample_data+"/barcodes_unassigned/barcodes_corrected.benchmark")
 #        splitStr += splitStrBench+"\n\n"
 
 #    splitStr +="Split reverse complemented reads\n"
@@ -340,17 +350,17 @@ if snakemake.config["demultiplexing"]["demultiplex"] != "F":
 #    splitStr +=":red:`Tool:` [QIIME]_ - extract_barcodes.py\n\n"
 #    splitStr +=":red:`Version:` "+ebVersion+"\n\n"
 #    splitStr+="**Command:**\n\n"
-#    splitStr +=":commd:`split_libraries_fastq.py -m "+snakemake.wildcards.PROJECT+"/metadata/sampleList_mergedBarcodes_"+snakemake.wildcards.sample+".txt -i "+snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/barcodes_unassigned/reads.fastq -o "+snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/splitLibsRC -b "+snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+str(snakemake.wildcards.sample)+"_data/barcodes_unassigned/"+bcFile+" -q "+str(snakemake.config["split"]["q"])+" -r "+str(snakemake.config["split"]["r"])+" "+str(snakemake.config["split"]["extra_params"])+" --barcode_type "+str(snakemake.config["split"]["barcode_type"])+"`\n\n"
+#    splitStr +=":commd:`split_libraries_fastq.py -m "+snakemake.wildcards.PROJECT+"/metadata/sampleList_mergedBarcodes_"+snakemake.wildcards.sample+".txt -i "+base_sample_data+"/barcodes_unassigned/reads.fastq -o "+base_sample_data+"/splitLibsRC -b "+base_run+"/"+str(snakemake.wildcards.sample)+"_data/barcodes_unassigned/"+bcFile+" -q "+str(snakemake.config["split"]["q"])+" -r "+str(snakemake.config["split"]["r"])+" "+str(snakemake.config["split"]["extra_params"])+" --barcode_type "+str(snakemake.config["split"]["barcode_type"])+"`\n\n"
 #    splitStr +=splitLibsBench+"\n\n"
 
     splitStr +="**Output files:**\n\n"
-#   # splitStr +=":green:`- FW reads fasta file with new header:` "+snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/splitLibs/seqs.assigned.fna\n\n"
-    splitStr +=":green:`- Text histogram with the length of the fw reads:` "+snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/splitLibs/histograms.txt\n\n"
-    splitStr +=":green:`- Log file for the fw reads:` "+snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/splitLibs/split_library_log.txt\n\n"
-#   # splitStr +=":green:`- RV reads fasta file with new header:` "+snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/splitLibsRC/seqs.assigned.fna\n\n"
-#    splitStr +=":green:`- Text histogram with the length of the rv reads:` "+snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/splitLibsRC/histograms.txt\n\n"
-#    splitStr +=":green:`- Log file for the rv reads:` "+snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/splitLibsRC/split_library_log.txt\n\n"
-#    splitStr +=":green:`- Fasta file with unassigned reads:` "+snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/splitLibsRC/seqs.unassigned.fna\n\n"
+#   # splitStr +=":green:`- FW reads fasta file with new header:` "+base_sample_data+"/splitLibs/seqs.assigned.fna\n\n"
+    splitStr +=":green:`- Text histogram with the length of the fw reads:` "+base_split+"/histograms.txt\n\n"
+    splitStr +=":green:`- Log file for the fw reads:` "+base_split+"/split_library_log.txt\n\n"
+#   # splitStr +=":green:`- RV reads fasta file with new header:` "+base_sample_data+"/splitLibsRC/seqs.assigned.fna\n\n"
+#    splitStr +=":green:`- Text histogram with the length of the rv reads:` "+base_sample_data+"/splitLibsRC/histograms.txt\n\n"
+#    splitStr +=":green:`- Log file for the rv reads:` "+base_sample_data+"/splitLibsRC/split_library_log.txt\n\n"
+#    splitStr +=":green:`- Fasta file with unassigned reads:` "+base_sample_data+"/splitLibsRC/seqs.unassigned.fna\n\n"
     splitStr +=":red:`Number of reads assigned on FW:` "+str(fwAssignedCounts)+" = "+str(prcFwAssigned)+"% of the peared reads\n\n"
     splitStr +=":red:`Number of reads assigned on RVC:` "+str(rvAssignedCounts)+" = "+str(prcRvAssigned)+"% of the peared reads\n\n"
 
@@ -363,11 +373,11 @@ if snakemake.config["demultiplexing"]["demultiplex"] == "T" and snakemake.config
     demultiplexFQ += "Create single fastq files per samples (based on the raw data without applying any filtering).\n\n"
     demultiplexFQ +=":red:`Tool:` Cascabel Java program\n\n"
     demultiplexFQ += "**Command:**\n\n"
-    demultiplexFQ += ":commd:`"+snakemake.config["java"]["command"] + " -cp Scripts DemultiplexQiime --txt -a rv -b "+ str(snakemake.config["demultiplexing"]["bc_mismatch"]) + " -d "+ snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/splitLibs/seqs.assigned.ori.txt -o "+ snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/demultiplexed/ "
+    demultiplexFQ += ":commd:`"+snakemake.config["java"]["command"] + " -cp Scripts DemultiplexQiime --txt -a rv -b "+ str(snakemake.config["demultiplexing"]["bc_mismatch"]) + " -d "+ base_split+"/seqs.assigned.ori.txt -o "+ base_demultiplexed+"/ "
     ext=".gz"
     if snakemake.config["gzip_input"].casefold() == "f":
         ext=""
-    demultiplexFQ += "-r1 "+snakemake.wildcards.PROJECT+"/samples/"+snakemake.wildcards.sample+"/rawdata/fw.fastq"+ext+" -r2 "+snakemake.wildcards.PROJECT+"/samples/"+snakemake.wildcards.sample+"/rawdata/fw.fastq"+ext+"`\n\n"
+    demultiplexFQ += "-r1 "+base_sample+"/rawdata/fw.fastq"+ext+" -r2 "+base_sample+"/rawdata/fw.fastq"+ext+"`\n\n"
     if snakemake.config["demultiplexing"]["remove_bc"]:
         demultiplexFQ +=":red:`Barcodes removed:` "+ str(snakemake.config["demultiplexing"]["remove_bc"]) + " first bases\n\n"
 #Now only for ASV workflow
@@ -375,8 +385,8 @@ if snakemake.config["demultiplexing"]["demultiplex"] == "T" and snakemake.config
    #     demultiplexFQ +=":red:`Primers removed:` **FW** " + snakemake.config["primers"]["fw_primer"] + " **RV** " +snakemake.config["primers"]["rv_primer"]+"\n\n"
    # elif snakemake.config["primers"]["remove"].lower() == "metadata":
    #     demultiplexFQ +=":red:`Removed primers` were obtained from the metadata file.\n\n" 
-    demultiplexFQ += "**The demultiplexed fastq files are located at:**\n\n:green:`- Demultiplexed directory:` "+snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/demultiplexed/\n\n"
-    demultiplexFQ += ":green:`- Summary file:` "+snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/demultiplexed/summary.txt\n\n"
+    demultiplexFQ += "**The demultiplexed fastq files are located at:**\n\n:green:`- Demultiplexed directory:` "+base_demultiplexed+"/\n\n"
+    demultiplexFQ += ":green:`- Summary file:` "+base_demultiplexed+"/summary.pcr.txt\n\n"
     demultiplexFQ += demultiplexFQBench
    # also this only for the ASV workflow
    # if (snakemake.config["primers"]["remove"].lower() == "cfg" or snakemake.config["primers"]["remove"].lower() == "metadata"):
@@ -386,19 +396,19 @@ if snakemake.config["demultiplexing"]["demultiplex"] == "T" and snakemake.config
    #     demultiplexFQ += "**Command:**\n\n"
    #     if snakemake.config["primers"]["remove"].lower() == "cfg":
    #         if snakemake.config["LIBRARY_LAYOUT"].casefold()=="pe":
-   #             demultiplexFQ += ":commd:`cutadapt -g "+ snakemake.config["primers"]["fw_primer"]  + " -G " + snakemake.config["primers"]["rv_primer"]  + " " +snakemake.config["primers"]["extra_params"]+" -O "+ snakemake.config["primers"]["min_overlap"]  +" -m " +snakemake.config["primers"]["min_length"]+ " -o "+snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/demultiplexed/primer_removed/SAMPLE_1.fastq.gz -p "+snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/demultiplexed/primer_removed/SAMPLE_2.fastq.gz "+ snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/demultiplexed/SAMPLE_1.fq.gz  "+ snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/demultiplexed/SAMPLE_2.fq.gz  >> "+snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/demultiplexed/primer_removed/"+snakemake.wildcards.sample+".cutadapt.log`\n\n"
+   #             demultiplexFQ += ":commd:`cutadapt -g "+ snakemake.config["primers"]["fw_primer"]  + " -G " + snakemake.config["primers"]["rv_primer"]  + " " +snakemake.config["primers"]["extra_params"]+" -O "+ snakemake.config["primers"]["min_overlap"]  +" -m " +snakemake.config["primers"]["min_length"]+ " -o "+base_demultiplexed+"/primer_removed/SAMPLE_1.fastq.gz -p "+base_demultiplexed+"/primer_removed/SAMPLE_2.fastq.gz "+ base_demultiplexed+"/SAMPLE_1.fq.gz  "+ base_demultiplexed+"/SAMPLE_2.fq.gz  >> "+base_demultiplexed+"/primer_removed/"+snakemake.wildcards.sample+".cutadapt.log`\n\n"
    #         else:
-   #             demultiplexFQ += ":commd:`cutadapt -g "+ snakemake.config["primers"]["fw_primer"]  + " " +snakemake.config["primers"]["extra_params"]+" -O "+ snakemake.config["primers"]["min_overlap"]  +" -m " +snakemake.config["primers"]["min_length"]+ " -o "+snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/demultiplexed/primer_removed/SAMPLE_1.fastq.gz "+ snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/demultiplexed/SAMPLE_1.fq.gz  >> "+snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/demultiplexed/primer_removed/"+snakemake.wildcards.sample+".cutadapt.log`\n\n"
+   #             demultiplexFQ += ":commd:`cutadapt -g "+ snakemake.config["primers"]["fw_primer"]  + " " +snakemake.config["primers"]["extra_params"]+" -O "+ snakemake.config["primers"]["min_overlap"]  +" -m " +snakemake.config["primers"]["min_length"]+ " -o "+base_demultiplexed+"/primer_removed/SAMPLE_1.fastq.gz "+ base_demultiplexed+"/SAMPLE_1.fq.gz  >> "+base_demultiplexed+"/primer_removed/"+snakemake.wildcards.sample+".cutadapt.log`\n\n"
    #         demultiplexFQ += "The above command ran once for each single sample fastq file(s) using the mentioned primers\n\n"
    #     else: #is from metadata
    #         if snakemake.config["LIBRARY_LAYOUT"].casefold()=="pe":
-   #             demultiplexFQ += ":commd:`cutadapt -g sample_FW_primer  -G sample_RV_primer " +snakemake.config["primers"]["extra_params"]+" -O "+ snakemake.config["primers"]["min_overlap"]  +" -m " +snakemake.config["primers"]["min_length"]+ " -o "+snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/demultiplexed/primer_removed/SAMPLE_1.fastq.gz -p "+snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/demultiplexed/primer_removed/SAMPLE_2.fastq.gz "+ snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/demultiplexed/SAMPLE_1.fq.gz "+ snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/demultiplexed/SAMPLE_2.fq.gz  >> "+snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/demultiplexed/primer_removed/"+snakemake.wildcards.sample+".cutadapt.log`\n\n"
+   #             demultiplexFQ += ":commd:`cutadapt -g sample_FW_primer  -G sample_RV_primer " +snakemake.config["primers"]["extra_params"]+" -O "+ snakemake.config["primers"]["min_overlap"]  +" -m " +snakemake.config["primers"]["min_length"]+ " -o "+base_demultiplexed+"/primer_removed/SAMPLE_1.fastq.gz -p "+base_demultiplexed+"/primer_removed/SAMPLE_2.fastq.gz "+ base_demultiplexed+"/SAMPLE_1.fq.gz "+ base_demultiplexed+"/SAMPLE_2.fq.gz  >> "+base_demultiplexed+"/primer_removed/"+snakemake.wildcards.sample+".cutadapt.log`\n\n"
    #         elif snakemake.config["LIBRARY_LAYOUT"].casefold()=="se":
-   #             demultiplexFQ += ":commd:`cutadapt -g sample_FW_primer "+ " " +snakemake.config["primers"]["extra_params"]+" -O "+ snakemake.config["primers"]["min_overlap"]  +" -m " +snakemake.config["primers"]["min_length"]+ " -o "+snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/demultiplexed/primer_removed/SAMPLE_1.fastq.gz "+ snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/demultiplexed/SAMPLE_1.fq.gz  >> "+snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/demultiplexed/primer_removed/"+snakemake.wildcards.sample+".cutadapt.log`\n\n"
+   #             demultiplexFQ += ":commd:`cutadapt -g sample_FW_primer "+ " " +snakemake.config["primers"]["extra_params"]+" -O "+ snakemake.config["primers"]["min_overlap"]  +" -m " +snakemake.config["primers"]["min_length"]+ " -o "+base_demultiplexed+"/primer_removed/SAMPLE_1.fastq.gz "+ base_demultiplexed+"/SAMPLE_1.fq.gz  >> "+base_demultiplexed+"/primer_removed/"+snakemake.wildcards.sample+".cutadapt.log`\n\n"
    #         demultiplexFQ += "The above command ran once for each single sample fastq file(s) and primers were obtained from the mapping file accordingly to its sample\n\n"    
-   #     demultiplexFQ += ":green:`- Reads without primers:` "+snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/demultiplexed/primer_removed\n\n"
+   #     demultiplexFQ += ":green:`- Reads without primers:` "+base_demultiplexed+"/primer_removed\n\n"
    #     if "--discard-untrimmed" in snakemake.config["primers"]["extra_params"]:
-   #         demultiplexFQ += ":green:`- Discarded reads (no primer):` "+snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/demultiplexed/reads_discarded_primer\n\n"
+   #         demultiplexFQ += ":green:`- Discarded reads (no primer):` "+base_demultiplexed+"/reads_discarded_primer\n\n"
    #     else:
    #         demultiplexFQ += ":red:`- Given the options, reads without primers where not removed!`\n\n"
    #     demultiplexFQ += ":green:`- Primer removal results by sample:` primers_removal_\n\n"
@@ -413,9 +423,9 @@ combineFR = ""
 #    combineFR = "Combine reads\n---------------------------------\n\n" # title
 #    combineFR += "Concatenate forward and reverse reads.\n\n"
 #    combineFR += "**Command:**\n\n"
-#    combineFR += ":commd:`cat "+snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/splitLibs/seqs.assigned.fna "+snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/splitLibsRC/seqs.assigned.fna > "+snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/seqs_fw_rev_accepted.fna`\n\n"
+#    combineFR += ":commd:`cat "+base_sample_data+"/splitLibs/seqs.assigned.fna "+base_sample_data+"/splitLibsRC/seqs.assigned.fna > "+base_sample_data+"/seqs_fw_rev_accepted.fna`\n\n"
 #    combineFR +="**Output files:**\n\n"
-#    combineFR +=":green:`- Fasta file with combined reads:` "+snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/seqs_fw_rev_accepted.fna\n\n"
+#    combineFR +=":green:`- Fasta file with combined reads:` "+base_sample_data+"/seqs_fw_rev_accepted.fna\n\n"
 #    combineFR +=":red:`- Total number of acepted reads:` " +str(totalAssigned)+ " = "+ str(prcPearedAssigned)+ "% of the peared reads or "+str(prcRawAssigned)+"% of the raw reads.\n\n"
 #    combineFR += combineBench
     
@@ -431,14 +441,14 @@ if snakemake.config["primers"]["remove"].casefold() == "metadata" or snakemake.c
     cutAdaptStr += "**Command:**\n\n"
     primer_lines=0
     if snakemake.config["primers"]["remove"].lower() == "cfg":
-        #cutAdaptStr += ":commd:`cutadapt "+ str(snakemake.config["cutadapt"]["adapters"])+" " + str(snakemake.config["cutadapt"]["extra_params"]) + " -o " + snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/seqs_fw_rev_accepted_no_adapters.fna\n\n"
-        #cutAdaptStr +=  snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/seqs_fw_rev_accepted.fna > " +  snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/seqs_fw_rev_accepted_no_adapters.log`\n\n"
-        cutAdaptStr += ":commd:`cutadapt -g "+ str(snakemake.config["primers"]["fw_primer"])+"..."+str(snakemake.config["primers"]["rv_primer"])+" "+ str(snakemake.config["primers"]["extra_params"]) + " -o " + snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/seqs_fw_rev_accepted_no_adapters.fna "+snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/seqs_fw_rev_accepted.fna > " +  snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/seqs_fw_rev_accepted_no_adapters.log`\n\n"
+        #cutAdaptStr += ":commd:`cutadapt "+ str(snakemake.config["cutadapt"]["adapters"])+" " + str(snakemake.config["cutadapt"]["extra_params"]) + " -o " + base_sample_data+"/seqs_fw_rev_accepted_no_adapters.fna\n\n"
+        #cutAdaptStr +=  base_sample_data+"/seqs_fw_rev_accepted.fna > " +  base_sample_data+"/seqs_fw_rev_accepted_no_adapters.log`\n\n"
+        cutAdaptStr += ":commd:`cutadapt -g "+ str(snakemake.config["primers"]["fw_primer"])+"..."+str(snakemake.config["primers"]["rv_primer"])+" "+ str(snakemake.config["primers"]["extra_params"]) + " -o " + base_sample_data+"/seqs_fw_rev_accepted_no_adapters.fna "+base_sample_data+"/seqs_fw_rev_accepted.fna > " +  base_sample_data+"/seqs_fw_rev_accepted_no_adapters.log`\n\n"
     elif snakemake.config["primers"]["remove"].lower() == "metadata":
         primers=""
         try:
-            #with open(snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/primers.txt") as pfile:
-            with open(snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/report_files/primers."+snakemake.wildcards.sample+".txt") as pfile:
+            #with open(base_sample_data+"/primers.txt") as pfile:
+            with open(base_run+"/report_files/primers."+snakemake.wildcards.sample+".txt") as pfile:
                 primers=pfile.read()
                 #primer_lines=len(pfile.readlines())
                 primer_lines=len(primers.split("\n"))
@@ -450,22 +460,22 @@ if snakemake.config["primers"]["remove"].casefold() == "metadata" or snakemake.c
 
         except FileNotFoundError:
             primers="-ERROR reading primer file-"
-        #cutAdaptStr += ":commd:`cutadapt "+primers +" " + str(snakemake.config["cutadapt"]["extra_params"]) + " -o " + snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/seqs_fw_rev_accepted_no_adapters.fna\n\n"
-        #cutAdaptStr += snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/seqs_fw_rev_accepted.fna > " +  snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/seqs_fw_rev_accepted_no_adapters.log`\n\n"
-        cutAdaptStr += ":commd:`cutadapt "+primers +" " + str(snakemake.config["primers"]["extra_params"]) + " -o " + snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/seqs_fw_rev_accepted_no_adapters.fna "+  snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/seqs_fw_rev_accepted.fna > " +  snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/seqs_fw_rev_accepted_no_adapters.log`\n\n"
+        #cutAdaptStr += ":commd:`cutadapt "+primers +" " + str(snakemake.config["cutadapt"]["extra_params"]) + " -o " + base_sample_data+"/seqs_fw_rev_accepted_no_adapters.fna\n\n"
+        #cutAdaptStr += base_sample_data+"/seqs_fw_rev_accepted.fna > " +  base_sample_data+"/seqs_fw_rev_accepted_no_adapters.log`\n\n"
+        cutAdaptStr += ":commd:`cutadapt "+primers +" " + str(snakemake.config["primers"]["extra_params"]) + " -o " + base_sample_data+"/seqs_fw_rev_accepted_no_adapters.fna "+  base_sample_data+"/seqs_fw_rev_accepted.fna > " +  base_sample_data+"/seqs_fw_rev_accepted_no_adapters.log`\n\n"
         
 #cutAdaptStr += "*PRIMERS: primer sequences were obtained from the metadata file\n\n"
     if primer_lines > 1:
         cutAdaptStr += ":green:`- Primers used by sample:` primers_sample_\n\n"
         cutAdaptStr +=  ".. _primers_sample: report_files/primers."+snakemake.wildcards.sample+".txt\n\n"
-    cutAdaptStr += "**Output files:**\n\n:green:`- Reads without adapters:` "+snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/seqs_fw_rev_accepted_no_adapters.fna\n\n"
+    cutAdaptStr += "**Output files:**\n\n:green:`- Reads without adapters:` "+base_sample_data+"/seqs_fw_rev_accepted_no_adapters.fna\n\n"
     if cutSequences:
         cutAdaptStr += ":red:`Total number of reads after cutadapt:` "+ str(sequenceNoAdapters) + " = " + str(prcCut) + "% of the assigned reads or "+ str(prcCutRaw)+"% of the total reads\n\n"
     #cutAdaptStr+=":\n\n"
     cutAdaptStr+=":green:`- Primer removal results by sample:` primers_OTU_\n\n"
     cutAdaptStr+=" .. _primers_OTU: report_files/cutadapt."+snakemake.wildcards.sample+".summary.tsv\n\n"
 
-    cutAdaptBench =readBenchmark(snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/cutadapt.benchmark")
+    cutAdaptBench =readBenchmark(base_sample_data+"/cutadapt.benchmark")
     cutAdaptStr += cutAdaptBench+"\n\n"
 ################################################################################
 #                          Counts for too long too shorts                      #
@@ -490,7 +500,7 @@ if cutSequences:
 ################################################################################
 shorts = str(snakemake.config["rm_reads"]["shorts"])
 longs = str(snakemake.config["rm_reads"]["longs"])
-with open(snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/filter.log") as trimlog:
+with open(base_sample_data+"/filter.log") as trimlog:
     for line in trimlog:
         tokens = line.split("\t")
         if len(tokens)>2:
@@ -510,14 +520,14 @@ headers.append("Prc(%) vs raw")
 fileData.append(headers)
 #raw
 data.append("Raw reads")
-data.append(snakemake.wildcards.PROJECT+"/samples/"+snakemake.wildcards.sample+"/rawdata/\*.fq")
+data.append(base_sample+"/rawdata/\*.fq")
 data.append(str(rawCounts))
 data.append("{:.2f}".format(float((rawCounts/rawCounts)*100))+"%")
 fileData.append(data)
 data=[]
 #pear
 data.append("Assembled reads")
-data.append(snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/peared/seqs.assembled.fastq")
+data.append(base_sample+"/peared/seqs.assembled.fastq")
 data.append(str(pearedCounts))
 data.append("{:.2f}".format(float((pearedCounts/rawCounts)*100))+"%")
 fileData.append(data)
@@ -525,7 +535,7 @@ data=[]
 #splitted
 if snakemake.config["demultiplexing"]["demultiplex"] == "T":
     data.append("Demultiplexed reads")
-    data.append(snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/seqs_fw_rev_accepted.fna")
+    data.append(base_sample_data+"/seqs_fw_rev_accepted.fna")
     data.append(str(totalAssigned))
     data.append("{:.2f}".format(float((totalAssigned/rawCounts)*100))+"%")
     fileData.append(data)
@@ -533,14 +543,14 @@ if snakemake.config["demultiplexing"]["demultiplex"] == "T":
 #adapters
 if snakemake.config["primers"]["remove"].casefold() == "metadata" or snakemake.config["primers"]["remove"].casefold() == "cfg":
     data.append("Adapter removed")
-    data.append(snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/seqs_fw_rev_accepted_no_adapters.fna")
+    data.append(base_sample_data+"/seqs_fw_rev_accepted_no_adapters.fna")
     data.append(str(sequenceNoAdapters))
     data.append("{:.2f}".format(float((sequenceNoAdapters/rawCounts)*100))+"%")
     fileData.append(data)
     data=[]
 #length filtered
 data.append("Length filtered")
-data.append(snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/seqs_fw_rev_filtered.fasta")
+data.append(base_sample_data+"/seqs_fw_rev_filtered.fasta")
 data.append(str(trimmedCounts))
 data.append("{:.2f}".format(float((trimmedCounts/rawCounts)*100))+"%")
 fileData.append(data)
@@ -548,7 +558,7 @@ data=[]
 #chimera
 if snakemake.config["chimera"]["search"] == "T" and removeChimeras:
     data.append("Non chimeric reads")
-    data.append(snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/seqs_fw_rev_filtered_nc.fasta")
+    data.append(base_sample_data+"/seqs_fw_rev_filtered_nc.fasta")
     data.append(str(sequenceNoChimeras))
     data.append("{:.2f}".format(float((sequenceNoChimeras/rawCounts)*100))+"%")
     fileData.append(data)
@@ -560,12 +570,12 @@ countTxt += make_table(fileData)
 
 sampleDistChart = ""
 if snakemake.config["demultiplexing"]["demultiplex"] == "T":
-    dist_table = readSampleDist(snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/seqs_fw_rev_filtered.dist.txt",trimmedCounts,samplesLibInt)
+    dist_table = readSampleDist(base_sample_data+"/seqs_fw_rev_filtered.dist.txt",trimmedCounts,samplesLibInt)
     sampleDistChart = "Sample distribution\n--------------------------------------\n\n" # title
     sampleDistChart += dist_table + "\n\n"
     sampleDistChart += ".. image:: report_files/seqs_fw_rev_filtered."+snakemake.wildcards.sample+".dist.png\n\n"
     sampleDistChart +="The previous chart shows the number of clean reads per sample. The bars are sorted from left to right, according to the metadata input file.\n\n"
-    sampleDistChart +="**To see more details about the number of reads per sample in this library, please refer to the file:** "+snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/seqs_fw_rev_filtered.dist.txt\n\n"
+    sampleDistChart +="**To see more details about the number of reads per sample in this library, please refer to the file:** "+base_sample_data+"/seqs_fw_rev_filtered.dist.txt\n\n"
 
 
 ################################################################################
@@ -590,6 +600,7 @@ if snakemake.config["demultiplexing"]["demultiplex"] == "T":
 ################################################################################
 #                                Report                                        #
 ################################################################################
+taxoTool = str(snakemake.config[assignTaxonomy][tool].lower())
 
 report("""
 Amplicon Analysis Report for Library: {snakemake.wildcards.sample}
@@ -656,13 +667,13 @@ Align paired end reads and merge them into one single sequence in case they over
 
 **Command:**
 
-:commd:`pear -f {snakemake.wildcards.PROJECT}/samples/{snakemake.wildcards.sample}/rawdata/fw.fastq -r {snakemake.wildcards.PROJECT}/samples/{snakemake.wildcards.sample}/rawdata/rv.fastq -t {snakemake.config[pear][t]} -v {snakemake.config[pear][v]} -j {snakemake.config[pear][j]} -p {snakemake.config[pear][p]} -o {snakemake.wildcards.PROJECT}/runs/{snakemake.wildcards.run}/{snakemake.wildcards.sample}_data/peared/seqs > {snakemake.wildcards.PROJECT}/runs/{snakemake.wildcards.run}/{snakemake.wildcards.sample}_data/peared/seqs.assembled.fastq`
+:commd:`pear -f {base_sample}/rawdata/fw.fastq -r {base_sample}/rawdata/rv.fastq -t {snakemake.config[pear][t]} -v {snakemake.config[pear][v]} -j {snakemake.config[pear][j]} -p {snakemake.config[pear][p]} -o {base_sample_data}/peared/seqs > {base_sample_data}/peared/seqs.assembled.fastq`
 
 **Output files:**
 
-:green:`- Merged reads:` {snakemake.wildcards.PROJECT}/runs/{snakemake.wildcards.run}/{snakemake.wildcards.sample}_data/peared/seqs.assembled.fastq
+:green:`- Merged reads:` {base_sample_data}/peared/seqs.assembled.fastq
 
-:green:`- Log file:` {snakemake.wildcards.PROJECT}/runs/{snakemake.wildcards.run}/{snakemake.wildcards.sample}_data/peared/pear.log
+:green:`- Log file:` {base_sample_data}/peared/pear.log
 
 :red:`Number of peared reads:` {pearedCountsStr} =  {prcPeared}%
 
@@ -693,7 +704,7 @@ Remove very short and long reads, with lengths more than some standard deviation
 
 **Command:**
 
-:commd:`awk '!/^>/ {{ next }} {{ getline seq }} length(seq) > shorts  && length(seq) < longs {{ print $0 \"\\n\" seq }}'  {snakemake.wildcards.PROJECT}/runs/{snakemake.wildcards.run}/{snakemake.wildcards.sample}_data/seqs_fw_rev_accepted.fna  >  {snakemake.wildcards.PROJECT}/runs/{snakemake.wildcards.run}/{snakemake.wildcards.sample}_data/seqs_fw_rev_filtered.fasta`
+:commd:`awk '!/^>/ {{ next }} {{ getline seq }} length(seq) > shorts  && length(seq) < longs {{ print $0 \"\\n\" seq }}'  {base_sample_data}/seqs_fw_rev_accepted.fna  >  {base_sample_data}/seqs_fw_rev_filtered.fasta`
 
 **Sequence distribution before remove reads**
 
@@ -705,7 +716,7 @@ Remove very short and long reads, with lengths more than some standard deviation
 
 **Output file:**
 
-:green:`- Fasta file with correct sequence length:` {snakemake.wildcards.PROJECT}/runs/{snakemake.wildcards.run}/{snakemake.wildcards.sample}_data/seqs_fw_rev_filtered.fasta
+:green:`- Fasta file with correct sequence length:` {base_sample_data}/seqs_fw_rev_filtered.fasta
 
 {trimmedStr}
 
@@ -728,9 +739,9 @@ Final counts
 OTU report
 ---------------------------
 
-Cascabel report on downstream analyses in combination with multiple libraries (if supplied), can be found at the following link: otu_report_ ({snakemake.wildcards.PROJECT}/runs/{snakemake.wildcards.run}/otu_report_{snakemake.config[assignTaxonomy][tool]}.html)
+Cascabel report on downstream analyses in combination with multiple libraries (if supplied), can be found at the following link: otu_report_ ({base_run}/otu_report_{taxoTool}.html)
 
-    .. _otu_report: otu_report_{snakemake.config[assignTaxonomy][tool]}.html
+    .. _otu_report: otu_report_{taxoTool}.html
 
 References
 ------------------

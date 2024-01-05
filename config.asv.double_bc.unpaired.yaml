@@ -139,7 +139,7 @@ rv_reads: ""
 metadata: ""
 #OR
 input_files: ""
-
+binned_q_scores: "F" # Binned quality scores.Set this to "T" if your data comes from a NextSeq sequencing machine.
 
 ################################################################################
 #                          REPORT PARAMETER SECTION                            #

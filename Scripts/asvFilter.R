@@ -28,11 +28,11 @@ setwd(args[1])
 paths = c()
 if (args[11] != "F" && args[11] != "FALSE" ){
   for(i in 12:length(args)) {
-    paths <- c(paths,gsub("/summary.txt", '/primer_removed',args[i]))
+    paths <- c(paths,gsub("/summary.pcr.txt", '/primer_removed',args[i]))
   }
 }else{
  for(i in 12:length(args)) {
-    paths <- c(paths,gsub("/summary.txt", '',args[i]))
+    paths <- c(paths,gsub("/summary.pcr.txt", '',args[i]))
   }
 }
 
@@ -72,9 +72,10 @@ readintegerConsole <- function(x){
 
 createMenuConsole <- function()
 { 
-  cat("\n--------------------------------------\n")
-  cat("------     READ TRUNCATION    --------\n")
-  cat("The next step will truncate the reads:\n")
+  cat("\n-----------------------------------------------\n")
+  cat("------   Read filtering and truncation   ------\n")
+  cat("The next step will truncate and filter the reads.\n") 
+  cat("Here, you can adjust the values given in your configuratio  file.\n")
   if (args[2] == "T" || args[2] == "TRUE" ){
    cat(paste("We advise having a look at the QA plots generated at: ",asv_dir))
   }else{
@@ -86,7 +87,7 @@ createMenuConsole <- function()
     cat("then update your settings with \"dada2_filter: generateQAplots = T\" and \n")
     cat("re-run the pipeline.\n\n") 
   }
-  cat("\nYour current values are:\n")
+  cat("\nYour current values for truncation are:\n")
   cat(paste(" * Forward: ",args[3],"\n"))
   cat(paste(" * Reverse: ",args[4],"\n"))
   cat("\nA value of \"0\" means no truncation.\n")
@@ -114,6 +115,40 @@ createMenuConsole <- function()
   }else {
     return(createMenuConsole())
   }
+  return(readMaxEE())
+}
+
+readMaxEE <- function()
+{
+  cat("\nYour current values for the maximum number of expected errors are:\n")
+  cat(paste(" * Forward maxEE: ",args[5],"\n"))
+  cat(paste(" * Reverse maxEE: ",args[6],"\n"))
+#  cat("\nA value of \"0\" means no Error filtering.\n")
+  cat("Reads wit more error than maxEE are discarded!\n")
+  cat("Expected errors are calculated from the nominal definition of \nthe quality score: EE = sum(10^(-Q/10))\n")
+  cat("What would you like to do?\n\n")
+  
+  cat(" 1. Use values from configuration file.\n")
+  cat(" 2. Specify new values!\n")
+  cat(" 3. Interrupt workflow.\n")
+  cat("Enter your option:\n")
+  n <- readLines("stdin",n=1);
+  if(!grepl("^[0-9]+$",n))
+  {
+    return(readMaxEE())
+  }else if(n == 1){
+    maxEE_fw <<- strtoi(args[5], 10) 
+    maxEE_rv <<- strtoi(args[6], 10)
+  }else if(n == 2){
+    
+    maxEE_fw <<- readintegerConsole("Enter FW maxEE:")
+    maxEE_rv <<- readintegerConsole("Enter RV maxEE:")
+  
+  }else if(n == 3){
+    exit(1)
+  }else {
+    return(readMaxEE())
+  }
 }
 
 #Create path and file names for filtered samples" 
@@ -140,12 +175,14 @@ if (args[9] == "T" || args[9] == "TRUE" ){
 }else{
   fw_len <- strtoi(args[3], 10) 
   rv_len <- strtoi(args[4], 10)
-  
+  maxEE_fw <- strtoi(args[5], 10) 
+  maxEE_rv <- strtoi(args[6],10)
+ 
 }
 trunc_len_file<-gsub("filter_summary.out", 'trunc_val.log',args[10])
 write.table(c(fw_len,rv_len),trunc_len_file, quote=F,sep="\t", row.names = F, col.names = F)
-maxEE_fw <- strtoi(args[5], 10) 
-maxEE_rv <- strtoi(args[6],10)
+#maxEE_fw <- strtoi(args[5], 10) 
+#maxEE_rv <- strtoi(args[6],10)
 cpus <- strtoi(args[7],10)
 extra_params <- args[8]
 

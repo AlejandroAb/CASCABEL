@@ -139,7 +139,7 @@ if snakemake.config["primers"]["remove"].lower() == "metadata":
             primers.close()
 else: #values come at the CFG, run only once
     primer_set="-g " + snakemake.config["primers"]["fw_primer"]
-    if snakemake.config["primers"]["rv_primer"].len() > 2 :
+    if len(snakemake.config["primers"]["rv_primer"]) > 2 :
         primer_set=primer_set+"..."+reverse_complement(snakemake.config["primers"]["rv_primer"])
 
     subprocess.run( ["cutadapt  "+ primer_set  +" "+extra+" -o "+snakemake.output[0] + " "+ no_primer +" " + snakemake.input[0]+ ">"+ snakemake.params[5]],stdout=subprocess.PIPE, shell=True)

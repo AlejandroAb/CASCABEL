@@ -21,14 +21,15 @@ def complement(seq):
 def reverse_complement(s):
     return complement(s[::-1])
 
+run=snakemake.params[5]
 # List files
 fq_files = [f for f in os.listdir(snakemake.params[0]) if f.endswith("_1."+snakemake.params[2])]
 if not os.path.exists(snakemake.params[0]+"/reads_discarded_primer/") and "--discard-untrimmed" in snakemake.params[1]:
     os.makedirs(snakemake.params[0]+"/reads_discarded_primer/")
 if not os.path.exists(snakemake.params[0]+"/primer_removed/"):
     os.makedirs(snakemake.params[0]+"/primer_removed/")
-if not os.path.exists(snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/report_files"):
-    os.makedirs(snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/report_files")
+if not os.path.exists(snakemake.wildcards.PROJECT+"/runs/"+run+"/report_files"):
+    os.makedirs(snakemake.wildcards.PROJECT+"/runs/"+run+"/report_files")
 
 summ_file = open(snakemake.output[0],"w") # this iss a log for the wf
 summ_file2 = open(snakemake.params[4],"w") # this is for the report

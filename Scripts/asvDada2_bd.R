@@ -4,24 +4,15 @@
 #
 # @author: J. Engelmann
 # @author: A. Abdala
+# @author: W. Reitsma
 
 library(dada2)
 library(Biostrings)
+library(magrittr)
+library(dplyr)
+
 
 args <- commandArgs(trailingOnly = T)
-#args<-c("/export/lv3/scratch/projects_AA/ITS_benchmark/CASCABEL","pseudo","5","F",
-#        "selfConsist=FALSE","ITS_Benchmark/runs/config_14/asv/","200", 
-#        "450","10","T","/export/data01/databases/unite/general_fastas/unite_fungi.dynamic.fasta",
-#        "nop","F","minBoot=45",12,0,
-#        "ITS_Benchmark/runs/config_14/SRR5838515_data/demultiplexed/summary.txt",
-#        "ITS_Benchmark/runs/config_14/asv/filter_summary.validation.txt")
-###or
-      #  "ITS_Benchmark/runs/config_14/SRR5838515_data/demultiplexed/summary.txt",
-      #  "ITS_Benchmark/runs/config_14/SRR5838516_data/demultiplexed/summary.txt",
-      #  "ITS_Benchmark/runs/config_14/SRR5838522_data/demultiplexed/summary.txt",
-      #  "ITS_Benchmark/runs/config_14/asv/filter_summary.validation.txt")
-#params <- snakemake@params
-#args <- unlist((strsplit(unlist(params), split=" ")))
 
 #args[1] = path for seting WD to use current dir use $PWD
 #args[2] = dada2 pool option
@@ -45,6 +36,65 @@ args <- commandArgs(trailingOnly = T)
 #args[20]... = NON Interactive behav.
 #args[21]... = summary files from libraries
 
+# error function model obtained from Hannah Holland-Moritz on dada2 github:
+# https://github.com/benjjneb/dada2/issues/1307#issuecomment-957680971
+loessErrfun_mod1 <- function(trans) {
+  qq <- as.numeric(colnames(trans))
+  est <- matrix(0, nrow=0, ncol=length(qq))
+  for(nti in c("A","C","G","T")) {
+    for(ntj in c("A","C","G","T")) {
+      if(nti != ntj) {
+        errs <- trans[paste0(nti,"2",ntj),]
+        tot <- colSums(trans[paste0(nti,"2",c("A","C","G","T")),])
+        rlogp <- log10((errs+1)/tot)  # 1 psuedocount for each err, but if tot=0 will give NA
+        rlogp[is.infinite(rlogp)] <- NA
+        df <- data.frame(q=qq, errs=errs, tot=tot, rlogp=rlogp)
+        
+        # original
+        # ###! mod.lo <- loess(rlogp ~ q, df, weights=errs) ###!
+        # mod.lo <- loess(rlogp ~ q, df, weights=tot) ###!
+        # #        mod.lo <- loess(rlogp ~ q, df)
+        
+        # Gulliem Salazar's solution
+        # https://github.com/benjjneb/dada2/issues/938
+        mod.lo <- loess(rlogp ~ q, df, weights = log10(tot),span = 2)
+        
+        pred <- predict(mod.lo, qq)
+        maxrli <- max(which(!is.na(pred)))
+        minrli <- min(which(!is.na(pred)))
+        pred[seq_along(pred)>maxrli] <- pred[[maxrli]]
+        pred[seq_along(pred)<minrli] <- pred[[minrli]]
+        est <- rbind(est, 10^pred)
+      } # if(nti != ntj)
+    } # for(ntj in c("A","C","G","T"))
+  } # for(nti in c("A","C","G","T"))
+  
+  # HACKY
+  MAX_ERROR_RATE <- 0.25
+  MIN_ERROR_RATE <- 1e-7
+  est[est>MAX_ERROR_RATE] <- MAX_ERROR_RATE
+  est[est<MIN_ERROR_RATE] <- MIN_ERROR_RATE
+  
+  # enforce monotonicity
+  # https://github.com/benjjneb/dada2/issues/791
+  estorig <- est
+  est <- est %>%
+    data.frame() %>%
+    mutate_all(funs(case_when(. < X40 ~ X40,
+                              . >= X40 ~ .))) %>% as.matrix()
+  rownames(est) <- rownames(estorig)
+  colnames(est) <- colnames(estorig)
+  
+  # Expand the err matrix with the self-transition probs
+  err <- rbind(1-colSums(est[1:3,]), est[1:3,],
+               est[4,], 1-colSums(est[4:6,]), est[5:6,],
+               est[7:8,], 1-colSums(est[7:9,]), est[9,],
+               est[10:12,], 1-colSums(est[10:12,]))
+  rownames(err) <- paste0(rep(c("A","C","G","T"), each=4), "2", c("A","C","G","T"))
+  colnames(err) <- colnames(trans)
+  # Return
+  return(err)
+}
 
 
 setwd(args[1])
@@ -58,13 +108,12 @@ filtFs <-  sort(list.files(paths, pattern="_1.fastq.gz", full.names = TRUE))
 filtRs <-  sort(list.files(paths, pattern="_2.fastq.gz", full.names = TRUE))
 #Get sample names
 sample.names <- gsub('_1.fastq.gz', '', basename(filtFs))
-
-
+print(sample.names)
 #assign names to files
 names(filtFs) <- sample.names
 names(filtRs) <- sample.names
 
-#print(filtFs)
+print(filtFs[1])
 
 if (args[2] == "pseudo"){
   pool = "pseudo"
@@ -75,19 +124,8 @@ cpus <<- strtoi(args[3],10)
 extra_params <- args[5]
 
 # learn error rates
-errF <- learnErrors(filtFs, multithread=cpus)
-#errF <- eval(parse(text=paste("learnErrors(filtFs, multithread=cpus,",extra_params,")")))
-errR <- learnErrors(filtRs, multithread=cpus)
-
-#derep files
-derepFs <- derepFastq(filtFs, verbose=TRUE)
-derepRs <- derepFastq(filtRs, verbose=TRUE)
-
-#assign names to files
-names(derepFs) <- sample.names
-names(derepRs) <- sample.names
-
-print(filtFs)
+errF <- learnErrors(filtFs, multithread=cpus, nbases=1e8, errorEstimationFunction = loessErrfun_mod1)
+errR <- learnErrors(filtRs, multithread=cpus, nbases=1e8, errorEstimationFunction = loessErrfun_mod1)
 
 #errR <- eval(parse(text=paste("learnErrors(filtRs, multithread=cpus)")))
 #plotErrors(errF, nominalQ=TRUE)
@@ -101,27 +139,35 @@ if (args[4] == "T" || args[4] == "TRUE" ){
   # and if we are going to generate one pdf per file, one per library
   # or one per strand...
 }
-
-
-
-#dadaFs <- dada(filtFs, err=errF, multithread=cpus, pool=pool)
-#dadaRs <- dada(filtRs, err=errR, multithread=cpus, pool=pool)
-
 if (!startsWith( trimws(extra_params), ',') && nchar(trimws(extra_params))>1){
   extra_params <- paste(",",extra_params)
 }
-dadaFs <- eval(parse(text=paste("dada(derepFs, err=errF, multithread=cpus, pool=pool, ",extra_params,")")))   
-dadaRs <- eval(parse(text=paste("dada(derepRs, err=errR, multithread=cpus, pool=pool, ",extra_params,")")))   
 
-#merge
+#merge parameters
 minOv <- as.integer(args[15])
 maxMism <- as.integer(args[16])
-if (args[17] == "T" || args[17] == "TRUE" ){
-   mergers <- mergePairs(dadaFs, filtFs, dadaRs, filtRs, minOverlap = minOv, maxMismatch = maxMism, returnRejects = TRUE, justConcatenate = TRUE)
-}else{
-   mergers <- mergePairs(dadaFs, filtFs, dadaRs, filtRs, minOverlap = minOv, maxMismatch = maxMism)
+mergers <- vector("list")
+dadaFs <- vector("list")
+dadaRs <- vector("list")
+for (sam in sample.names){
+  cat("Processing", sam, "\n")
+  derepF <- derepFastq(filtFs[[sam]], verbose=TRUE)
+  derepR <- derepFastq(filtRs[[sam]], verbose=TRUE)
+  dadaF <- eval(parse(text=paste("dada(derepF, err=errF, multithread=cpus, pool=FALSE,  errorEstimationFunction = loessErrfun_mod1, ",extra_params,")")))   
+  dadaR <- eval(parse(text=paste("dada(derepR, err=errR, multithread=cpus, pool=FALSE, errorEstimationFunction = loessErrfun_mod1,",extra_params,")")))
+  if (args[17] == "T" || args[17] == "TRUE" ){
+    merger <- mergePairs(dadaF, derepF, dadaR, derepR, minOverlap = minOv, maxMismatch = maxMism, returnRejects = TRUE, justConcatenate = TRUE)
+  }else{
+   merger <- mergePairs(dadaF, derepF, dadaR, derepR, minOverlap = minOv, maxMismatch = maxMism)
+  }
+  mergers[[sam]] <- merger
+  dadaFs[[sam]] <- dadaF
+  dadaRs[[sam]] <- dadaR
 }
-# ASV table 
+
+
+print(names(dadaFs))
+
 seqtab <- makeSequenceTable(mergers)
 
 #rownames= samples #colnames= sequences
@@ -250,9 +296,6 @@ if (args[19] == "T" || args[19] == "TRUE" ){
 
 
 
-
-
-
 #createMenuConsole()
 write.table(c(shorts,longs),paste0(args[6],"shorts_longs.log"), quote=F,sep="\t", row.names = F, col.names = F)
 #This is analogous to “cutting a band” in-silico to get amplicons of the targeted length
@@ -302,7 +345,6 @@ if (args[10] == "T" || args[10] == "TRUE" ){
     write.table(seqtab.nochim, file=paste0(args[6],'dada2_asv_table.txt'), sep='\t', quote=FALSE, row.names=TRUE, col.names=NA)
     track <- cbind(sapply(dadaFs, getN), sapply(dadaRs, getN), sapply(mergers, getN), rowSums(seqtab2), rowSums(seqtab.nochim))
     seqtab2 <- seqtab.nochim
-    
   }
   # also write to file
   seq.out <- DNAStringSet(x=seqs, start=NA, end=NA, width=NA, use.names=TRUE)

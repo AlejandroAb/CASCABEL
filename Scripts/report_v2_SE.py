@@ -363,7 +363,7 @@ if snakemake.config["demultiplexing"]["demultiplex"] == "T" and snakemake.config
     if snakemake.config["primers"]["remove"] == "T":
         demultiplexFQ +=":red:`Primers were removed:` " + snakemake.config["primers"]["fw_primer"] + "\n\n"  
     demultiplexFQ += "**The demultiplexed files are located at:**\n\n:green:`- demultiplexed directory:` "+snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/demultiplexed/\n\n"
-    demultiplexFQ += ":green:`- summary file:` "+snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/demultiplexed/summary.txt\n\n"
+    demultiplexFQ += ":green:`- summary file:` "+snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/"+snakemake.wildcards.sample+"_data/demultiplexed/summary.pcr.txt\n\n"
     demultiplexFQ += demultiplexFQBench
 
 

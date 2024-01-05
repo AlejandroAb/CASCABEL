@@ -23,7 +23,7 @@ def reverse_complement(s):
 
 #from Bio.Seq import Seq
 
-
+run=snakemake.params[5]
 primer_by_sample={}
 uniq_primers={}
 idx_fw_primer=-1   # default for qiime (col 3)
@@ -72,8 +72,8 @@ if not os.path.exists(snakemake.params[0]+"/reads_discarded_primer/"):
     os.makedirs(snakemake.params[0]+"/reads_discarded_primer/")
 if not os.path.exists(snakemake.params[0]+"/primer_removed/"):
     os.makedirs(snakemake.params[0]+"/primer_removed/")
-if not os.path.exists(snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/report_files"):
-    os.makedirs(snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/report_files")
+if not os.path.exists(snakemake.wildcards.PROJECT+"/runs/"+run+"/report_files"):
+    os.makedirs(snakemake.wildcards.PROJECT+"/runs/"+run+"/report_files")
 summ_file = open(snakemake.output[0],"w")
 summ_file2 = open(snakemake.params[4],"w")
 summ_file.write("Sample\tReads_before_cutadapt\tSurviving_reads\tPrc_surviving_reads\n")
