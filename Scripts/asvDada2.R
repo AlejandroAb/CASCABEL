@@ -49,7 +49,7 @@ args <- commandArgs(trailingOnly = T)
 
 setwd(args[1])
 paths <-NULL
-for(i in 21:(length(args)-1)) {
+for(i in 21:length(args)) {
   #paths <- c(paths,gsub('demultiplexed/','demultiplexed/filtered/',gsub("/summary.txt", '',args[i])))
    paths <- c(paths,gsub("summary.pcr.txt", 'filtered/',args[i]))
 }
@@ -75,9 +75,14 @@ cpus <<- strtoi(args[3],10)
 extra_params <- args[5]
 
 # learn error rates
-errF <- learnErrors(filtFs, multithread=cpus)
+#errF <- learnErrors(filtFs, multithread=cpus)
 #errF <- eval(parse(text=paste("learnErrors(filtFs, multithread=cpus,",extra_params,")")))
-errR <- learnErrors(filtRs, multithread=cpus)
+#errR <- learnErrors(filtRs, multithread=cpus)
+
+errors_data <- paste(args[6],"errors.RData", sep="")
+load(errors_data)
+
+
 
 #derep files
 derepFs <- derepFastq(filtFs, verbose=TRUE)
@@ -90,17 +95,17 @@ names(derepRs) <- sample.names
 print(filtFs)
 
 #errR <- eval(parse(text=paste("learnErrors(filtRs, multithread=cpus)")))
-#plotErrors(errF, nominalQ=TRUE)
-if (args[4] == "T" || args[4] == "TRUE" ){
-  library(ggplot2)
-  plots_fw <- plotErrors(errF, nominalQ=TRUE)
-  ggsave(paste(args[6],"fr_err.pdf",sep=""), plots_fw)
-  plots_rv <- plotErrors(errR, nominalQ=TRUE)
-  ggsave(paste(args[6],"rv_err.pdf", sep=""), plots_rv)
+##plotErrors(errF, nominalQ=TRUE)
+#if (args[4] == "T" || args[4] == "TRUE" ){
+#  library(ggplot2)
+#  plots_fw <- plotErrors(errF, nominalQ=TRUE)
+#  ggsave(paste(args[6],"fr_err.pdf",sep=""), plots_fw)
+#  plots_rv <- plotErrors(errR, nominalQ=TRUE)
+#  ggsave(paste(args[6],"rv_err.pdf", sep=""), plots_rv)
   #here we have to solve two things where to store the plots
   # and if we are going to generate one pdf per file, one per library
   # or one per strand...
-}
+#}
 
 
 

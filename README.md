@@ -8,7 +8,7 @@ CASCABEL was designed for short read high-throughput sequence data. It covers qu
 
 Our pipeline is implemented with Snakemake as workflow management engine and allows customizing the analyses by offering several choices for most of the steps. The pipeline can make use of multiple computing nodes and scales from personal computers to computing servers. The analyses and results are fully reproducible and documented in an html and optional pdf report.
 
-**Current version:** 6.0.0
+**Current version:** 6.0.1
 
 ## Installation
 
@@ -193,6 +193,22 @@ rv_reads: "/full/path/to/reverse.reads.fq"
 metadata: "/full/path/to/metadata.barcodes.txt"
 #or
 input_files: "/full/path/to/input_reference.txt"
+
+#------------------------------------------------------------------------------#
+#  ASV_WF:             Binned qualities and Big data workflow                  #
+#------------------------------------------------------------------------------#
+# For fastq files with binned qualities (e.g. NovaSeq and NextSeq) the error   #
+# learning process within dada2 can be affected, and some data scientists      #
+# suggest that enforcing monotonicity could be beneficial for the analysis.    #
+# In this section, you can modify key parameters to enforce monotonicity and   #
+# also go through a big data workflow when the number of reads may exceed the  #
+# physical memory limit.
+# More on binned qualities: https://www.illumina.com/content/dam/illumina-marketing/documents/products/technotes/technote_understanding_quality_scores.pdf
+# You can also follow this excellent thread about binned qualities and Dada2: https://forum.qiime2.org/t/novaseq-and-dada2-incompatibility/25865/8
+#------------------------------------------------------------------------------#
+binned_q_scores: "F" #Binned quality scores.Set this to "T" if you want to enforce monotonicity 
+big_data_wf: "F" #Set to true when your sequencing run contains more than 10^9 reads (depends on RAM availability!)
+
 
 #------------------------------------------------------------------------------#
 #                               RUN                                            #

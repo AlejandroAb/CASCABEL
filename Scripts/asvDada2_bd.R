@@ -4,12 +4,10 @@
 #
 # @author: J. Engelmann
 # @author: A. Abdala
-# @author: W. Reitsma
+# @author: W. ReitsmaOB
 
 library(dada2)
 library(Biostrings)
-library(magrittr)
-library(dplyr)
 
 
 args <- commandArgs(trailingOnly = T)
@@ -36,70 +34,11 @@ args <- commandArgs(trailingOnly = T)
 #args[20]... = NON Interactive behav.
 #args[21]... = summary files from libraries
 
-# error function model obtained from Hannah Holland-Moritz on dada2 github:
-# https://github.com/benjjneb/dada2/issues/1307#issuecomment-957680971
-loessErrfun_mod1 <- function(trans) {
-  qq <- as.numeric(colnames(trans))
-  est <- matrix(0, nrow=0, ncol=length(qq))
-  for(nti in c("A","C","G","T")) {
-    for(ntj in c("A","C","G","T")) {
-      if(nti != ntj) {
-        errs <- trans[paste0(nti,"2",ntj),]
-        tot <- colSums(trans[paste0(nti,"2",c("A","C","G","T")),])
-        rlogp <- log10((errs+1)/tot)  # 1 psuedocount for each err, but if tot=0 will give NA
-        rlogp[is.infinite(rlogp)] <- NA
-        df <- data.frame(q=qq, errs=errs, tot=tot, rlogp=rlogp)
-        
-        # original
-        # ###! mod.lo <- loess(rlogp ~ q, df, weights=errs) ###!
-        # mod.lo <- loess(rlogp ~ q, df, weights=tot) ###!
-        # #        mod.lo <- loess(rlogp ~ q, df)
-        
-        # Gulliem Salazar's solution
-        # https://github.com/benjjneb/dada2/issues/938
-        mod.lo <- loess(rlogp ~ q, df, weights = log10(tot),span = 2)
-        
-        pred <- predict(mod.lo, qq)
-        maxrli <- max(which(!is.na(pred)))
-        minrli <- min(which(!is.na(pred)))
-        pred[seq_along(pred)>maxrli] <- pred[[maxrli]]
-        pred[seq_along(pred)<minrli] <- pred[[minrli]]
-        est <- rbind(est, 10^pred)
-      } # if(nti != ntj)
-    } # for(ntj in c("A","C","G","T"))
-  } # for(nti in c("A","C","G","T"))
-  
-  # HACKY
-  MAX_ERROR_RATE <- 0.25
-  MIN_ERROR_RATE <- 1e-7
-  est[est>MAX_ERROR_RATE] <- MAX_ERROR_RATE
-  est[est<MIN_ERROR_RATE] <- MIN_ERROR_RATE
-  
-  # enforce monotonicity
-  # https://github.com/benjjneb/dada2/issues/791
-  estorig <- est
-  est <- est %>%
-    data.frame() %>%
-    mutate_all(funs(case_when(. < X40 ~ X40,
-                              . >= X40 ~ .))) %>% as.matrix()
-  rownames(est) <- rownames(estorig)
-  colnames(est) <- colnames(estorig)
-  
-  # Expand the err matrix with the self-transition probs
-  err <- rbind(1-colSums(est[1:3,]), est[1:3,],
-               est[4,], 1-colSums(est[4:6,]), est[5:6,],
-               est[7:8,], 1-colSums(est[7:9,]), est[9,],
-               est[10:12,], 1-colSums(est[10:12,]))
-  rownames(err) <- paste0(rep(c("A","C","G","T"), each=4), "2", c("A","C","G","T"))
-  colnames(err) <- colnames(trans)
-  # Return
-  return(err)
-}
 
 
 setwd(args[1])
 paths <-NULL
-for(i in 21:(length(args)-1)) {
+for(i in 21:length(args)) {
   #paths <- c(paths,gsub('demultiplexed/','demultiplexed/filtered/',gsub("/summary.txt", '',args[i])))
    paths <- c(paths,gsub("summary.pcr.txt", 'filtered/',args[i]))
 }
@@ -124,21 +63,25 @@ cpus <<- strtoi(args[3],10)
 extra_params <- args[5]
 
 # learn error rates
-errF <- learnErrors(filtFs, multithread=cpus, nbases=1e8, errorEstimationFunction = loessErrfun_mod1)
-errR <- learnErrors(filtRs, multithread=cpus, nbases=1e8, errorEstimationFunction = loessErrfun_mod1)
+errors_data <- paste(args[6],"errors.RData", sep="")
+load(errors_data)
+
+#errF <- learnErrors(filtFs, multithread=cpus, nbases=1e8, errorEstimationFunction = loessErrfun_mod1)
+#errR <- learnErrors(filtRs, multithread=cpus, nbases=1e8, errorEstimationFunction = loessErrfun_mod1)
 
 #errR <- eval(parse(text=paste("learnErrors(filtRs, multithread=cpus)")))
 #plotErrors(errF, nominalQ=TRUE)
-if (args[4] == "T" || args[4] == "TRUE" ){
-  library(ggplot2)
-  plots_fw <- plotErrors(errF, nominalQ=TRUE)
-  ggsave(paste(args[6],"fr_err.pdf",sep=""), plots_fw)
-  plots_rv <- plotErrors(errR, nominalQ=TRUE)
-  ggsave(paste(args[6],"rv_err.pdf", sep=""), plots_rv)
+#if (args[4] == "T" || args[4] == "TRUE" ){
+#  library(ggplot2)
+#  plots_fw <- plotErrors(errF, nominalQ=TRUE)
+#  ggsave(paste(args[6],"fr_err.pdf",sep=""), plots_fw)
+#  plots_rv <- plotErrors(errR, nominalQ=TRUE)
+#  ggsave(paste(args[6],"rv_err.pdf", sep=""), plots_rv)
   #here we have to solve two things where to store the plots
   # and if we are going to generate one pdf per file, one per library
   # or one per strand...
-}
+#}
+
 if (!startsWith( trimws(extra_params), ',') && nchar(trimws(extra_params))>1){
   extra_params <- paste(",",extra_params)
 }
@@ -153,8 +96,10 @@ for (sam in sample.names){
   cat("Processing", sam, "\n")
   derepF <- derepFastq(filtFs[[sam]], verbose=TRUE)
   derepR <- derepFastq(filtRs[[sam]], verbose=TRUE)
-  dadaF <- eval(parse(text=paste("dada(derepF, err=errF, multithread=cpus, pool=FALSE,  errorEstimationFunction = loessErrfun_mod1, ",extra_params,")")))   
-  dadaR <- eval(parse(text=paste("dada(derepR, err=errR, multithread=cpus, pool=FALSE, errorEstimationFunction = loessErrfun_mod1,",extra_params,")")))
+  #dadaF <- eval(parse(text=paste("dada(derepF, err=errF, multithread=cpus, pool=FALSE, errorEstimationFunction = loessErrfun_mod1, ",extra_params,")")))   
+  #dadaR <- eval(parse(text=paste("dada(derepR, err=errR, multithread=cpus, pool=FALSE, errorEstimationFunction = loessErrfun_mod1,",extra_params,")")))
+  dadaF <- eval(parse(text=paste("dada(derepF, err=errF, multithread=cpus, pool=FALSE, ",extra_params,")")))
+  dadaR <- eval(parse(text=paste("dada(derepR, err=errR, multithread=cpus, pool=FALSE, ", extra_params,")")))
   if (args[17] == "T" || args[17] == "TRUE" ){
     merger <- mergePairs(dadaF, derepF, dadaR, derepR, minOverlap = minOv, maxMismatch = maxMism, returnRejects = TRUE, justConcatenate = TRUE)
   }else{
@@ -167,7 +112,12 @@ for (sam in sample.names){
 
 
 print(names(dadaFs))
-
+#if (args[17] == "T" || args[17] == "TRUE" ){
+#   mergers <- mergePairs(dadaFs, derepF, dadaRs, derepR, minOverlap = minOv, maxMismatch = maxMism, returnRejects = TRUE, justConcatenate = TRUE)
+#}else{
+#   mergers <- mergePairs(dadaFs, derepF, dadaRs, derepR, minOverlap = minOv, maxMismatch = maxMism)
+#}
+# ASV table 
 seqtab <- makeSequenceTable(mergers)
 
 #rownames= samples #colnames= sequences

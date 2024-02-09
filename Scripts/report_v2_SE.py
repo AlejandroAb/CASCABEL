@@ -12,6 +12,17 @@ from seqsChart import createChart
 #Parse the total number of counts
 #countTxt = parseCounts(snakemake.input.counts)
 
+########################################################
+#                CASCABEL version                      #
+########################################################
+version = ""
+try:
+  with open('cascabel.version') as f:
+    version = f.readline().strip('\n')
+except FileNotFoundError:
+        print("file version missing: ../cascabel.version\nYou can see README file for Cascabel version.")
+        version = "see README file"   
+
 ################################################################################
 #                         TOOLS VERSION SECTION                          #
 ################################################################################
@@ -538,6 +549,8 @@ Amplicon Analysis Report for Library: {snakemake.wildcards.sample}
 The objective of this pipeline is to create different output files which allow the user to explore data in a simple and meaningful way, as well as facilitate downstream analysis, based on the generated output files.
 
 Another aim of **CASCABEL** is also to encourage the documentation process, by creating this report in order to assure data analysis reproducibility.
+
+:red:`Cascabel version:` {version}
 
 {txtDescription}
 

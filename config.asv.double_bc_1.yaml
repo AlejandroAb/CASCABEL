@@ -47,7 +47,7 @@ interactive : "T"
 # be the same name used as the first parameter with the init_sample.sh script  #
 # (if used for multiple libraries).                                            #
 #------------------------------------------------------------------------------#
-PROJECT: ""
+PROJECT: "test_CASCABEL6"
 
 #------------------------------------------------------------------------------#
 #                            LIBRARIES/SAMPLES                                 #
@@ -61,7 +61,7 @@ PROJECT: ""
 #                 "PE" for paired-end reads [Default].                         #
 #                 "SE" for single-end reads.                                   #
 #------------------------------------------------------------------------------#
-LIBRARY: [""]
+LIBRARY: ["NIOZ102"]
 LIBRARY_LAYOUT: "PE"
 #------------------------------------------------------------------------------#
 #                               RUN                                            #
@@ -73,7 +73,7 @@ LIBRARY_LAYOUT: "PE"
 # user must assign this value via the command line.                            #
 # i.e:  --config RUN=run_name                                                  #
 #------------------------------------------------------------------------------#
-RUN: ""
+RUN: "asv_wf_bdf_bqf"
 
 #------------------------------------------------------------------------------#
 #                           Description                                        #
@@ -91,7 +91,7 @@ description: ""
 # (only the reads!, the metadata file always needs to be uncompressed) or "F"  #
 # if the input files are regular fastq files.                                  #
 #------------------------------------------------------------------------------#
-gzip_input: "F"
+gzip_input: "T"
 
 #------------------------------------------------------------------------------#
 #                      INTERMEDIATE FILES                                      #
@@ -134,10 +134,10 @@ KEEP_TMP: "F"
 #     - input_files                                                            #
 #     - or use init_sample.sh script directly                                  #
 #------------------------------------------------------------------------------#
-fw_reads: ""
-rv_reads: ""
-metadata: ""
-#OR
+fw_reads: "/export/lv4/projects/workshop_2023/S5_cascabel/NIOZ102_1.fastq.gz"
+rv_reads: "/export/lv4/projects/workshop_2023/S5_cascabel/NIOZ102_2.fastq.gz"
+metadata: "/export/lv4/projects/workshop_2023/S5_cascabel/NIOZ102_16S_blackSea_rvPrimer.txt"
+#OR 
 input_files: ""
 
 #------------------------------------------------------------------------------#
@@ -180,7 +180,7 @@ big_data_wf: "F" #Set to true when your sequencing run contains more than 10^9 r
 # - wkhtmltopdf_command  name w/wo path to execute the html to pdf translation.#
 #------------------------------------------------------------------------------#
 pdfReport: "T"
-wkhtmltopdf_command: "wkhtmltopdf -T 10mm -B 30mm "
+wkhtmltopdf_command: "wkhtmltopdf  -T 10mm -B 30mm"
 
 #------------------------------------------------------------------------------#
 #                           Portable Report                                    #
@@ -255,7 +255,7 @@ krona:
 #                                                                              # 
 # - ANALYSIS_TYPE    "OTU" or "ASV". Defines the type analysis                 #
 #------------------------------------------------------------------------------#
-ANALYSIS_TYPE: "OTU"
+ANALYSIS_TYPE: "ASV"
 
 
 #------------------------------------------------------------------------------#
@@ -458,8 +458,8 @@ demultiplexing:
   order_by_strand: "T"                           
   add_unpair: "T"                                
   dmx_params: "--remove-header"                  
-  bc_mismatch: 0                                 
-  bcc_params: ""      
+  bc_mismatch: 2                                 
+  bcc_params: ""       
   create_tag_pairs_heatmap: "T"                  
                                                  
 #------------------------------------------------------------------------------#
@@ -488,7 +488,7 @@ demultiplexing:
 #   ** extra_params     Any extra parameter that you wish to supply to  the    #
 #                       cutadapt command.                                      #
 #                       By default Cascabel includes the values                #
-#                "--discard-untrimmed" and "--match-read-wildcards". The former#
+#                "--discard-untrimmed" and "--match-read-wildcards". The former# 
 #                will discard reads without adapters and the latest interprets #
 #                IUPAC wildcards in the reads. Notice that when using          #
 #                "--discard-untrimmed" Cascabel will redirect the untrimmed    #
@@ -531,8 +531,8 @@ primers:
 # - extra_params  Extra parameters. See extract_barcodes.py -help.             #
 #------------------------------------------------------------------------------#
 ext_bc:
-  c: "barcode_single_end"
-  bc_length: "--bc1_len 12"
+  c: "barcode_paired_stitched"
+  bc_length: "--bc1_len 12 --bc2_len 12"
   extra_params: ""
 
 #------------------------------------------------------------------------------#
@@ -556,8 +556,8 @@ ext_bc:
 split:
   q: "19"
   r: "5"
-  barcode_type:  "12"
-  extra_params: ""
+  barcode_type:  "24"
+  extra_params: " --phred_offset 33"
 
 
 #------------------------------------------------------------------------------#
@@ -702,11 +702,11 @@ dada2_asv:
 # downloaded.                                                                  #  
 #------------------------------------------------------------------------------#
 dada2_taxonomy:
-  db: "/Absolute/Path/to/db/i.e./silva_nr_v132_train_set.fa.gz"
+  db: "/export/data01/databases/silva/r138.1/dada2/silva_nr99_v138.1_train_set.fa.gz"
   extra_params: "minBoot=50"
   add_sps: 
-    add: "F"
-    db_sps: "/Absolute/Path/to/sp_db/i.e./silva_species_assignment_v132.fa.gz"
+    add: "T"
+    db_sps: "/export/data01/databases/silva/r138.1/dada2/silva_species_assignment_v138.1.fa.gz"
     extra_params: "allowMultiple=TRUE"
 
 #------------------------------------------------------------------------------#
@@ -1056,10 +1056,10 @@ assignTaxonomy:
     fasta_db: ""
     mapFile: ""
     taxo_separator: "';'" 
-    evalue: "0.0001"
+    evalue: "0.001"
     max_target_seqs: 5
     jobs: 10
-    identity: 0.8   
+    identity: 0.5   
     extra_params: ""
   vsearch:
     command: "vsearch"
@@ -1072,9 +1072,9 @@ assignTaxonomy:
     jobs: 10
     extra_params: "--top_hits_only --maxrejects 32"
   qiime:
-    method: "uclust"
-    mapFile: "97_otu_taxonomy.txt"
-    dbFile: "97_otus.fasta"
+    method: "rdp"
+    mapFile: "/ABSOLUTE/PATH/pr2_version_4.12.0_18S_UTAX_8l.tax.tsv" #available at https://github.com/pr2database/pr2database/releases
+    dbFile: "/ABSOLUTE/PATH/pr2_version_4.12.0_18S_mothur.fasta" #available at https://github.com/pr2database/pr2database/releases
     dbType: "-r"
     jobs: 10
     extra_params: ""

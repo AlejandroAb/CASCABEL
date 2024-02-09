@@ -139,7 +139,21 @@ rv_reads: ""
 metadata: ""
 #OR
 input_files: ""
-binned_q_scores: "F" # Binned quality scores.Set this to "T" if your data comes from a NextSeq sequencing machine.
+
+#------------------------------------------------------------------------------#
+#  ASV_WF:             Binned qualities and Big data workflow                  #
+#------------------------------------------------------------------------------#
+# For fastq files with binned qualities (e.g. NovaSeq and NextSeq) the error   #
+# learning process within dada2 can be affected, and some data scientists      #
+# suggest that enforcing monotonicity could be beneficial for the analysis.    #
+# In this section, you can modify key parameters to enforce monotonicity and   #
+# also go through a big data workflow when the number of reads may exceed the  #
+# physical memory limit.
+# More on binned qualities: https://www.illumina.com/content/dam/illumina-marketing/documents/products/technotes/technote_understanding_quality_scores.pdf
+# You can also follow this excellent thread about binned qualities and Dada2: https://forum.qiime2.org/t/novaseq-and-dada2-incompatibility/25865/8
+#------------------------------------------------------------------------------#
+binned_q_scores: "F" #Binned quality scores.Set this to "T" if your data comes from e.g. NextSeq sequencing machine. 
+big_data_wf: "F" #Set to true when your sequencing run contains more than 10^9 reads (depends on RAM availability!)
 
 ################################################################################
 #                          REPORT PARAMETER SECTION                            #
@@ -626,6 +640,7 @@ dada2_merge:
 # - generateErrPLots    Default "T". Use "T" to generate the error plots       #
 #                       generated with the learned errors from the             #
 #                       learnErrors() function.                                #
+# - nbases              Number of bases used for learning the errors. [Def 1e8]#
 # - pool                If pool = "TRUE", the algorithm will pool together all #
 #                       samples prior to sample inference. If pool = "FALSE",  #
 #                       sample inference is performed on each sample           #
@@ -644,6 +659,7 @@ dada2_merge:
 #------------------------------------------------------------------------------#
 dada2_asv:
   generateErrPlots: "T"
+  nbases: "1e8"
   pool: "pseudo"
   cpus: 15
   chimeras : "T"

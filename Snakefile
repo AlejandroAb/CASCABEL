@@ -1,11 +1,12 @@
 """
 CASCABEL
-Version: 6.0.0
-Authors: 
+Version: 6.0.1
+Authors:
  - Julia Engelmann
  - Alejandro Abdala
  - Wietse Reitsma
-Last update: 12/12/2023
+
+Last update: 09/02/2024
 """
 run=config["RUN"]
 
@@ -331,7 +332,7 @@ if config["demultiplexing"]["demultiplex"] == "T":
             input:
                 tmp3="{PROJECT}/metadata/bc_validation/{sample}/validation.log", 
                 tmp2="{PROJECT}/samples/{sample}/peared/pear.log.validation",  #see how we can change this
-                assembly="{PROJECT}/samples/{sample}/peared/seqs.assembled.PAIRED_UNPAIRED.fastq" if config["demultiplexing"]["add_unpair"] != "T"
+                assembly="{PROJECT}/samples/{sample}/peared/seqs.assembled.PAIRED_UNPAIRED.fastq" if config["demultiplexing"]["add_unpair"] == "T"
                 else "{PROJECT}/samples/{sample}/peared/seqs.assembled.fastq",
                 #if config["UNPAIRED_DATA_PIPELINE"] != "T" and config["demultiplexing"]["add_unpair"] == "T"     
                 #else "{PROJECT}/samples/{sample}/peared/seqs.assembled.fastq" if config["UNPAIRED_DATA_PIPELINE"] != "T" 
@@ -701,7 +702,7 @@ if config["demultiplexing"]["demultiplex"] == "T":
              input:
                  "{PROJECT}/samples/{sample}/splitLibs/seqs.no_unassigneds.fna"
              output:
-                 "{PROJECT}samples/{sample}/splitLibs/seqs.assigned.fna"
+                 "{PROJECT}/samples/{sample}/splitLibs/seqs.assigned.fna"
              shell: 
                  "mv {input} {output}"
          rule rename_assembled_rv:
@@ -728,7 +729,7 @@ if config["demultiplexing"]["demultiplex"] == "T":
         output:
             "{PROJECT}/samples/{sample}/splitLibs/split_library_log.txt.validation"
         params:
-            "{PROJECT}/samples/{sample}/splitLibs",
+            "{PROJECT}/samples/{sample}/splitLibs"
         script:
             "Scripts/validateSplitDemux.py"
     rule combine_accepted_reads:
@@ -785,7 +786,8 @@ if config["demultiplexing"]["demultiplex"] == "T":
                 #else "{PROJECT}/runs/{run}/{sample}_data/splitLibs/seqs.assigned.fna",
                 dmx="{PROJECT}/samples/{sample}/splitLibs/seqs.assigned.ori.txt",
                 r1="{PROJECT}/samples/{sample}/rawdata/fw.fastq" if config["gzip_input"] == "F" else "{PROJECT}/samples/{sample}/rawdata/fw.fastq.gz",
-                r2="{PROJECT}/samples/{sample}/rawdata/rv.fastq" if config["gzip_input"] == "F" else "{PROJECT}/samples/{sample}/rawdata/rv.fastq.gz"
+                r2="{PROJECT}/samples/{sample}/rawdata/rv.fastq" if config["gzip_input"] == "F" else "{PROJECT}/samples/{sample}/rawdata/rv.fastq.gz",
+                tmpFlow="{PROJECT}/samples/{sample}/splitLibs/split_library_log.txt.validation"
             params:
                 outdir="{PROJECT}/samples/{sample}/demultiplexed/"
             output:
@@ -832,7 +834,8 @@ if config["demultiplexing"]["demultiplex"] == "T":
                 #else "{PROJECT}/runs/{run}/{sample}_data/splitLibs/seqs.assigned.fna",
                 dmx="{PROJECT}/samples/{sample}/splitLibs_unpaired/seqs.assigned.ori.txt",
                 r1="{PROJECT}/samples/{sample}/rawdata/fw.fastq" if config["gzip_input"] == "F" else "{PROJECT}/samples/{sample}/rawdata/fw.fastq.gz",
-                r2="{PROJECT}/samples/{sample}/rawdata/rv.fastq" if config["gzip_input"] == "F" else "{PROJECT}/samples/{sample}/rawdata/rv.fastq.gz"
+                r2="{PROJECT}/samples/{sample}/rawdata/rv.fastq" if config["gzip_input"] == "F" else "{PROJECT}/samples/{sample}/rawdata/rv.fastq.gz",
+                tmpFlow="{PROJECT}/samples/{sample}/splitLibs/split_library_log.txt.validation"
             params:
                 outdir="{PROJECT}/samples/{sample}/demultiplexed/unpaired/"
             output:
@@ -1222,12 +1225,45 @@ if config["ANALYSIS_TYPE"] == "ASV":
             "{PROJECT}/runs/{run}/asv/filter_summary.validation.txt"
         script:
             "Scripts/validateFilterASV.py"
-
-    rule run_dada2:
+    rule subset_for_errors_fw:
         input:
             expand("{PROJECT}/samples/{sample}/demultiplexed/summary.pcr.txt" if config["UNPAIRED_DATA_PIPELINE"] != "T"
             else "{PROJECT}/samples/{sample}/demultiplexed/unpaired/summary.pcr.txt" , PROJECT=config["PROJECT"],sample=config["LIBRARY"]),
              "{PROJECT}/runs/{run}/asv/filter_summary.validation.txt"
+        output:
+            temp("{PROJECT}/runs/{run}/asv/subset.fastq") 
+        params:
+            dir="{PROJECT}/runs/{run}/asv/"
+            #ssize=config["dada2_asv"]["subset_size"]
+        benchmark:
+            "{PROJECT}/runs/{run}/asv/dada2.benchmark"
+        shell:
+            "cat test_out_demux/samples/NIOZ102/demultiplexed/filtered/*1.fastq.gz "
+            "| gzip -d |  vsearch --fastx_subsample - --sample_size 200000  --fastaout test_out_demux/samples/NIOZ102/demultiplexed/filtered/subsample.fastq.gz"
+             
+    rule learn_errors:
+        input:
+            reads=expand("{PROJECT}/samples/{sample}/demultiplexed/summary.pcr.txt" if config["UNPAIRED_DATA_PIPELINE"] != "T"
+            else "{PROJECT}/samples/{sample}/demultiplexed/unpaired/summary.pcr.txt" , PROJECT=config["PROJECT"],sample=config["LIBRARY"]),
+             flow="{PROJECT}/runs/{run}/asv/filter_summary.validation.txt"
+        output:
+            "{PROJECT}/runs/{run}/asv/errors.RData"
+        params:
+            dir="{PROJECT}/runs/{run}/asv/"
+        benchmark:
+            "{PROJECT}/runs/{run}/asv/dada2_err.benchmark"
+        shell:
+            "{config[Rscript][command]} Scripts/errDada2.R $PWD " +str(config["dada2_asv"]["cpus"]) + " "
+            " "+ str(config["dada2_asv"]["generateErrPlots"])  + " {params.dir} "  + " "
+            " "+ str(config["dada2_asv"]["nbases"]) +" " + str(config["binned_q_scores"])  + " "
+            + "{input.reads}"
+            
+    rule run_dada2:
+        input:
+            reads=expand("{PROJECT}/samples/{sample}/demultiplexed/summary.pcr.txt" if config["UNPAIRED_DATA_PIPELINE"] != "T"
+            else "{PROJECT}/samples/{sample}/demultiplexed/unpaired/summary.pcr.txt" , PROJECT=config["PROJECT"],sample=config["LIBRARY"]),
+            wf="{PROJECT}/runs/{run}/asv/filter_summary.validation.txt",
+            err="{PROJECT}/runs/{run}/asv/errors.RData"
         output:
             "{PROJECT}/runs/{run}/asv/stats_dada2.txt",
             "{PROJECT}/runs/{run}/asv/representative_seq_set.fasta",
@@ -1235,7 +1271,7 @@ if config["ANALYSIS_TYPE"] == "ASV":
             temp("{PROJECT}/runs/{run}/asv/dada2_asv_table.txt") 
         params:
             dir="{PROJECT}/runs/{run}/asv/",
-            script="Scripts/asvDada2_bd.R"  if config["binned_q_scores"].lower()  == "t"
+            script="Scripts/asvDada2_bd.R"  if config["big_data_wf"].lower()  == "t"
             else "Scripts/asvDada2.R"
         benchmark:
             "{PROJECT}/runs/{run}/asv/dada2.benchmark"
@@ -1249,7 +1285,7 @@ if config["ANALYSIS_TYPE"] == "ASV":
             " "+str(config["dada2_merge"]["minOverlap"]) +" "+str(config["dada2_merge"]["maxMismatch"])+" "
             " "+str(config["UNPAIRED_DATA_PIPELINE"]) +" " + " \""+str(config["dada2_taxonomy"]["add_sps"]["extra_params"]) + "\" "
             " "+str(config["interactive"]) + " " +str(config["rm_reads"]["non_interactive_behaviour"]) + " "  
-            + "{input}"
+            + "{input.reads}"
 
     rule asv_table:
         input:

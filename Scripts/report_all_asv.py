@@ -8,6 +8,18 @@ from seqsChart import createChartPrc
 from benchmark_utils import countFasta
 from benchmark_utils import make_table
 
+
+########################################################
+#                CASCABEL version                      #
+########################################################
+version = ""
+try:
+  with open('cascabel.version') as f:
+    version = f.readline().strip('\n')
+except FileNotFoundError:
+        print("file version missing: ../cascabel.version\nYou can see README file for Cascabel version.")
+        version = "see README file"   
+        
 ################
 #Function to retrive the sample names and put in the report title
 #@param file with the sample list, it is created during combine_filtered_samples
@@ -618,6 +630,9 @@ report("""
     .. role:: green
 
 **CASCABEL** is designed to run amplicon sequence analysis across single or multiple read libraries. This report consists of the ASV table creation and taxonomic assignment for all the combined accepted reads of given samples or libraries, if multiple.
+
+:red:`Cascabel version:` {version}
+
 
 {txtDescription}
 
