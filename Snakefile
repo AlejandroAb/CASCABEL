@@ -1,12 +1,12 @@
 """
 CASCABEL
-Version: 6.0.2
+Version: 6.0.3
 Authors:
  - Julia Engelmann
  - Alejandro Abdala
  - Wietse Reitsma
 
-Last update: 09/02/2024
+Last update: 02/04/2024
 """
 run=config["RUN"]
 
@@ -1149,10 +1149,10 @@ else:
 if config["LIBRARY_LAYOUT"] != "SE":
     rule fastqCheckSum_PE:
         input:
-            fw="{PROJECT}/samples/{sample}/demultiplexed/summary_fw.txt" if config["UNPAIRED_DATA_PIPELINE"] != "T"
-            else "{PROJECT}/samples/{sample}/demultiplexed/unpaired/summary_fw.txt",
-            rv="{PROJECT}/samples/{sample}/demultiplexed/summary_rv.txt" if config["UNPAIRED_DATA_PIPELINE"] != "T"
-            else "{PROJECT}/samples/{sample}/demultiplexed/unpaired/summary_rv.txt"
+            fw="{PROJECT}/samples/{sample}/demultiplexed/summary.pcr.txt" if config["UNPAIRED_DATA_PIPELINE"] != "T"
+            else "{PROJECT}/samples/{sample}/demultiplexed/unpaired/summary.pcr.txt"
+            #rv="{PROJECT}/samples/{sample}/demultiplexed/summary_rv.txt" if config["UNPAIRED_DATA_PIPELINE"] != "T"
+            #else "{PROJECT}/samples/{sample}/demultiplexed/unpaired/summary_rv.txt"
         params:
             "{PROJECT}/samples/{sample}/demultiplexed/" if config["UNPAIRED_DATA_PIPELINE"] != "T"
             else "{PROJECT}/samples/{sample}/demultiplexed/unpaired/"
@@ -1168,8 +1168,8 @@ if config["LIBRARY_LAYOUT"] != "SE":
 else:
     rule fastqCheckSum_SE:
         input:
-            fw="{PROJECT}/samples/{sample}/demultiplexed/summary_fw.txt" if config["UNPAIRED_DATA_PIPELINE"] != "T"
-            else "{PROJECT}/samples/{sample}/demultiplexed/unpaired/summary_fw.txt"
+            fw="{PROJECT}/samples/{sample}/demultiplexed/summary.pcr.txt" if config["UNPAIRED_DATA_PIPELINE"] != "T"
+            else "{PROJECT}/samples/{sample}/demultiplexed/unpaired/summary.pcr.txt"
         params:
             "{PROJECT}/samples/{sample}/demultiplexed/" if config["UNPAIRED_DATA_PIPELINE"] != "T"
             else "{PROJECT}/samples/{sample}/demultiplexed/unpaired/"

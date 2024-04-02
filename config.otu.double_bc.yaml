@@ -683,6 +683,12 @@ dada2_asv:
 #                  the function in R. Therefore, if your extra_params involves #
 #                  more than one argument, separate them with commas, as the   #
 #                  example above.                                              #
+#                  An important parameter to consider is minBoot, which sets   #
+#                  the minimum bootstrapping support required to return a      #
+#                  taxonomic classification. The original paper recommended a  #
+#                  threshold of 50 for sequences of 250nts or less. We set 70  #
+#                  as the default and advise to increase it to 80 for longer   #
+#                  fragments.                                                  #
 # - add_sp         Arguments for assigning genus-species binomials to the input#
 #                  sequences by exact matching against a reference fasta using #
 #                  the addSpecies() function from dada2.                       #
@@ -703,7 +709,7 @@ dada2_asv:
 #------------------------------------------------------------------------------#
 dada2_taxonomy:
   db: "/Absolute/Path/to/DB"
-  extra_params: "minBoot=50"
+  extra_params: "minBoot=70"
   add_sps: 
     add: "F"
     db_sps: "NONE"
