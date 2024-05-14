@@ -64,7 +64,8 @@ title = "Amplicon Analysis Report\n===========================\n\n"
 #combineBenchmark = readBenchmark(snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/combine_seqs_fw_rev.benchmark")
 dada2Benchmark = readBenchmark(snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/asv/dada2.benchmark")
 asvFilterBenchmark =  readBenchmark(snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/asv/filter.benchmark")
-
+asvLearnErrBenchmark =  readBenchmark(snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/asv/dada2_err.benchmark")
+asvTaxonomyBenchmark =  readBenchmark(snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/asv/dada2.taxonomy.benchmark")
 #pikRepBenchmark = readBenchmark(snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/pick_reps.benchmark")
 #assignTaxaBenchmark = readBenchmark(snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/otu/taxonomy_"+snakemake.config["assignTaxonomy"]["tool"]+"/assign_taxa.benchmark")
 otuTableBenchmark = readBenchmark(snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/asv/taxonomy_dada2/dada2.table.benchmark")
@@ -486,6 +487,7 @@ if snakemake.config["ANALYSIS_TYPE"] == "ASV":
     assignTaxoStr =":red:`Tool:` RDP_\n\n"
     assignTaxoStr += ":green:`Function:` assignTaxonomy() *implementation of RDP Classifier within dada2*\n\n"
     assignTaxoStr += ":green:`Reference database:` " + str(snakemake.config["dada2_taxonomy"]["db"])+ "\n\n"
+    assignTaxoStr += ":green:`RDP seed` " + str(snakemake.config["dada2_taxonomy"]["seed"])+ "\n\n"
     if snakemake.config["dada2_taxonomy"]["add_sps"]["add"].casefold() == "T":
         assignTaxoStr += ":green:`Species information.` After assigning taxonomy, genus-species binomials were assigned with assignSpecies() function.\n\n" 
         assignTaxoStr += ":green:`Function:` addSpecies()* wraps the assignSpecies function to assign genus-species binomials to the input sequences by exact matching against a reference fasta.*\n\n"
@@ -591,6 +593,13 @@ if snakemake.config["dada2_asv" ]["generateErrPlots"].casefold() == "t" or snake
     errorPlots+="**Error plots:** \n\n:green:`- FW reads error plot::`  " + snakemake.wildcards.PROJECT + "/runs/"+snakemake.wildcards.run+ "/asv/fw_err.pdf\n\n" 
     errorPlots+=":green:`- RV reads error plot::`  " + snakemake.wildcards.PROJECT + "/runs/"+snakemake.wildcards.run+ "/asv/rv_err.pdf\n\n"
 
+asvCommand="" 
+if snakemake.config["big_data_wf" ].casefold() == "t" or snakemake.config["big_data_wf" ].casefold() == "true":
+    asvCommand="Scripts/asvDada2_bd.R"
+else: 
+    asvCommand="Scripts/asvDada2.R"
+
+
 #shorts and longs
 shorts = str(snakemake.config["rm_reads"]["shorts"])
 longs = str(snakemake.config["rm_reads"]["longs"])
@@ -636,8 +645,19 @@ report("""
 
 {txtDescription}
 
+
+ 
+Amplicon Sequence Variants
+----------------------------
+In order to identify ASVs, dada2 workflow require to execute several steps. Following a summary of these steps and its main parameters. 
+
+:red:`Tool:` dada2_ 
+
+:red:`Version:` {dada2Version}
+
+
 Filter and Trim
----------------
+~~~~~~~~~~~~~~~~
 Once that all the individual libraries were demultiplexed, the fastq files from all the samples for all the libraries were processed together. 
 
 The filter and trimming steps were both performed with the **filterAndTrim()** function from the R package dada2, according to user parameters.
@@ -658,8 +678,7 @@ The filter and trimming steps were both performed with the **filterAndTrim()** f
 
 **Command:**
 
-
-:commd:`Scripts/asvFilter.R $PWD {snakemake.config[dada2_filter][generateQAplots]} {snakemake.config[dada2_filter][truncFW]} {snakemake.config[dada2_filter][truncRV]} {snakemake.config[dada2_filter][maxEE_FW]} {snakemake.config[dada2_filter][maxEE_RV]} {snakemake.config[dada2_filter][cpus]} {snakemake.config[dada2_filter][extra_params]} {snakemake.wildcards.PROJECT}/runs/{snakemake.wildcards.run}/asv/filter_summary.out`
+:commd:`Scripts/asvFilter.R $PWD {snakemake.config[dada2_filter][generateQAplots]} {snakemake.config[dada2_filter][truncFW]} {snakemake.config[dada2_filter][truncRV]} {snakemake.config[dada2_filter][maxEE_FW]} {snakemake.config[dada2_filter][maxEE_RV]} {snakemake.config[dada2_filter][cpus]} {snakemake.config[dada2_filter][extra_params]} {snakemake.config[interactive]} {snakemake.wildcards.PROJECT}/runs/{snakemake.wildcards.run}/asv/filter_summary.out  {snakemake.config[primers][remove]}`
 
 
 **Output file:**
@@ -675,29 +694,48 @@ Make sure that your forward and reverse reads overlap after length truncation.
 
 {asvFilterBenchmark}
 
- 
-Amplicon Sequence Variants
-----------------------------
-In order to identify ASVs, dada2 workflow require to execute several steps. Following a summary of these steps and its main parameters. 
-
-:red:`Tool:` dada2_ 
-
-:red:`Version:` {dada2Version}
-
+         
 Learn errors
 ~~~~~~~~~~~~~~~~
 The first step after filtering the reads is to learn the errors from the fastq files.
 
-:green:`Function:` learnErrors(filteredFQ)
+This step can be done following two different approaches:
 
+* Using default dada2's *learnErrors()* function. 
+   
+* Enforce monotonicity *(see note)*.
+
+:green:`Binned quality scores:` {snakemake.config[binned_q_scores]}
+
+
+**Command:**
+   
+:commd:`Scripts/errDada2.R $PWD {snakemake.config[dada2_asv][cpus]}  {snakemake.config[dada2_asv][generateErrPlots]} {snakemake.wildcards.PROJECT}/runs/{snakemake.wildcards.run}/asv/  {snakemake.config[dada2_asv][nbases]}  {snakemake.config[binned_q_scores]}` 
+ 
 {errorPlots}
+
+
+:red:`Note:` For fastq files with binned qualities (e.g. NovaSeq and NextSeq) the error learning process within dada2 can be affected, and some data scientists suggest that enforcing monotonicity could be beneficial for the analysis. You can find more information about binned quality scores:
+
+* https://www.illumina.com/content/dam/illumina-marketing/documents/products/technotes/technote_understanding_quality_scores.pdf 
+
+* https://forum.qiime2.org/t/novaseq-and-dada2-incompatibility/25865/8  
+
+{asvLearnErrBenchmark}
+
+Big data workflow
+~~~~~~~~~~~~~~~~~~~~
+Dada2's amplicon sequence variants (ASVs) inference can be done by combining all the samples, however, if the number of reads exceeds a physical threshold defined by the available RAM, it is advisable to follow the big data workflow. In this case, ASVs will be inferred sample by sample and merged in a subsequent step. Your configuration for the big data workflow was set as follows:   
+
+:green:`Big data workflow:` {snakemake.config[big_data_wf]}
+
 
 ASV inference
 ~~~~~~~~~~~~~~~
 The amplicon sequence variant identification consists of a high resolution sample inference from the amplicon data using the learned errors. 
  
 :green:`Function:` dada(filteredFQ, errors, pool='{snakemake.config[dada2_asv][pool]}')
- 
+
 Merge pairs
 ~~~~~~~~~~~~~~~
 In this step, forward and reverse reads are paired in order to create full denoised sequences.
@@ -710,7 +748,7 @@ In this step, forward and reverse reads are paired in order to create full denoi
 
 Length filtering   
 ~~~~~~~~~~~~~~~~~~
-Sequences that are much longer or shorter than expected may be the result of non-specific priming.
+ASVs that are much longer or shorter than expected may be the result of non-specific priming.
 
 :green:`- Shortest length:` {shorts}
 
@@ -724,12 +762,23 @@ Sequences that are much longer or shorter than expected may be the result of non
 
 The total number of different ASVs is: {totalAsvs}
 
+The previous steps were performed within a Cascabel R script according to the following command:
+
+**Command**
+
+:commd:`Scripts/asvDada2.R $PWD  {snakemake.config[dada2_asv][pool]}   {snakemake.config[dada2_asv][cpus]}  {snakemake.config[dada2_asv][extra_params]}  {snakemake.wildcards.PROJECT}/runs/{snakemake.wildcards.run}/asv/    {snakemake.config[rm_reads][shorts]}    {snakemake.config[rm_reads][longs]}   {snakemake.config[rm_reads][offset]}    {snakemake.config[dada2_asv][chimeras]}  {snakemake.config[dada2_merge][minOverlap]}  {snakemake.config[dada2_merge][maxMismatch]}`  
+
+
+{dada2Benchmark}
+
 
 Assign taxonomy
 ----------------
-Given a set of sequences, assign the taxonomy of each sequence.
+Given a set of sequences, assign the taxonomy of each sequence. This is done, with dada2's RDP implementation according to the following parameters:
 
 {assignTaxoStr}
+
+:commd:`Scripts/dada2AssignTaxo.R $PWD  {snakemake.wildcards.PROJECT}/runs/{snakemake.wildcards.run}/asv/representative_seq_set.fasta {snakemake.config[dada2_taxonomy][extra_params]} {snakemake.config[dada2_taxonomy][add_sps][extra_params]}   {snakemake.config[dada2_taxonomy][seed]}   {snakemake.config[dada2_taxonomy][db]}   {snakemake.config[dada2_taxonomy][add_sps][db_sps]}    {snakemake.config[dada2_taxonomy][add_sps][add]}     {snakemake.wildcards.PROJECT}/runs/{snakemake.wildcards.run}/asv/taxonomy_dada2/representative_seq_set_tax_assignments.txt         {snakemake.wildcards.PROJECT}/runs/{snakemake.wildcards.run}/asv/taxonomy_dada2/representative_seq_set_tax_assignments.bootstrap.txt  {snakemake.config[dada2_asv][cpus]}` 
 
 The percentage of successfully assigned ASVs is: {prcAssignedAsvs}
 
@@ -737,15 +786,8 @@ The percentage of successfully assigned ASVs is: {prcAssignedAsvs}
 
 :green:`- ASV taxonomy assignation:` {snakemake.wildcards.PROJECT}/runs/{snakemake.wildcards.run}/asv/taxonomy_dada2/representative_seq_set_tax_assignments.txt
 
-
-The previous steps were performed within a Cascabel R script according to the following command:
-
-**Command**
-
-:commd:`Scripts/asvDada2.R $PWD  {snakemake.config[dada2_asv][pool]}   {snakemake.config[dada2_asv][cpus]}    {snakemake.config[dada2_asv][generateErrPlots]}   {snakemake.config[dada2_asv][extra_params]}  {snakemake.wildcards.PROJECT}/runs/{snakemake.wildcards.run}/asv/    {snakemake.config[rm_reads][shorts]}    {snakemake.config[rm_reads][longs]}   {snakemake.config[rm_reads][offset]}    {snakemake.config[dada2_asv][chimeras]}    {snakemake.config[dada2_taxonomy][db]}   {snakemake.config[dada2_taxonomy][add_sps][db_sps]}    {snakemake.config[dada2_taxonomy][add_sps][add]}   {snakemake.config[dada2_taxonomy][extra_params]}  {snakemake.config[dada2_merge][minOverlap]}  {snakemake.config[dada2_merge][maxMismatch]}  {snakemake.config[dada2_taxonomy][add_sps][extra_params]}`  
-
-
-{dada2Benchmark}
+:green:`- ASV taxonomy assignation bootstarp values:` {snakemake.wildcards.PROJECT}/runs/{snakemake.wildcards.run}/asv/taxonomy_dada2/representative_seq_set_tax_assignments.bootstrap.txt
+{asvTaxonomyBenchmark}
 
 Make ASV table
 ---------------

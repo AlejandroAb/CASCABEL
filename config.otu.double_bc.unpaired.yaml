@@ -655,7 +655,7 @@ dada2_merge:
 #                       The value passed through this variable is send directly#
 #                       to the function in R. Therefore, if your extra_params  #
 #                       involves more than one argument, separate them with    #
-#                       commas, as the example above.                          #                     
+#                       commas, as the example above.                          #                                              #
 #------------------------------------------------------------------------------#
 dada2_asv:
   generateErrPlots: "T"
@@ -689,6 +689,7 @@ dada2_asv:
 #                  threshold of 50 for sequences of 250nts or less. We set 70  #
 #                  as the default and advise to increase it to 80 for longer   #
 #                  fragments.                                                  #
+# - seed           RDP's bootstrap seed                                        #
 # - add_sp         Arguments for assigning genus-species binomials to the input#
 #                  sequences by exact matching against a reference fasta using #
 #                  the addSpecies() function from dada2.                       #

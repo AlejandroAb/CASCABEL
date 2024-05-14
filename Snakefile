@@ -1267,7 +1267,6 @@ if config["ANALYSIS_TYPE"] == "ASV":
         output:
             "{PROJECT}/runs/{run}/asv/stats_dada2.txt",
             "{PROJECT}/runs/{run}/asv/representative_seq_set.fasta",
-            "{PROJECT}/runs/{run}/asv/taxonomy_dada2/representative_seq_set_tax_assignments.txt",
             temp("{PROJECT}/runs/{run}/asv/dada2_asv_table.txt") 
         params:
             dir="{PROJECT}/runs/{run}/asv/",
@@ -1276,16 +1275,50 @@ if config["ANALYSIS_TYPE"] == "ASV":
         benchmark:
             "{PROJECT}/runs/{run}/asv/dada2.benchmark"
         shell:
-            "{config[Rscript][command]} {params.script} $PWD " +str(config["dada2_asv"]["pool"]) + " "
-            " "+ str(config["dada2_asv"]["cpus"])  + " "+str(config["dada2_asv"]["generateErrPlots"]) + " "
-            " "+ str(config["dada2_asv"]["extra_params"]) + " {params.dir} "  + " "+str(config["rm_reads"]["shorts"])  + " "
-            " "+ str(config["rm_reads"]["longs"]) + " "+str(config["rm_reads"]["offset"])  + " "+str(config["dada2_asv"]["chimeras"])  + " "
-            " "+str(config["dada2_taxonomy"]["db"]) + " "+str(config["dada2_taxonomy"]["add_sps"]["db_sps"])  + " "
-            " "+str(config["dada2_taxonomy"]["add_sps"]["add"]) + " \""+str(config["dada2_taxonomy"]["extra_params"]) + "\" "
-            " "+str(config["dada2_merge"]["minOverlap"]) +" "+str(config["dada2_merge"]["maxMismatch"])+" "
-            " "+str(config["UNPAIRED_DATA_PIPELINE"]) +" " + " \""+str(config["dada2_taxonomy"]["add_sps"]["extra_params"]) + "\" "
-            " "+str(config["interactive"]) + " " +str(config["rm_reads"]["non_interactive_behaviour"]) + " "  
-            + "{input.reads}"
+            "{config[Rscript][command]} {params.script} $PWD " #1 
+            " "+ str(config["dada2_asv"]["pool"]) + " " #2
+            " "+ str(config["dada2_asv"]["cpus"])  + " " #3
+            " \""+ str(config["dada2_asv"]["extra_params"]) + "\" " #5 - #4
+            " "+ str(config["dada2_asv"]["chimeras"]) + " " #10 - #5
+            " {params.dir} " #6 - #6 (move chimera - 10 to here)  
+            " "+ str(config["rm_reads"]["shorts"]) + " "#7
+            " "+ str(config["rm_reads"]["longs"]) + " " #8
+            " "+ str(config["rm_reads"]["offset"])  + " "#9
+            # " "+ str(config["dada2_asv"]["chimeras"]) + " " #10 - #5
+            #" "+ str(config["dada2_taxonomy"]["db"]) + " " #11
+            #" "+ str(config["dada2_taxonomy"]["add_sps"]["db_sps"])  + " "#12
+            #" "+ str(config["dada2_taxonomy"]["add_sps"]["add"]) + " "  #13
+            #" \""+ str(config["dada2_taxonomy"]["extra_params"]) + "\" " #14
+            " "+ str(config["dada2_merge"]["minOverlap"]) +" " #15 - 10
+            " "+ str(config["dada2_merge"]["maxMismatch"]) +" "#16 -11
+            " "+ str(config["UNPAIRED_DATA_PIPELINE"]) +" " #17 - 12
+            #" \""+ str(config["dada2_taxonomy"]["add_sps"]["extra_params"]) + "\" " #18
+            " "+ str(config["interactive"]) + " " #19 - 13
+            " "+ str(config["rm_reads"]["non_interactive_behaviour"]) + " " #20 - 14  
+            "{input.reads}" #21 - 15
+
+    rule assignTaxonomyDada2:
+        input:
+            "{PROJECT}/runs/{run}/asv/representative_seq_set.fasta"
+        output:
+            "{PROJECT}/runs/{run}/asv/taxonomy_dada2/representative_seq_set_tax_assignments.txt",
+            "{PROJECT}/runs/{run}/asv/taxonomy_dada2/representative_seq_set_tax_assignments.bootstrap.txt"
+        params:
+            dir="{PROJECT}/runs/{run}/asv/"
+        benchmark:
+            "{PROJECT}/runs/{run}/asv/dada2.taxonomy.benchmark"
+        shell:
+            "{config[Rscript][command]} Scripts/dada2AssignTaxo.R $PWD " 
+            "{input} " +" "
+            " \"" + str(config["dada2_taxonomy"]["extra_params"]) + "\" "
+            " \"" + str(config["dada2_taxonomy"]["add_sps"]["extra_params"]) + "\" "
+            " " + str(config["dada2_taxonomy"]["seed"])+" "
+            " " + str(config["dada2_taxonomy"]["db"]) + " "
+            " " + str(config["dada2_taxonomy"]["add_sps"]["db_sps"])  + " "
+            " " + str(config["dada2_taxonomy"]["add_sps"]["add"]) + " "
+            "{output[0]} "
+            "{output[1]} "
+            " "+ str(config["dada2_asv"]["cpus"]) + " "
 
     rule asv_table:
         input:
@@ -2325,3 +2358,4 @@ rule create_portable_report:
         "{PROJECT}/runs/{run}/report_files"
     shell:
         "zip -r {output} {params} {input[0]} {input[1]}"
+
