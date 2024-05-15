@@ -1148,7 +1148,7 @@ biom:
 #------------------------------------------------------------------------------#
 # This rule provides summary information of the representation of taxonomic    #
 # groups within each sample. It takes an OTU / ASV table that contains         #
-# taxonomic information as input. By default, the relative abundance of each   #
+# taxonomic information as input. By default, the total abundance of each      #
 # taxonomic group will be reported, but the raw counts can be returned if "-a" #
 # is passed.                                                                   #
 #                                                                              #

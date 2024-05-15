@@ -683,12 +683,6 @@ dada2_asv:
 #                  the function in R. Therefore, if your extra_params involves #
 #                  more than one argument, separate them with commas, as the   #
 #                  example above.                                              #
-#                  An important parameter to consider is minBoot, which sets   #
-#                  the minimum bootstrapping support required to return a      #
-#                  taxonomic classification. The original paper recommended a  #
-#                  threshold of 50 for sequences of 250nts or less. We set 70  #
-#                  as the default and advise to increase it to 80 for longer   #
-#                  fragments.                                                  #
 # - add_sp         Arguments for assigning genus-species binomials to the input#
 #                  sequences by exact matching against a reference fasta using #
 #                  the addSpecies() function from dada2.                       #
@@ -709,7 +703,7 @@ dada2_asv:
 #------------------------------------------------------------------------------#
 dada2_taxonomy:
   db: "/Absolute/Path/to/db/i.e./silva_nr_v132_train_set.fa.gz"
-  extra_params: "minBoot=70"
+  extra_params: "minBoot=50"
   add_sps: 
     add: "F"
     db_sps: "/Absolute/Path/to/sp_db/i.e./silva_species_assignment_v132.fa.gz"
@@ -1147,7 +1141,7 @@ biom:
 #------------------------------------------------------------------------------#
 # This rule provides summary information of the representation of taxonomic    #
 # groups within each sample. It takes an OTU / ASV table that contains         #
-# taxonomic information as input. By default, the relative abundance of each   #
+# taxonomic information as input. By default, the total abundance of each      #
 # taxonomic group will be reported, but the raw counts can be returned if "-a" #
 # is passed.                                                                   #
 #                                                                              #
