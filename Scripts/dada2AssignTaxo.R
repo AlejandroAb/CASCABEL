@@ -20,7 +20,7 @@ args <- commandArgs(trailingOnly = T)
 #args[9] = out assignment
 #args[10] = out bootstrap
 #args[11]= cpus
-
+#args[12]= suffix for the output: asv or bimera
 #TAXONOMY ASSIGNATION
 
 setwd(args[1])
@@ -37,7 +37,8 @@ if (!startsWith( trimws(extra_params_taxo), ',') && nchar(trimws(extra_params_ta
 seqFromFile <- readDNAStringSet(filepath=args[2])
 
 s <- getSequences(seqFromFile);
-new_names <- c(paste("asv.",1:length(s),sep=""))
+#new_names <- c(paste("asv.",1:length(s),sep=""))
+new_names <- c(paste(args[12],1:length(s),sep=""))
 
 conf.seed <<- strtoi(args[5],10)
 
@@ -57,7 +58,7 @@ if (args[8] == "T" || args[8] == "TRUE" ){
   write.table(taxa2, file=args[9], sep='\t', quote=FALSE, row.names=TRUE, col.names=NA)
 
 }else{
-  rownames(taxa) <- new_names
+  rownames(taxa$tax) <- new_names
   write.table(taxa$tax, file=args[9], sep='\t', quote=FALSE, row.names=TRUE, col.names=NA)
 }
 

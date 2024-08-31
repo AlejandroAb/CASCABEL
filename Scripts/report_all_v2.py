@@ -65,25 +65,25 @@ catCommand =  getCombinedSamplesList(snakemake.wildcards.PROJECT+"/runs/"+snakem
 combineBenchmark = readBenchmark(snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/combine_seqs_fw_rev.benchmark")
 otuBenchmark = readBenchmark(snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/otu.benchmark")
 pikRepBenchmark = readBenchmark(snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/pick_reps.benchmark")
-assignTaxaBenchmark = readBenchmark(snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/otu/taxonomy_"+snakemake.config["assignTaxonomy"]["tool"]+"/assign_taxa.benchmark")
-otuTableBenchmark = readBenchmark(snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/otu/taxonomy_"+snakemake.config["assignTaxonomy"]["tool"]+"/otuTable.biom.benchmark")
-convertOtuBenchmark = readBenchmark(snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/otu/taxonomy_"+snakemake.config["assignTaxonomy"]["tool"]+"/otuTable.txt.benchmark")
-summTaxaBenchmark = readBenchmark(snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/otu/taxonomy_"+snakemake.config["assignTaxonomy"]["tool"]+"/summary/summarize_taxa.benchmark")
-otuNoSingletonsBenchmark = readBenchmark(snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/otu/taxonomy_"+snakemake.config["assignTaxonomy"]["tool"]+"/otuTable_nosingletons.bio.benchmark")
-filterBenchmark = readBenchmark(snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/otu/taxonomy_"+snakemake.config["assignTaxonomy"]["tool"]+"/representative_seq_set_noSingletons.benchmark")
+assignTaxaBenchmark = readBenchmark(snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/otu/taxonomy_"+snakemake.config["assignTaxonomy"]["tool"].lower()+"/assign_taxa.benchmark")
+otuTableBenchmark = readBenchmark(snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/otu/taxonomy_"+snakemake.config["assignTaxonomy"]["tool"].lower()+"/otuTable.biom.benchmark")
+convertOtuBenchmark = readBenchmark(snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/otu/taxonomy_"+snakemake.config["assignTaxonomy"]["tool"].lower()+"/otuTable.txt.benchmark")
+summTaxaBenchmark = readBenchmark(snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/otu/taxonomy_"+snakemake.config["assignTaxonomy"]["tool"].lower()+"/summary/summarize_taxa.benchmark")
+otuNoSingletonsBenchmark = readBenchmark(snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/otu/taxonomy_"+snakemake.config["assignTaxonomy"]["tool"].lower()+"/otuTable_nosingletons.bio.benchmark")
+filterBenchmark = readBenchmark(snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/otu/taxonomy_"+snakemake.config["assignTaxonomy"]["tool"].lower()+"/representative_seq_set_noSingletons.benchmark")
 deRepBenchmark=""
 if  (snakemake.config["derep"]["dereplicate"] == "T"  and  snakemake.config["pickOTU"]["m"] != "usearch") or  snakemake.config["pickOTU"]["m"] == "swarm":
     deRepBenchmark = readBenchmark(snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/derep/derep.benchmark")
 if snakemake.config["alignRep"]["align"] == "T":
     #align_seqs.py -m {config[alignRep][m]} -i {input} -o {params.outdir} {config[alignRep][extra_params]}
-    alignBenchmark = readBenchmark(snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/otu/taxonomy_"+snakemake.config["assignTaxonomy"]["tool"]+"/aligned/align_rep_seqs.benchmark")
+    alignBenchmark = readBenchmark(snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/otu/taxonomy_"+snakemake.config["assignTaxonomy"]["tool"].lower()+"/aligned/align_rep_seqs.benchmark")
     #"filter_alignment.py -i {input} -o {params.outdir} {config[filterAlignment][extra_params]}"
-    alignFilteredBenchmark = readBenchmark(snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/otu/taxonomy_"+snakemake.config["assignTaxonomy"]["tool"]+"/aligned/filtered/align_rep_seqs.benchmark")
+    alignFilteredBenchmark = readBenchmark(snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/otu/taxonomy_"+snakemake.config["assignTaxonomy"]["tool"].lower()+"/aligned/filtered/align_rep_seqs.benchmark")
     #"make_phylogeny.py -i {input} -o {output} {config[makeTree][extra_params]}"
-    makePhyloBenchmark = readBenchmark(snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/otu/taxonomy_"+snakemake.config["assignTaxonomy"]["tool"]+"/aligned/filtered/representative_seq_set_noSingletons_aligned_pfiltered.benchmark")
+    makePhyloBenchmark = readBenchmark(snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/otu/taxonomy_"+snakemake.config["assignTaxonomy"]["tool"].lower()+"/aligned/filtered/representative_seq_set_noSingletons_aligned_pfiltered.benchmark")
 kronaBenchmark=""
 if snakemake.config["krona"]["report"].casefold() == "t" or snakemake.config["krona"]["report"].casefold() == "true":
-    kronaBenchmark = readBenchmark(snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/otu/taxonomy_"+snakemake.config["assignTaxonomy"]["tool"]+"/krona_report.benchmark")
+    kronaBenchmark = readBenchmark(snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/otu/taxonomy_"+snakemake.config["assignTaxonomy"]["tool"].lower()+"/krona_report.benchmark")
 
 #dada2FilterBenchmark = readBenchmark(snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/asv/filter.benchmark")
 #dada2Benchmark = readBenchmark(snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/asv/dada2.benchmark")
@@ -187,9 +187,9 @@ prcAssigned = 0.0
 prcNotAssignedOtus="TBD"
 try:
     nohit = "'No blast hit|Unassigned'"
-    #if snakemake.config["assignTaxonomy"]["tool"] != "blast":
+    #if snakemake.config["assignTaxonomy"]["tool"].lower() != "blast":
     #    nohit = "'Unassigned'"
-    aOtus = subprocess.run( ["grep -E "+ nohit + " " +  snakemake.wildcards.PROJECT+ "/runs/" + snakemake.wildcards.run+ "/otu/taxonomy_"+snakemake.config["assignTaxonomy"]["tool"]+"/representative_seq_set_tax_assignments.txt | wc -l"], stdout=subprocess.PIPE, shell=True)
+    aOtus = subprocess.run( ["grep -E "+ nohit + " " +  snakemake.wildcards.PROJECT+ "/runs/" + snakemake.wildcards.run+ "/otu/taxonomy_"+snakemake.config["assignTaxonomy"]["tool"].lower()+"/representative_seq_set_tax_assignments.txt | wc -l"], stdout=subprocess.PIPE, shell=True)
     notAssignedOtus = int(aOtus.stdout.decode('utf-8').strip())
     #print("Not assigned OTUS" + str(notAssignedOtus))
     assignedOtus = (intOtus - notAssignedOtus)
@@ -202,7 +202,7 @@ except Exception as e:
 
 intSingletons = 1;
 try:
-    totS = subprocess.run( ["grep -v \"^#\" " +  snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/otu/taxonomy_"+snakemake.config["assignTaxonomy"]["tool"]+"/otuTable_noSingletons.txt" + " | wc -l"], stdout=subprocess.PIPE, shell=True)
+    totS = subprocess.run( ["grep -v \"^#\" " +  snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/otu/taxonomy_"+snakemake.config["assignTaxonomy"]["tool"].lower()+"/otuTable_noSingletons.txt" + " | wc -l"], stdout=subprocess.PIPE, shell=True)
     intSingletons = int(totS.stdout.decode('utf-8').strip())
     #print("Total OTUS" + str(intOtus))
     totalSingletons = "**" + str(intSingletons) + "**"
@@ -210,12 +210,12 @@ except Exception as e:
     totalSingletons = "**Problem reading outputfile**"
 
 nohit = "'No blast hit|Unassigned|None'"
-#if snakemake.config["assignTaxonomy"]["tool"] != "blast":
+#if snakemake.config["assignTaxonomy"]["tool"].lower() != "blast":
 #    nohit = "'Unassigned'"
 notAssignedSingleOtus = 0
 assignedSingleOtus = 0
 try:
-    sOtus = subprocess.run( ["grep -E "+ nohit + " " +  snakemake.wildcards.PROJECT+ "/runs/" + snakemake.wildcards.run+ "/otu/taxonomy_"+snakemake.config["assignTaxonomy"]["tool"]+"/otuTable_noSingletons.txt | wc -l"], stdout=subprocess.PIPE, shell=True)
+    sOtus = subprocess.run( ["grep -E "+ nohit + " " +  snakemake.wildcards.PROJECT+ "/runs/" + snakemake.wildcards.run+ "/otu/taxonomy_"+snakemake.config["assignTaxonomy"]["tool"].lower()+"/otuTable_noSingletons.txt | wc -l"], stdout=subprocess.PIPE, shell=True)
     notAssignedSingleOtus = int(sOtus.stdout.decode('utf-8').strip())
 #print("Not assigned OTUS" + str(notAssignedOtus))
     assignedSingleOtus = (intSingletons - notAssignedSingleOtus)
@@ -267,21 +267,21 @@ fileData.append(data)
 data=[]
 #Taxonomy
 data.append("Taxonomy assignation")
-data.append(snakemake.wildcards.PROJECT+ "/runs/" + snakemake.wildcards.run+ "/otu/taxonomy_"+snakemake.config["assignTaxonomy"]["tool"]+"/representative_seq_set_tax_assignments.txt")
+data.append(snakemake.wildcards.PROJECT+ "/runs/" + snakemake.wildcards.run+ "/otu/taxonomy_"+snakemake.config["assignTaxonomy"]["tool"].lower()+"/representative_seq_set_tax_assignments.txt")
 data.append(str(assignedOtus))
 data.append("{:.2f}".format(float((assignedOtus/intOtus)*100))+"%")
 fileData.append(data)
 data=[]
 #otus no singletons
 data.append("OTU table (no singletons: a > " + str(snakemake.config["filterOtu"]["n"])+")")
-data.append(snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/otu/taxonomy_"+snakemake.config["assignTaxonomy"]["tool"]+"/otuTable_noSingletons.txt")
+data.append(snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/otu/taxonomy_"+snakemake.config["assignTaxonomy"]["tool"].lower()+"/otuTable_noSingletons.txt")
 data.append(str(intSingletons))
 data.append("{:.2f}".format(float((intSingletons/intOtus)*100))+"%")
 fileData.append(data)
 data=[]
 #Assigned singletons
 data.append("Assigned no singletons")
-data.append(snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/otu/taxonomy_"+snakemake.config["assignTaxonomy"]["tool"]+"/otuTable_noSingletons.txt")
+data.append(snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/otu/taxonomy_"+snakemake.config["assignTaxonomy"]["tool"].lower()+"/otuTable_noSingletons.txt")
 data.append(str(assignedSingleOtus))
 try:
     data.append("{:.2f}".format(float((assignedSingleOtus/intSingletons)*100))+"%")
@@ -337,8 +337,8 @@ createChartPrc(numbers2, tuple(labels2),prcs2,snakemake.wildcards.PROJECT+"/runs
 ################################################################################
 variable_refs=""
 assignTaxoStr = ""
-if snakemake.config["assignTaxonomy"]["tool"] == "blast":
-    assignTaxoStr =":red:`Tool:` ["+str(snakemake.config["assignTaxonomy"]["tool"])+"]_\n\n"
+if snakemake.config["assignTaxonomy"]["tool"].lower() == "blast":
+    assignTaxoStr =":red:`Tool:` ["+str(snakemake.config["assignTaxonomy"]["tool"].lower())+"]_\n\n"
     assignTaxoStr += ":red:`Version:` " + blastnVersion + "\n\n"
     variable_refs+= ".. [blast] Altschul SF, Gish W, Miller W, Myers EW, Lipman DJ. 1990. Basic local alignment search tool. J Mol Biol 215(3):403-410\n\n"
     ref = ""
@@ -355,7 +355,7 @@ if snakemake.config["assignTaxonomy"]["tool"] == "blast":
     if snakemake.config["assignTaxonomy"]["blast"]["max_target_seqs"] != 1:
         assignTaxoStr += "After blast assignation, **results were mapped to their LCA using stampa_merge.py** script\n\n"
 
-elif snakemake.config["assignTaxonomy"]["tool"] == "qiime":
+elif snakemake.config["assignTaxonomy"]["tool"].lower() == "qiime":
     assignTaxoStr =":red:`Tool:` [QIIME]_\n\n"
     assignTaxoStr += ":red:`Version:` "+assignTaxaVersion
     assignTaxoStr += ":green:`Method:` **" + str(snakemake.config["assignTaxonomy"]["qiime"]["method"])+ "**\n\n"
@@ -364,8 +364,8 @@ elif snakemake.config["assignTaxonomy"]["tool"] == "qiime":
     assignTaxoStr += "**Command:**\n\n"
     assignTaxoStr += ":commd:`parallel_assign_taxonomy_" + str(snakemake.config["assignTaxonomy"]["qiime"]["method"])+ ".py -i " + str(snakemake.wildcards.PROJECT)+ "/runs/" + str(snakemake.wildcards.run)+ "/otu/representative_seq_set.fasta --id_to_taxonomy_fp " + str(snakemake.config["assignTaxonomy"]["qiime"]["mapFile"])+ " --reference_seqs_fp "
     assignTaxoStr += str(snakemake.config["assignTaxonomy"]["qiime"]["dbFile"])+ " --jobs_to_start " + str(snakemake.config["assignTaxonomy"]["qiime"]["jobs"])+ " " + str(snakemake.config["assignTaxonomy"]["qiime"]["extra_params"])+ " "
-    assignTaxoStr += "--output_dir " + str(snakemake.wildcards.PROJECT)+ "/runs/" + str(snakemake.wildcards.run)+ "/otu/taxonomy_" + str(snakemake.config["assignTaxonomy"]["tool"])+ "/`\n\n"
-elif snakemake.config["assignTaxonomy"]["tool"] == "vsearch":
+    assignTaxoStr += "--output_dir " + str(snakemake.wildcards.PROJECT)+ "/runs/" + str(snakemake.wildcards.run)+ "/otu/taxonomy_" + str(snakemake.config["assignTaxonomy"]["tool"].lower())+ "/`\n\n"
+elif snakemake.config["assignTaxonomy"]["tool"].lower() == "vsearch":
     assignTaxoStr =":red:`Tool:` [vsearch]_\n\n"
     assignTaxoStr += ":red:`Version:` " + vsearchVersion_tax + "\n\n"
     assignTaxoStr +=  ":green:`Reference fasta file:` "+ str(snakemake.config["assignTaxonomy"]["vsearch"]["db_file"])+"\n\n"
@@ -449,11 +449,11 @@ if snakemake.config["alignRep"]["align"] == "T":
     alignmentReport+=":red:`Version:` "+alignFastaVersion +"\n\n"
     alignmentReport+=":green:`Method:` ["+ snakemake.config["alignRep"]["m"] + "]_\n\n"
     alignmentReport+="**Command:**\n\n"
-    alignmentReport+=":commd:`align_seqs.py -m "+snakemake.config["alignRep"]["m"] +" -i "+ snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/otu/"+snakemake.config["assignTaxonomy"]["tool"]+"/representative_seq_set_noSingletons.fasta "+ snakemake.config["alignRep"]["extra_params"] + " -o "
-    alignmentReport+=snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/otu/taxonomy_"+snakemake.config["assignTaxonomy"]["tool"]+"/aligned/representative_seq_set_noSingletons_aligned.fasta`\n\n"
+    alignmentReport+=":commd:`align_seqs.py -m "+snakemake.config["alignRep"]["m"] +" -i "+ snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/otu/"+snakemake.config["assignTaxonomy"]["tool"].lower()+"/representative_seq_set_noSingletons.fasta "+ snakemake.config["alignRep"]["extra_params"] + " -o "
+    alignmentReport+=snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/otu/taxonomy_"+snakemake.config["assignTaxonomy"]["tool"].lower()+"/aligned/representative_seq_set_noSingletons_aligned.fasta`\n\n"
     alignmentReport+="**Output files:**\n\n"
-    alignmentReport+=":green:`- Aligned fasta file:` "+snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/otu/taxonomy_"+snakemake.config["assignTaxonomy"]["tool"]+"/aligned/representative_seq_set_noSingletons_aligned.fasta\n\n"
-    alignmentReport+=":green:`- Log file:` "+snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/otu/taxonomy_"+snakemake.config["assignTaxonomy"]["tool"]+"/aligned/representative_seq_set_noSingletons_log.txt\n\n"
+    alignmentReport+=":green:`- Aligned fasta file:` "+snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/otu/taxonomy_"+snakemake.config["assignTaxonomy"]["tool"].lower()+"/aligned/representative_seq_set_noSingletons_aligned.fasta\n\n"
+    alignmentReport+=":green:`- Log file:` "+snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/otu/taxonomy_"+snakemake.config["assignTaxonomy"]["tool"].lower()+"/aligned/representative_seq_set_noSingletons_log.txt\n\n"
     alignmentReport+=alignBenchmark+"\n\n"
 
     alignmentReport+="Filter alignment\n-----------------\n\n"
@@ -461,10 +461,10 @@ if snakemake.config["alignRep"]["align"] == "T":
     alignmentReport+=":red:`Tool:` [QIIME]_ - filter_alignment.py\n\n"
     alignmentReport+=":red:`Version:` "+filterAlignmentVersion +"\n\n"
     alignmentReport+="**Command:**\n\n"
-    alignmentReport+=":commd:`filter_alignment.py -i  "+snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/otu/taxonomy_"+snakemake.config["assignTaxonomy"]["tool"]+"/aligned/representative_seq_set_noSingletons_aligned.fasta " +snakemake.config["filterAlignment"]["extra_params"]
-    alignmentReport+=" -o  "+snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/otu/taxonomy_"+snakemake.config["assignTaxonomy"]["tool"]+"/aligned/filtered/`\n\n"
+    alignmentReport+=":commd:`filter_alignment.py -i  "+snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/otu/taxonomy_"+snakemake.config["assignTaxonomy"]["tool"].lower()+"/aligned/representative_seq_set_noSingletons_aligned.fasta " +snakemake.config["filterAlignment"]["extra_params"]
+    alignmentReport+=" -o  "+snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/otu/taxonomy_"+snakemake.config["assignTaxonomy"]["tool"].lower()+"/aligned/filtered/`\n\n"
     alignmentReport+="**Output file:**\n\n"
-    alignmentReport+=":green:`- Aligned fasta file:` "+snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/otu/taxonomy_"+snakemake.config["assignTaxonomy"]["tool"]+"/aligned/representative_seq_set_noSingletons_aligned_pfiltered.fasta\n\n"
+    alignmentReport+=":green:`- Aligned fasta file:` "+snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/otu/taxonomy_"+snakemake.config["assignTaxonomy"]["tool"].lower()+"/aligned/representative_seq_set_noSingletons_aligned_pfiltered.fasta\n\n"
     alignmentReport+=alignFilteredBenchmark+"\n\n"
 
     alignmentReport+="Make tree\n-----------\n\n"
@@ -473,9 +473,9 @@ if snakemake.config["alignRep"]["align"] == "T":
     alignmentReport+=":red:`Version:` "+makePhyloVersion +"\n\n"
     alignmentReport+=":green:`Method:` ["+ snakemake.config["makeTree"]["method"] + "]_\n\n"
     alignmentReport+="**Command:**\n\n"
-    alignmentReport+=":commd:`make_phylogeny.py -i "+snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/otu/taxonomy_"+snakemake.config["assignTaxonomy"]["tool"]+"/aligned/representative_seq_set_noSingletons_aligned.fasta -o representative_seq_set_noSingletons_aligned_pfiltered.tre "+ snakemake.config["makeTree"]["extra_params"]+ " -t " + snakemake.config["makeTree"]["method"]+"`\n\n"
+    alignmentReport+=":commd:`make_phylogeny.py -i "+snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/otu/taxonomy_"+snakemake.config["assignTaxonomy"]["tool"].lower()+"/aligned/representative_seq_set_noSingletons_aligned.fasta -o representative_seq_set_noSingletons_aligned_pfiltered.tre "+ snakemake.config["makeTree"]["extra_params"]+ " -t " + snakemake.config["makeTree"]["method"]+"`\n\n"
     alignmentReport+="**Output file:**\n\n"
-    alignmentReport+=":green:`- Taxonomy tree:` "+snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/otu/taxonomy_"+snakemake.config["assignTaxonomy"]["tool"]+"/aligned/representative_seq_set_noSingletons_aligned.tre\n\n"
+    alignmentReport+=":green:`- Taxonomy tree:` "+snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/otu/taxonomy_"+snakemake.config["assignTaxonomy"]["tool"].lower()+"/aligned/representative_seq_set_noSingletons_aligned.tre\n\n"
     alignmentReport+=makePhyloBenchmark+"\n\n"
 #KRONA REPORT
 kronaReport = ""
@@ -498,11 +498,11 @@ if  snakemake.config["krona"]["report"].casefold() == "t" or snakemake.config["k
         kronaReport+="Each sample is represented on a separated chart (same html report).\n\n"
     kronaReport+="You can see the report at the following link:\n\n"
     kronaReport+=":green:`- Krona report:` kreport_\n\n"
-    #kronaReport+=" .. _kreport: ../../runs/"+snakemake.wildcards.run+"/otu/taxonomy_"+snakemake.config["assignTaxonomy"]["tool"]+"/krona_report.html\n\n"
-    kronaReport+=" .. _kreport: report_files/krona_report."+snakemake.config["assignTaxonomy"]["tool"]+".html\n\n"
+    #kronaReport+=" .. _kreport: ../../runs/"+snakemake.wildcards.run+"/otu/taxonomy_"+snakemake.config["assignTaxonomy"]["tool"].lower()+"/krona_report.html\n\n"
+    kronaReport+=" .. _kreport: report_files/krona_report."+snakemake.config["assignTaxonomy"]["tool"].lower()+".html\n\n"
 
     kronaReport+="Or access the html file at:\n\n"
-    kronaReport+=":green:`- Krona html file:` "+snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/otu/taxonomy_"+snakemake.config["assignTaxonomy"]["tool"]+"/krona_report.html\n\n"
+    kronaReport+=":green:`- Krona html file:` "+snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/otu/taxonomy_"+snakemake.config["assignTaxonomy"]["tool"].lower()+"/krona_report.html\n\n"
     kronaReport+=kronaBenchmark+"\n\n"
 
 ###############################################################################

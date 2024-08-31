@@ -662,7 +662,9 @@ dada2_asv:
   nbases: "1e8"
   pool: "pseudo"
   cpus: 15
-  chimeras : "T"
+  chimeras: "T"
+  chimeras_method: "consensus"
+  chimeras_taxonomy: "T"
   extra_params: "selfConsist=FALSE"
 
 #------------------------------------------------------------------------------#

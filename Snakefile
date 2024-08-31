@@ -1,6 +1,6 @@
 """
 CASCABEL
-Version: 6.0.3
+Version: 6.0.4
 Authors:
  - Julia Engelmann
  - Alejandro Abdala
@@ -1267,7 +1267,9 @@ if config["ANALYSIS_TYPE"] == "ASV":
         output:
             "{PROJECT}/runs/{run}/asv/stats_dada2.txt",
             "{PROJECT}/runs/{run}/asv/representative_seq_set.fasta",
-            temp("{PROJECT}/runs/{run}/asv/dada2_asv_table.txt") 
+            "{PROJECT}/runs/{run}/asv/representative_bimeras.fasta",
+            temp("{PROJECT}/runs/{run}/asv/dada2_asv_table.txt"),
+            temp("{PROJECT}/runs/{run}/asv/dada2_asv_bimera_table.txt") 
         params:
             dir="{PROJECT}/runs/{run}/asv/",
             script="Scripts/asvDada2_bd.R"  if config["big_data_wf"].lower()  == "t"
@@ -1294,8 +1296,9 @@ if config["ANALYSIS_TYPE"] == "ASV":
             " "+ str(config["UNPAIRED_DATA_PIPELINE"]) +" " #17 - 12
             #" \""+ str(config["dada2_taxonomy"]["add_sps"]["extra_params"]) + "\" " #18
             " "+ str(config["interactive"]) + " " #19 - 13
-            " "+ str(config["rm_reads"]["non_interactive_behaviour"]) + " " #20 - 14  
-            "{input.reads}" #21 - 15
+            " "+ str(config["rm_reads"]["non_interactive_behaviour"]) + " " #20 - 14
+            " "+ str(config["dada2_asv"]["chimeras_method"]) + " " #15  
+            "{input.reads}" #21 - 16
 
     rule assignTaxonomyDada2:
         input:
@@ -1308,7 +1311,7 @@ if config["ANALYSIS_TYPE"] == "ASV":
         benchmark:
             "{PROJECT}/runs/{run}/asv/dada2.taxonomy.benchmark"
         shell:
-            "{config[Rscript][command]} Scripts/dada2AssignTaxo.R $PWD " 
+            "{config[Rscript][command]} Scripts/dada2AssignTaxo.R $PWD "
             "{input} " +" "
             " \"" + str(config["dada2_taxonomy"]["extra_params"]) + "\" "
             " \"" + str(config["dada2_taxonomy"]["add_sps"]["extra_params"]) + "\" "
@@ -1319,13 +1322,48 @@ if config["ANALYSIS_TYPE"] == "ASV":
             "{output[0]} "
             "{output[1]} "
             " "+ str(config["dada2_asv"]["cpus"]) + " "
+            " asv. "
+
+
+    if config["dada2_asv"]["chimeras"].lower() == "t" and config["dada2_asv"]["chimeras_taxonomy"].lower() == "t":
+        rule assignTaxonomyBimeras:
+            input:
+                "{PROJECT}/runs/{run}/asv/representative_bimeras.fasta"
+            output:
+                "{PROJECT}/runs/{run}/asv/taxonomy_dada2/bimeras_tax_assignments.txt",
+                "{PROJECT}/runs/{run}/asv/taxonomy_dada2/bimeras_tax_assignments.bootstrap.txt"
+            params:
+                dir="{PROJECT}/runs/{run}/asv/"
+            benchmark:
+                "{PROJECT}/runs/{run}/asv/dada2.bimera.taxonomy.benchmark"
+            shell:
+                "{config[Rscript][command]} Scripts/dada2AssignTaxo.R $PWD "
+                "{input} " +" "
+                " \"" + str(config["dada2_taxonomy"]["extra_params"]) + "\" "
+                " \"" + str(config["dada2_taxonomy"]["add_sps"]["extra_params"]) + "\" "
+                " " + str(config["dada2_taxonomy"]["seed"])+" "
+                " " + str(config["dada2_taxonomy"]["db"]) + " "
+                " " + str(config["dada2_taxonomy"]["add_sps"]["db_sps"])  + " "
+                " " + str(config["dada2_taxonomy"]["add_sps"]["add"]) + " "
+                "{output[0]} "
+                "{output[1]} "
+                " "+ str(config["dada2_asv"]["cpus"]) + " "
+                " bimera. " 
+    else: 
+        rule skipAssignTaxonomyBimeras:
+            output:
+                "{PROJECT}/runs/{run}/asv/taxonomy_dada2/bimeras_tax_assignments.txt",
+                "{PROJECT}/runs/{run}/asv/taxonomy_dada2/bimeras_tax_assignments.bootstrap.txt"
+            benchmark:
+                "{PROJECT}/runs/{run}/asv/dada2.bimera.taxonomy.benchmark"
+            shell:
+                "touch {output}" 
 
     rule asv_table:
         input:
             "{PROJECT}/runs/{run}/asv/dada2_asv_table.txt" 
         output:
             "{PROJECT}/runs/{run}/asv/asv_table.txt"
-            # "{}" 
         shell:
             "cat {input} | awk '{{if(NR==1){{header=\"#OTU_ID\";for(i=1;i<=NF;i++){{header=header\"\\t\"$i}};print header}}else{{print $0}}}}'|   awk '{{ for (i=1; i<=NF; i++){{ a[NR,i] = $i }} }} NF>p {{ p = NF }} END {{ for(j=1; j<=p; j++) {{ str=a[1,j]; for(i=2; i<=NR; i++){{ str=str\"\\t\"a[i,j]; }} print str }} }}' > {output}"
 
@@ -1339,6 +1377,24 @@ if config["ANALYSIS_TYPE"] == "ASV":
             "{PROJECT}/runs/{run}/asv/taxonomy_dada2/dada2.table.benchmark"
         shell:
             "cat {input[0]} | awk  -F \"\\t\" 'NR==FNR{{if(NR>1){{tax=$2;for(i=3;i<=NF;i++){{tax=tax\";\"$i}};h[$1]=tax;}}next;}} {{if(FNR==1){{print $0\"\\ttaxonomy\"}}else{{print $0\"\\t\"h[$1]}}}}' -  {input[1]} > {output}" 
+    rule bimera_table:
+        input:
+            "{PROJECT}/runs/{run}/asv/dada2_asv_bimera_table.txt"
+        output:
+            "{PROJECT}/runs/{run}/asv/bimera_table.txt"
+        shell:
+            "cat {input} | awk '{{if(NR==1){{header=\"#OTU_ID\";for(i=1;i<=NF;i++){{header=header\"\\t\"$i}};print header}}else{{print $0}}}}'|   awk '{{ for (i=1; i<=NF; i++){{ a[NR,i] = $i }} }} NF>p {{ p = NF }} END {{ for(j=1; j<=p; j++) {{ str=a[1,j]; for(i=2; i<=NR; i++){{ str=str\"\\t\"a[i,j]; }} print str }} }}' > {output}"
+
+    rule bimera_tax_table:
+        input:
+            "{PROJECT}/runs/{run}/asv/taxonomy_dada2/bimeras_tax_assignments.txt",
+            "{PROJECT}/runs/{run}/asv/bimera_table.txt"
+        output:
+            "{PROJECT}/runs/{run}/asv/taxonomy_dada2/bimeraTable.txt"
+        benchmark:
+            "{PROJECT}/runs/{run}/asv/taxonomy_dada2/dada2.table.benchmark"
+        shell:
+            "cat {input[0]} | awk  -F \"\\t\" 'NR==FNR{{if(NR>1){{tax=$2;for(i=3;i<=NF;i++){{tax=tax\";\"$i}};h[$1]=tax;}}next;}} {{if(FNR==1){{print $0\"\\ttaxonomy\"}}else{{print $0\"\\t\"h[$1]}}}}' -  {input[1]} > {output}"
 
     rule asv_to_biom:
         input:
@@ -1392,7 +1448,8 @@ if config["primers"]["remove"] != "F":
                 #"{PROJECT}/runs/{run}/{sample}_data/seqs_fw_rev_accepted.align" if config["align_vs_reference"]["align"] == "T"
                 #else 
                 "{PROJECT}/runs/{run}/{sample}_data/seqs_fw_rev_accepted.fna",
-                config["metadata"]
+                config["metadata"]  if config["primers"]["remove"].lower() == "metadata"
+                else "{PROJECT}/runs/{run}/{sample}_data/seqs_revcomplement.concat.fna"
             output:
                 out="{PROJECT}/runs/{run}/{sample}_data/seqs_fw_rev_accepted_no_adapters.fna"
                 #log="{PROJECT}/runs/{run}/{sample}_data/seqs_fw_rev_accepted_no_adapters.log"
@@ -1792,14 +1849,26 @@ if  config["assignTaxonomy"]["tool"].lower() == "blast":
         shell:
             "cat {input.blastout} | cut -f1 | sort | uniq | grep -v -w -F -f - {input.otus} "
             "| awk '{{print $1\"\\tUnassigned\\t-\\t-\\t-\\t-\"}}' | cat {input.blastout} - > {output}"
-
+    rule filter_best_hits_blast:
+        """
+         Before LCA only keep results with id and coverage eq. to the best hit.
+        """
+        input:
+            "{PROJECT}/runs/{run}/otu/taxonomy_"+config["assignTaxonomy"]["tool"].lower()+"/representative_seq_set_tax_blastn.complete.out"
+        output:
+            "{PROJECT}/runs/{run}/otu/taxonomy_"+config["assignTaxonomy"]["tool"].lower()+"/representative_seq_set_tax_blastn.filtered.out"
+        shell:
+            "cat {input}  "
+            "| awk -v curr_s=\"\" ' {{if($1 != curr_s){{ id=$3;  cov=$4;  curr_s=$1;  print $0 }}else{{  if($3>=id && $4 >= cov){{   print $0  }} }}  }}' "
+            " > {output}"
+    
     rule prepare_blast_for_stampa:
         """
          Take completed blast output file and make some reformat in order to
          fulfill stampa format.
         """
         input:
-            "{PROJECT}/runs/{run}/otu/taxonomy_"+config["assignTaxonomy"]["tool"].lower()+"/representative_seq_set_tax_blastn.complete.out"
+            "{PROJECT}/runs/{run}/otu/taxonomy_"+config["assignTaxonomy"]["tool"].lower()+"/representative_seq_set_tax_blastn.filtered.out"
         output:
             temp("{PROJECT}/runs/{run}/otu/taxonomy_"+config["assignTaxonomy"]["tool"].lower()+"/hits.blast.out")
         benchmark:
@@ -2242,7 +2311,10 @@ else:
             f="{PROJECT}/runs/{run}/report_files/krona_report.dada2.html"
             if config["krona"]["report"] == "T" else
             "{PROJECT}/runs/{run}/otu/taxonomy_"+config["assignTaxonomy"]["tool"].lower()+"/skip.krona",
-            g="{PROJECT}/runs/{run}/samples.log"
+            g="{PROJECT}/runs/{run}/samples.log",
+            h="{PROJECT}/runs/{run}/asv/taxonomy_dada2/bimeraTable.txt"
+            if config["dada2_asv"]["chimeras"].lower() == "t" and config["dada2_asv"]["chimeras_taxonomy"].lower() == "t" else
+            "{PROJECT}/runs/{run}/asv/representative_bimeras.fasta"
        output:
             temp("{PROJECT}/runs/{run}/reporttmp_all.html")
        benchmark:

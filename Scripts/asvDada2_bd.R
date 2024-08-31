@@ -4,7 +4,7 @@
 #
 # @author: J. Engelmann
 # @author: A. Abdala
-# @author: W. ReitsmaOB
+# @author: W. Reitsma
 
 library(dada2)
 library(Biostrings)
@@ -26,12 +26,14 @@ args <- commandArgs(trailingOnly = T)
 #args[12] = mergePairs
 #args[13] = Interactive
 #args[14] = NON Interactive behav.
-#args[15] = summary files from libraries
+#args[15] = chimera method
+#args[16] = summary files from libraries
+
 
 
 setwd(args[1])
 paths <-NULL
-for(i in 15:length(args)) {
+for(i in 16:length(args)) {
   paths <- c(paths,gsub("summary.pcr.txt", 'filtered/',args[i]))
 }
 print(paths)
@@ -39,12 +41,11 @@ filtFs <-  sort(list.files(paths, pattern="_1.fastq.gz", full.names = TRUE))
 filtRs <-  sort(list.files(paths, pattern="_2.fastq.gz", full.names = TRUE))
 #Get sample names
 sample.names <- gsub('_1.fastq.gz', '', basename(filtFs))
-print(sample.names)
+
 #assign names to files
 names(filtFs) <- sample.names
 names(filtRs) <- sample.names
 
-print(filtFs[1])
 
 if (args[2] == "pseudo"){
   pool = "pseudo"
@@ -218,19 +219,31 @@ write.table(c(shorts,longs),paste0(args[6],"shorts_longs.log"), quote=F,sep="\t"
 seqtab2 <- seqtab[,nchar(colnames(seqtab)) %in% shorts:longs] 
 
 if (args[5] == "T" || args[5] == "TRUE" ){
-   
+  #Pool by sample
+  if (args[15] == "Consensus" || args[5] == "consensus" ){
+    seqtab.nochim.tab <- isBimeraDenovoTable(seqtab2,  multithread=cpus, verbose=TRUE)
+  }else{#Pool deNovo (this tends to generate more bimera)
+    seqtab.nochim.tab <- isBimeraDenovo(seqtab2,  multithread=cpus, verbose=TRUE)
+      
+  }
 # rm chimeras
-  seqtab.nochim <- removeBimeraDenovo(seqtab2, method="consensus", multithread=cpus, verbose=TRUE)  
+  #seqtab.nochim <- removeBimeraDenovo(seqtab2, method="consensus", multithread=cpus, verbose=TRUE)  
+  seqtab.nochim <- seqtab2[,names(seqtab.nochim.tab[seqtab.nochim.tab %in% c(F)])]
+  seqtab.chim <- seqtab2[,names(seqtab.nochim.tab[seqtab.nochim.tab %in% c(T)])]
   #dim(seqtab.nochim)
   #sum(seqtab.nochim)/sum(seqtab)
   #matrix(1:9, nrow = 3, ncol = 3)
   seqs <- getSequences(seqtab.nochim)
+  seqs.chim <- getSequences(seqtab.chim)
   #new_names <- c(paste("asv.",1:length(colnames(seqtab.nochim)),sep=""))
   new_names <- c(paste("asv.",1:length(seqs),sep=""))
+  new_names.chim <- c(paste("bimera.",1:length(seqs.chim),sep=""))
   #estos son equivalentes colnames(seqtab.nochim) == seqs
   #names(seqs) <- seqs
   original_names<-seqs
   names(seqs) <- new_names
+  original_names.chim<-seqs.chim
+  #names(seqs.chim) <- new_names.chim
   #original_names<-colnames(seqtab.nochim)
   getN <- function(x) sum(getUniques(x))
   
@@ -261,10 +274,33 @@ if (args[5] == "T" || args[5] == "TRUE" ){
     write.table(seqtab.nochim, file=paste0(args[6],'dada2_asv_table.txt'), sep='\t', quote=FALSE, row.names=TRUE, col.names=NA)
     track <- cbind(sapply(dadaFs, getN), sapply(dadaRs, getN), sapply(mergers, getN), rowSums(seqtab2), rowSums(seqtab.nochim))
     seqtab2 <- seqtab.nochim
+    
   }
-  # also write to file
+  if(dim(seqtab.chim)[2]==0){
+    #write empty bimera table
+    #colnames(seqtab.chim)<-new_names.chim
+    #write.table(seqtab.chim, file=paste0(args[6],'dada2_asv_bimera_table.txt'), sep='\t', quote=FALSE, row.names=TRUE, col.names=NA)
+    file.create(paste(args[6],'dada2_asv_bimera_table.txt',sep=""))
+
+  }else{
+    print(dim(seqtab.chim))
+    #write bimera, but we are not cheking for dimmension
+    names(seqs.chim) <- new_names.chim
+
+    colnames(seqtab.chim)<-new_names.chim
+    write.table(seqtab.chim, file=paste0(args[6],'dada2_asv_bimera_table.txt'), sep='\t', quote=FALSE, row.names=TRUE, col.names=NA)
+    
+  }
+  #write bimera, but we are not cheking for dimmension
+  #colnames(seqtab.chim)<-new_names.chim
+  #write.table(seqtab.chim, file=paste0(args[6],'dada2_asv_bimera_table.txt'), sep='\t', quote=FALSE, row.names=TRUE, col.names=NA)
+  # also write to file seqs
   seq.out <- DNAStringSet(x=seqs, start=NA, end=NA, width=NA, use.names=TRUE)
+  seq.out.chim <- DNAStringSet(x=seqs.chim, start=NA, end=NA, width=NA, use.names=TRUE)
+  
   writeXStringSet(seq.out, filepath=paste(args[6],'representative_seq_set.fasta',sep=""), append=FALSE, compress=FALSE, compression_level=NA, format="fasta")
+  writeXStringSet(seq.out.chim, filepath=paste(args[6],'representative_bimeras.fasta',sep=""), append=FALSE, compress=FALSE, compression_level=NA, format="fasta")
+  
   colnames(track) <- c( "denoisedF", "denoisedR", "merged","length", "nonchim")
   rownames(track) <- sample.names
   write.table(track, file=paste0(args[6],'stats_dada2.txt'), sep='\t', quote=FALSE, row.names=TRUE, col.names=NA)
@@ -275,8 +311,12 @@ if (args[5] == "T" || args[5] == "TRUE" ){
   original_names<-colnames(seqtab2)
   colnames(seqtab2)<-new_names
   write.table(seqtab2, file=paste(args[6],'dada2_asv_table.txt',sep=""), sep='\t', quote=FALSE, row.names=TRUE, col.names=NA)
+  file.create(paste(args[6],'dada2_asv_bimera_table.txt',sep=""))
   seq.out <- DNAStringSet(x=seqs, start=NA, end=NA, width=NA, use.names=TRUE)
   writeXStringSet(seq.out, filepath=paste(args[6],'representative_seq_set.fasta',sep=""), append=FALSE, compress=FALSE, compression_level=NA, format="fasta")
+  #create empty file
+  file.create(paste(args[6],'representative_bimeras.fasta',sep=""))
+
   getN <- function(x) sum(getUniques(x))
   
   ####

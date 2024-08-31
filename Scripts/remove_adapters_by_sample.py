@@ -77,7 +77,7 @@ if snakemake.config["primers"]["remove"].lower() == "metadata":
 
 elif snakemake.config["primers"]["remove"].lower() == "cfg":
     primer="-g " + snakemake.config["primers"]["fw_primer"]
-    if snakemake.config["primers"]["rv_primer"].len() > 2 :
+    if len(snakemake.config["primers"]["rv_primer"]) > 2 :
         primer=primer+"..."+reverse_complement(snakemake.config["primers"]["rv_primer"]) 
 
     
@@ -144,6 +144,9 @@ survivingReads=countFasta(snakemake.output[0],False)
 prc = float((survivingReads/initialReads)*100)
 prc_str = "{:.2f}".format(float((survivingReads/initialReads)*100))
 
+if not os.path.exists(snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/report_files"):
+    os.makedirs(snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/report_files")
+
 with open(snakemake.params[1], "w") as primers:
         primers.write(primer)
         primers.close()
@@ -164,8 +167,8 @@ else:
     print("\033[93m" +" Removing primers...\033[0m")
 
 
-if not os.path.exists(snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/report_files"):
-    os.makedirs(snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/report_files")
+#if not os.path.exists(snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/report_files"):
+#    os.makedirs(snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/report_files")
 subprocess.run( ["cat "+ snakemake.output[0]+"| grep '^>' | cut -f1 -d' ' | sed 's/>// ; s/_[0-9]*$//' |  sort | uniq -c | awk '{print $2\"\\t\"$1}' > " + snakemake.params[3]+".tmp1"],stdout=subprocess.PIPE, shell=True)
 subprocess.run( ["cat "+ snakemake.input[0]+"| grep '^>' | cut -f1 -d' ' | sed 's/>// ; s/_[0-9]*$//' |  sort | uniq -c | awk '{print $2\"\\t\"$1}'| awk -F'\t' 'NR==FNR{h[$1]=$2;next} BEGIN{print \"Sample\\tReads_before_cutadapt\\tSurviving_reads\\tPrc_surviving_reads\"}{if(h[$1]){print $1\"\\t\"h[$1]\"\\t\"$2\"\\t\"($2/h[$1])*100\"%\"}else{print $1\"\\t\"$2\"\\t0\\t0%\"}}' - "+snakemake.params[3]+".tmp1 > "+ snakemake.params[3]],stdout=subprocess.PIPE, shell=True)
 os.remove(snakemake.params[3]+".tmp1")
