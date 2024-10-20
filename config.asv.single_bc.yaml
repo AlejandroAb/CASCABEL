@@ -298,6 +298,32 @@ QUALITY_CHAR: "G"
 
 
 #------------------------------------------------------------------------------#
+# BOTH_WF:               Quality Control tool                                  #
+#------------------------------------------------------------------------------#
+# Select the tool for uality control analysis.                                 #
+# Valid options are: FASTQC, SEQUALI, BOTH                                     #
+# If you wish to have warnings on interactive behavio, FASTQC or BOTH options  #
+# should be used.                                                              #
+#------------------------------------------------------------------------------#
+QC: "sequali"
+
+#------------------------------------------------------------------------------#
+# BOTH_WF:               Quality control with Sequali                          #
+# rules: sequali                                                               #
+#------------------------------------------------------------------------------#
+# Sequali (https://github.com/rhpvorderman/sequali).                           #
+# Sequence quality metrics for FASTQ and uBAM files.                           # 
+#                                                                              #
+#-----------------------------       PARAMS       -----------------------------#
+#                                                                              #
+# - threads       Number of threads to run sequali.                            #
+# - extra_params  Extra parameters. See sequali --help for more info.          #
+#------------------------------------------------------------------------------#
+sequali:
+  threads: 10
+  extra_params: ""
+
+#------------------------------------------------------------------------------#
 # BOTH_WF:               Quality control with FastQC                           #
 # rules: fast_qc, validateQC                                                   #
 #------------------------------------------------------------------------------#
@@ -311,6 +337,7 @@ QUALITY_CHAR: "G"
 #                                                                              #
 # - command       Command needed to invoke fastqc [default: "fastqc"].         #
 # - extra_params  Extra parameters. See fastqc --help for more info.           #
+# - threads       Number of threads to run FastQC.                             #
 # - qcLimit       Set the maximum number of FastQC FAILS (from the 12 tests    #
 #                 evaluated) accepted before interrupting the workflow if the  #
 #                 'interactive' mode is equal to "T".                          #
@@ -318,6 +345,7 @@ QUALITY_CHAR: "G"
 fastQC:
   command: "fastqc"
   extra_params: ""
+  threads: 10
   qcLimit : 3
 
 #------------------------------------------------------------------------------#

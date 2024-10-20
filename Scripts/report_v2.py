@@ -38,8 +38,15 @@ base_demultiplexed=base_sample+"/demultiplexed"  if snakemake.config["UNPAIRED_D
 #                         TOOLS VERSION SECTION                          #
 ################################################################################
 #--fastq
-fqv = subprocess.run([snakemake.config["fastQC"]["command"], '--version'], stdout=subprocess.PIPE)
-fqVersion = "**" + fqv.stdout.decode('utf-8').strip() + "**"
+fqVersion=""
+if snakemake.config["QC"].lower() ==  "qc" or snakemake.config["QC"].lower() ==  "both":
+    fqv = subprocess.run([snakemake.config["fastQC"]["command"], '--version'], stdout=subprocess.PIPE)
+    fqVersion = "**" + fqv.stdout.decode('utf-8').strip() + "**"
+sequaliVersion = ""
+if snakemake.config["QC"].lower() ==  "sequali" or snakemake.config["QC"].lower() ==  "both":
+    sqv = subprocess.run(['sequali', '--version'], stdout=subprocess.PIPE)
+    sequaliVersion = "**" + sqv.stdout.decode('utf-8').strip() + "**"
+
 
 if snakemake.config["demultiplexing"]["demultiplex"] !=  "F":
    #--qiime extract_barcodes
@@ -109,7 +116,7 @@ if snakemake.config["chimera"]["search"] == "T":
 # This section is to generate a pre-formatted text with the benchmark info for #
 # All the executed rules.                                                      #
 ################################################################################
-fqBench = readBenchmark(base_sample+"/qc/fq.benchmark")
+#fqBench = readBenchmark(base_sample+"/qc/fq.benchmark")
 pearBench =readBenchmark(base_sample+"/peared/pear.benchmark")
 if snakemake.config["demultiplexing"]["demultiplex"] != "F":
     barBench =readBenchmark(base_barcodes+"/barcodes.benchmark")
@@ -196,6 +203,35 @@ try:
     samplesLibInt = int(samplesLib.stdout.decode('utf-8').strip())
 except Exception as e:
     totalReads = "Problem reading outputfile"
+################################################################################
+#                        Quality tool section                    #
+################################################################################
+qcStr = ""
+if snakemake.config["QC"].lower() == "fastqc" or snakemake.config["QC"].lower() == "both":
+    qcStr += ":red:`Tool:` [FastQC]_\n\n"
+    qcStr += ":red:`Version:` "+ fqVersion +"\n\n"
+    qcStr += "**Command:**\n\n"
+    qcStr += ":commd:`fastqc "+ base_sample + "/rawdata/fw.fastq " + base_sample + "/rawdata/rv.fastq" + "--extract -o  "+ base_sample+"/qc/`\n\n"
+    qcStr += "You can follow the links below, in order to see the complete FastQC report:\n\n"
+    qcStr += "**Output files:**\n\n:green:`- FastQC for sample: "+snakemake.wildcards.sample+"_1:`  FQ1_ \n\n"
+    qcStr += ".. _FQ1: ../../../samples/"+snakemake.wildcards.sample+"/qc/fw_fastqc.html \n\n"
+    qcStr += "green:`- FastQC for sample: "+snakemake.wildcards.sample+"_2:`  FQ2_ \n\n"
+    qcStr += ".. _FQ2: ../../../samples/"+snakemake.wildcards.sample+"/qc/rv_fastqc.html \n\n" 
+    fqBench = readBenchmark(base_sample+"/qc/fq.benchmark")
+    qcStr += fqBench + "\n\n"
+if snakemake.config["QC"].lower() == "sequali" or snakemake.config["QC"].lower() == "both":
+    qcStr += ":red:`Tool:` [Sequali]_\n\n"
+    qcStr += ":red:`Version:` "+ sequaliVersion +"\n\n"
+    qcStr += "**Command:**\n\n"
+    qcStr += ":commd:`sequali --html  sequali.html --json sequali.json  --outdir  "+ base_sample+"/qc/ "+ base_sample + "/rawdata/fw.fastq " + base_sample + "/rawdata/rv.fastq`\n\n"
+    qcStr += "You can follow the links below, in order to see the complete sequali report:\n\n"
+    qcStr += "**Output files:**\n\n:green:`- Sequali report:`  SEQ1_ \n\n"
+    qcStr += ".. _SEQ1: ../../../samples/"+snakemake.wildcards.sample+"/qc/sequali.html \n\n"
+    qcStr += ":green:`- json report:` "+base_sample+"/qc/sequali.json \n\n"
+    seqBench = readBenchmark(base_sample+"/qc/sequali.benchmark")
+    qcStr += seqBench + "\n\n"    
+
+
 ################################################################################
 #                         Generate sequence amounts chart                      #
 ################################################################################
@@ -649,25 +685,7 @@ Quality Control
 ------------------
 Evaluate quality on raw reads.
 
-:red:`Tool:` [FastQC]_
-
-:red:`Version:` {fqVersion}
-
-**Command:**
-
-:commd:`fastqc {snakemake.wildcards.PROJECT}/samples/{snakemake.wildcards.sample}/rawdata/fw.fastq {snakemake.wildcards.PROJECT}/samples/{snakemake.wildcards.sample}/rawdata/rv.fastq --extract -o {snakemake.wildcards.PROJECT}/samples/{snakemake.wildcards.sample}/qc/`
-
-You can follow the links below, in order to see the complete FastQC report:
-
-:green:`- FastQC for sample {snakemake.wildcards.sample}_1:` FQ1_
-
-    .. _FQ1: ../../../samples/{snakemake.wildcards.sample}/qc/fw_fastqc.html
-
-:green:`- FastQC for sample {snakemake.wildcards.sample}_2:` FQ2_
-
-    .. _FQ2: ../../../samples/{snakemake.wildcards.sample}/qc/rv_fastqc.html
-
-{fqBench}
+{qcStr}
 
 
 Read pairing

@@ -36,8 +36,16 @@ base_demultiplexed=base_sample+"/demultiplexed"  if snakemake.config["UNPAIRED_D
 #                         TOOLS VERSION SECTION                          #
 ################################################################################
 #--fastq
-fqv = subprocess.run([snakemake.config["fastQC"]["command"], '--version'], stdout=subprocess.PIPE)
-fqVersion = "**" + fqv.stdout.decode('utf-8').strip() + "**"
+#fqv = subprocess.run([snakemake.config["fastQC"]["command"], '--version'], stdout=subprocess.PIPE)
+#fqVersion = "**" + fqv.stdout.decode('utf-8').strip() + "**"
+fqVersion=""
+if snakemake.config["QC"].lower() ==  "qc" or snakemake.config["QC"].lower() ==  "both":
+    fqv = subprocess.run([snakemake.config["fastQC"]["command"], '--version'], stdout=subprocess.PIPE)
+    fqVersion = "**" + fqv.stdout.decode('utf-8').strip() + "**"
+sequaliVersion = ""
+if snakemake.config["QC"].lower() ==  "sequali" or snakemake.config["QC"].lower() ==  "both":
+    sqv = subprocess.run(['sequali', '--version'], stdout=subprocess.PIPE)
+    sequaliVersion = "**" + sqv.stdout.decode('utf-8').strip() + "**"
 
 if snakemake.config["demultiplexing"]["demultiplex"] !=  "F":
    #--qiime extract_barcodes
@@ -107,7 +115,7 @@ removeChimeras = False
 # This section is to generate a pre-formatted text with the benchmark info for #
 # All the executed rules.                                                      #
 ################################################################################
-fqBench = readBenchmark(base_sample+"/qc/fq.benchmark")
+#fqBench = readBenchmark(base_sample+"/qc/fq.benchmark")
 pearBench =readBenchmark(base_sample+"/peared/pear.benchmark")
 if snakemake.config["demultiplexing"]["demultiplex"] != "F":
     barBench =readBenchmark(base_barcodes+"/barcodes.benchmark")
@@ -243,8 +251,8 @@ createChart(numbers, tuple(labels),base_run+"/report_files/sequence_numbers."+sn
 #                          Chimera check                                       #
 ################################################################################
 variable_refs=""
-#if snakemake.config["chimera"]["search"] == "T" and snakemake.config["chimera"]["method"] == "usearch61":
-#    variable_refs+= ".. [usearch61] Edgar RC. 2010. Search and clustering orders of magnitude faster than BLAST. Bioinformatics 26(19):2460-2461.\n\n"
+if snakemake.config["QC"].lower() == "sequali" or snakemake.config["QC"].lower() == "both":
+    variable_refs+= ".. [Sequali] https://github.com/rhpvorderman/sequali.\n\n"
 #else: 
 #    variable_refs+= ".. [uchime] Edgar RC, Haas BJ, Clemente JC, Quince C, Knight R (2011) UCHIME improves sensitivity and speed of chimera detection. Bioinformatics, 27 (16): 2194-2200. doi:10.1093/bioinformatics/btr381. \n\n"
 quimeraStr = ""
@@ -282,12 +290,39 @@ quimeraStr = ""
 #            quimeraStr+=":red:`Percentage of reads vs cutadapt:` "+ str(prcChimRaw) + "%\n\n"
 
 
+################################################################################
+#                        Quality tool section                    #
+################################################################################
+qcStr = ""
+if snakemake.config["QC"].lower() == "fastqc" or snakemake.config["QC"].lower() == "both":
+    qcStr += ":red:`Tool:` [FastQC]_\n\n"
+    qcStr += ":red:`Version:` "+ fqVersion +"\n\n"
+    qcStr += "**Command:**\n\n"
+    qcStr += ":commd:`fastqc "+ base_sample + "/rawdata/fw.fastq " + base_sample + "/rawdata/rv.fastq" + "--extract -o  "+ base_sample+"/qc/`\n\n"
+    qcStr += "You can follow the links below, in order to see the complete FastQC report:\n\n"
+    qcStr += "**Output files:**\n\n:green:`- FastQC for sample: "+snakemake.wildcards.sample+"_1:`  FQ1_ \n\n"
+    qcStr += ".. _FQ1: ../../../samples/"+snakemake.wildcards.sample+"/qc/fw_fastqc.html \n\n"
+    qcStr += "green:`- FastQC for sample: "+snakemake.wildcards.sample+"_2:`  FQ2_ \n\n"
+    qcStr += ".. _FQ2: ../../../samples/"+snakemake.wildcards.sample+"/qc/rv_fastqc.html \n\n" 
+    fqBench = readBenchmark(base_sample+"/qc/fq.benchmark")
+    qcStr += fqBench + "\n\n"
+if snakemake.config["QC"].lower() == "sequali" or snakemake.config["QC"].lower() == "both":
+    qcStr += ":red:`Tool:` [Sequali]_\n\n"
+    qcStr += ":red:`Version:` "+ sequaliVersion +"\n\n"
+    qcStr += "**Command:**\n\n"
+    qcStr += ":commd:`sequali --html  sequali.html --json sequali.json  --outdir  "+ base_sample+"/qc/ "+ base_sample + "/rawdata/fw.fastq " + base_sample + "/rawdata/rv.fastq`\n\n"
+    qcStr += "You can follow the links below, in order to see the complete sequali report:\n\n"
+    qcStr += "**Output files:**\n\n:green:`- Sequali report:`  SEQ1_ \n\n"
+    qcStr += ".. _SEQ1: ../../../samples/"+snakemake.wildcards.sample+"/qc/sequali.html \n\n"
+    qcStr += ":green:`- json report:` "+base_sample+"/qc/sequali.json \n\n"
+    seqBench = readBenchmark(base_sample+"/qc/sequali.benchmark")
+    qcStr += seqBench + "\n\n"    
 
 ################################################################################
 #                           Pear                                               #
 pearStr = ""
 if snakemake.config["demultiplexing"]["demultiplex"] == "T" or snakemake.config["UNPAIRED_DATA_PIPELINE"]=="T":
-    pearStr="Read pairing\n----------------\n\n"
+    pearStr="\nRead pairing\n-------------------\n\n"
     pearStr+="Align paired end reads and merge them into one single sequence in case they overlap.\n\n"
     pearStr+=":red:`Tool:` [PEAR]_\n\n"
     pearStr+=":red:`version:` {pearversion}\n\n"
@@ -677,25 +712,7 @@ Quality Control
 ------------------
 Evaluate quality on raw reads.
 
-:red:`Tool:` [FastQC]_
-
-:red:`Version:` {fqVersion}
-
-**Command:**
-
-:commd:`fastqc {base_sample}/rawdata/fw.fastq {base_sample}/rawdata/rv.fastq --extract -o {base_sample}/qc/`
-
-You can follow the links below, in order to see the complete FastQC report:
-
-:green:`- FastQC for sample {snakemake.wildcards.sample}_1:` FQ1_
-
-    .. _FQ1: ../../../samples/{snakemake.wildcards.sample}/qc/fw_fastqc.html
-
-:green:`- FastQC for sample {snakemake.wildcards.sample}_2:` FQ2_
-
-    .. _FQ2: ../../../samples/{snakemake.wildcards.sample}/qc/rv_fastqc.html
-
-{fqBench}
+{qcStr}
 
 
 {pearStr}
@@ -743,6 +760,7 @@ References
 .. [Cutadapt] Cutadapt v1.15 .Marcel Martin. Cutadapt removes adapter sequences from high-throughput sequencing reads. EMBnet.Journal, 17(1):10-12, May 2011. http://dx.doi.org/10.14806/ej.17.1.200
 
 .. [Vsearch] Rognes T, Flouri T, Nichols B, Quince C, Mahé F. (2016) VSEARCH: a versatile open source tool for metagenomics. PeerJ 4:e2584. doi: 10.7717/peerj.2584
+
 
 
 {variable_refs}

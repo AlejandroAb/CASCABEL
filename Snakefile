@@ -1,6 +1,6 @@
 """
 CASCABEL
-Version: 6.0.4
+Version: 6.1.0
 Authors:
  - Julia Engelmann
  - Alejandro Abdala
@@ -127,7 +127,23 @@ if config["LIBRARY_LAYOUT"] != "SE":
         benchmark:
             "{PROJECT}/samples/{sample}/qc/fq.benchmark"
         shell:
-            "{config[fastQC][command]} {input.r1} {input.r2} --extract {config[fastQC][extra_params]} -t 10 -o {wildcards.PROJECT}/samples/{wildcards.sample}/qc/"
+            "{config[fastQC][command]} {input.r1} {input.r2} --extract {config[fastQC][extra_params]} -t {config[fastQC][threads]} -o {wildcards.PROJECT}/samples/{wildcards.sample}/qc/"
+    rule sequali:
+        """
+        Runs QC on raw reads
+        """
+        input:
+            r1="{PROJECT}/samples/{sample}/rawdata/fw.fastq" if config["gzip_input"] == "F" else "{PROJECT}/samples/{sample}/rawdata/fw.fastq.gz",
+            r2="{PROJECT}/samples/{sample}/rawdata/rv.fastq" if config["gzip_input"] == "F" else "{PROJECT}/samples/{sample}/rawdata/rv.fastq.gz"
+        output:
+            o1="{PROJECT}/samples/{sample}/qc/sequali.html",
+            s2="{PROJECT}/samples/{sample}/qc/sequali.json"
+        params:
+            outdir="{PROJECT}/samples/{sample}/qc/"
+        benchmark:
+            "{PROJECT}/samples/{sample}/qc/sequali.benchmark"
+        shell:
+            "sequali --outdir {params.outdir} --html  sequali.html --json sequali.json -t {config[sequali][threads]}  {config[sequali][extra_params]}  {input.r1} {input.r2}"
 
     rule validateQC:
         """
@@ -154,8 +170,10 @@ if config["LIBRARY_LAYOUT"] != "SE":
         input:
             r1="{PROJECT}/samples/{sample}/rawdata/fw.fastq" if config["gzip_input"] == "F" else "{PROJECT}/samples/{sample}/rawdata/fw.fastq.gz",
             r2="{PROJECT}/samples/{sample}/rawdata/rv.fastq" if config["gzip_input"] == "F" else "{PROJECT}/samples/{sample}/rawdata/rv.fastq.gz",
-            tmp1="{PROJECT}/samples/{sample}/qc/fq_fw_internal_validation.txt",
-            tmp2="{PROJECT}/samples/{sample}/qc/fq_rv_internal_validation.txt"
+            tmp1="{PROJECT}/samples/{sample}/qc/fq_fw_internal_validation.txt" if config["QC"].lower() == "fastqc" or config["QC"].lower() == "both" else [],
+            tmp2="{PROJECT}/samples/{sample}/qc/fq_rv_internal_validation.txt" if config["QC"].lower() == "fastqc" or config["QC"].lower() == "both" else [],
+            tmp3="{PROJECT}/samples/{sample}/qc/sequali.html" if config["QC"].lower() == "sequali" or config["QC"].lower() == "both" else []
+            
         output:
             "{PROJECT}/samples/{sample}/peared/seqs.assembled.fastq",
             "{PROJECT}/samples/{sample}/peared/seqs.unassembled.forward.fastq",
@@ -230,7 +248,7 @@ if config["LIBRARY_LAYOUT"] != "SE":
             benchmark:
                 "{PROJECT}/samples/{sample}/peared/qc/fq.benchmark"
             shell:
-                "{config[fastQC][command]} {input.r1} -t 10  --extract -o {params}"
+                "{config[fastQC][command]} {input.r1} -t {config[fastQC][threads]}  --extract -o {params}"
 
         rule validateFastQCPear:
             input:
@@ -265,8 +283,24 @@ else: #SE Workflow only runs QC and validate QC all the above rules
         benchmark:
             "{PROJECT}/samples/{sample}/qc/fq.benchmark"
         shell:
-            "{config[fastQC][command]} {input.r1} --extract {config[fastQC][extra_params]} -o {wildcards.PROJECT}/samples/{wildcards.sample}/qc/"
+            "{config[fastQC][command]} {input.r1} -t {config[fastQC][threads]} --extract {config[fastQC][extra_params]} -o {wildcards.PROJECT}/samples/{wildcards.sample}/qc/"
 
+    rule sequali:
+        """
+        Runs QC on raw reads
+        """
+        input:
+            r1="{PROJECT}/samples/{sample}/rawdata/fw.fastq" if config["gzip_input"] == "F" else "{PROJECT}/samples/{sample}/rawdata/fw.fastq.gz"
+        output:
+            o1="{PROJECT}/samples/{sample}/qc/sequali.html",
+            s2="{PROJECT}/samples/{sample}/qc/sequali.json"
+        params:
+            outdir="{PROJECT}/samples/{sample}/qc/"
+        benchmark:
+            "{PROJECT}/samples/{sample}/qc/sequali.benchmark"
+        shell:
+            "sequali --outdir {params.outdir} --html  sequali.html --json sequali.json -t {config[sequali][threads]}  {config[sequali][extra_params]}  {input.r1}"
+        
     rule validateQC_SE:
         """
         Interpret FastQC output and stops on interactive mode, if too many
@@ -371,8 +405,9 @@ if config["demultiplexing"]["demultiplex"] == "T":
         rule extract_barcodes_se:
             input:
                 assembly="{PROJECT}/samples/{sample}/rawdata/fw.fastq" if config["gzip_input"] == "F" else "{PROJECT}/samples/{sample}/rawdata/fw.fastq.gz",
-                tmp="{PROJECT}/samples/{sample}/qc/fq_fw_internal_validation.txt",
-                tmp3="{PROJECT}/metadata/bc_validation/{sample}/validation.log"
+                tmp="{PROJECT}/samples/{sample}/qc/fq_fw_internal_validation.txt" if config["QC"].lower() == "fastqc" or config["QC"].lower() == "both" else [],
+                tmp3="{PROJECT}/metadata/bc_validation/{sample}/validation.log",
+                tmp4="{PROJECT}/samples/{sample}/qc/sequali.html" if config["QC"].lower() == "sequali" or config["QC"].lower() == "both" else []
             output:
                 #"{PROJECT}/runs/{run}/{sample}_data/barcodes/barcodes.fastq",
                 #"{PROJECT}/runs/{run}/{sample}_data/barcodes/reads.fastq"
@@ -1018,7 +1053,9 @@ else:
             #else "{PROJECT}/samples/{sample}/rawdata/fw.fastq" if config["gzip_input"] == "F" else "{PROJECT}/samples/{sample}/rawdata/fw.fastq.gz"
             extended_reads="{PROJECT}/samples/{sample}/peared/seqs.assembled.fastq" if config["UNPAIRED_DATA_PIPELINE"] != "T" and config["LIBRARY_LAYOUT"] != "SE"
             else "{PROJECT}/samples/{sample}/peared/seqs.assembled.UNPAIRED.fastq" if config["UNPAIRED_DATA_PIPELINE"] == "T" and config["LIBRARY_LAYOUT"] != "SE"
-            else "{PROJECT}/samples/{sample}/rawdata/fw.fastq" if config["gzip_input"] == "F" else "{PROJECT}/samples/{sample}/rawdata/fw.fastq.gz"            
+            else "{PROJECT}/samples/{sample}/rawdata/fw.fastq" if config["gzip_input"] == "F" else "{PROJECT}/samples/{sample}/rawdata/fw.fastq.gz",
+            tmp="{PROJECT}/samples/{sample}/qc/sequali.html" if config["QC"].lower() == "sequali" or config["QC"].lower() == "both" else [],
+            tmp2="{PROJECT}/samples/{sample}/qc/fq_fw_internal_validation.txt" if config["QC"].lower() == "fastqc" or config["QC"].lower() == "both" else []
             #tmp_pear_validation="{PROJECT}/samples/{sample}/peared/pear.log.validation",
             #tmp_pear_fq_validation="{PROJECT}/runs/{run}/{sample}_data/peared/qc/fq_fw_internal_validation.txt"
         output:
@@ -1037,7 +1074,11 @@ else:
         rule skip_dmx_file_creation_ASV_PE:
             input:
                 r1="{PROJECT}/samples/{sample}/rawdata/fw.fastq" if config["gzip_input"] == "F" else "{PROJECT}/samples/{sample}/rawdata/fw.fastq.gz",
-                r2="{PROJECT}/samples/{sample}/rawdata/rv.fastq" if config["gzip_input"] == "F" else "{PROJECT}/samples/{sample}/rawdata/rv.fastq.gz"
+                r2="{PROJECT}/samples/{sample}/rawdata/rv.fastq" if config["gzip_input"] == "F" else "{PROJECT}/samples/{sample}/rawdata/rv.fastq.gz",
+                tmp="{PROJECT}/samples/{sample}/qc/sequali.html" if config["QC"].lower() == "sequali" or config["QC"].lower() == "both" else [],
+                tmp2="{PROJECT}/samples/{sample}/qc/fq_fw_internal_validation.txt" if config["QC"].lower() == "fastqc" or config["QC"].lower() == "both" else [],
+                tmp3="{PROJECT}/samples/{sample}/qc/fq_rv_internal_validation.txt" if config["QC"].lower() == "fastqc" or config["QC"].lower() == "both" else []
+
             params:
                 "{PROJECT}/samples/{sample}/demultiplexed/"
             output:
@@ -1055,7 +1096,10 @@ else:
     elif config["ANALYSIS_TYPE"] == "ASV" and config["LIBRARY_LAYOUT"] == "SE":
         rule skip_dmx_file_creation_ASV_SE:
             input:
-                r1="{PROJECT}/samples/{sample}/rawdata/fw.fastq" if config["gzip_input"] == "F" else "{PROJECT}/samples/{sample}/rawdata/fw.fastq.gz"
+                r1="{PROJECT}/samples/{sample}/rawdata/fw.fastq" if config["gzip_input"] == "F" else "{PROJECT}/samples/{sample}/rawdata/fw.fastq.gz",
+                tmp2="{PROJECT}/samples/{sample}/qc/fq_fw_internal_validation.txt" if config["QC"].lower() == "fastqc" or config["QC"].lower() == "both" else [],
+                tmp3="{PROJECT}/samples/{sample}/qc/sequali.html" if config["QC"].lower() == "sequali" or config["QC"].lower() == "both" else [],
+                
             params:
                 "{PROJECT}/samples/{sample}/demultiplexed/"
             output:
@@ -1100,7 +1144,12 @@ else:
                 "touch {output}" 
 
     if config["primers"]["remove"].lower() == "cfg":
-        rule remove_primers_fq_files_cfg:
+        #rule rc_fq_file:
+        #    input:
+        #        fw="{PROJECT}/samples/{sample}/demultiplexed/summary.txt_tmp"  if config["UNPAIRED_DATA_PIPELINE"] != "T"
+        #        else  "{PROJECT}/samples/{sample}/demultiplexed/unpaired/summary.txt_tmp"
+
+        rule remove_primers_fq_files_cfg_no_demux:
             input:
                 fw="{PROJECT}/samples/{sample}/demultiplexed/summary.txt_tmp"  if config["UNPAIRED_DATA_PIPELINE"] != "T"
                 else  "{PROJECT}/samples/{sample}/demultiplexed/unpaired/summary.txt_tmp"
@@ -1120,7 +1169,7 @@ else:
                 "{PROJECT}/samples/{sample}/demultiplexed/summary.pcr.txt"  if config["UNPAIRED_DATA_PIPELINE"] != "T"
                 else  "{PROJECT}/samples/{sample}/demultiplexed/unpaired/summary.pcr.txt"
             script:
-                "Scripts/removePrimersDemultiplex_cfg.py"
+                "Scripts/removePrimersNoCascabelDemultiplex_cfg.py"
     elif config["primers"]["remove"].lower() == "metadata":
         rule remove_primers_fq_files_metadata:
             input:
