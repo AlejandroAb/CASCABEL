@@ -169,9 +169,9 @@ else:
 
 #if not os.path.exists(snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/report_files"):
 #    os.makedirs(snakemake.wildcards.PROJECT+"/runs/"+snakemake.wildcards.run+"/report_files")
-subprocess.run( ["cat "+ snakemake.output[0]+"| grep '^>' | cut -f1 -d' ' | sed 's/>// ; s/_[0-9]*$//' |  sort | uniq -c | awk '{print $2\"\\t\"$1}' > " + snakemake.params[3]+".tmp1"],stdout=subprocess.PIPE, shell=True)
-subprocess.run( ["cat "+ snakemake.input[0]+"| grep '^>' | cut -f1 -d' ' | sed 's/>// ; s/_[0-9]*$//' |  sort | uniq -c | awk '{print $2\"\\t\"$1}'| awk -F'\t' 'NR==FNR{h[$1]=$2;next} BEGIN{print \"Sample\\tReads_before_cutadapt\\tSurviving_reads\\tPrc_surviving_reads\"}{if(h[$1]){print $1\"\\t\"h[$1]\"\\t\"$2\"\\t\"($2/h[$1])*100\"%\"}else{print $1\"\\t\"$2\"\\t0\\t0%\"}}' - "+snakemake.params[3]+".tmp1 > "+ snakemake.params[3]],stdout=subprocess.PIPE, shell=True)
-os.remove(snakemake.params[3]+".tmp1")
+subprocess.run( ["cat "+ snakemake.output[0]+"| grep '^>' | cut -f1 -d' ' | sed 's/>// ; s/_[0-9]*$//' |  sort | uniq -c | awk '{print $2\"\\t\"$1}' > " + snakemake.output[1]+".tmp1"],stdout=subprocess.PIPE, shell=True)
+subprocess.run( ["cat "+ snakemake.input[0]+"| grep '^>' | cut -f1 -d' ' | sed 's/>// ; s/_[0-9]*$//' |  sort | uniq -c | awk '{print $2\"\\t\"$1}'| awk -F'\t' 'NR==FNR{h[$1]=$2;next} BEGIN{print \"Sample\\tReads_before_cutadapt\\tSurviving_reads\\tPrc_surviving_reads\"}{if(h[$1]){print $1\"\\t\"h[$1]\"\\t\"$2\"\\t\"($2/h[$1])*100\"\"}else{print $1\"\\t\"$2\"\\t0\\t0\"}}' - "+snakemake.output[1]+".tmp1 > "+ snakemake.params[3]],stdout=subprocess.PIPE, shell=True)
+os.remove(snakemake.output[1]+".tmp1")
 exit(0)
 #sample=snakemake.params[3].split("/")[3].split("_")[0]
 #summ_file = open(snakemake.params[3],"w")

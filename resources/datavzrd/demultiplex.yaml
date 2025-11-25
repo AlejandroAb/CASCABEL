@@ -1,0 +1,32 @@
+__use_yte__: true
+
+datasets:
+  demultiplex:
+    path: ?input.table
+    separator: "\t"
+
+views:
+  samples:
+    dataset: demultiplex
+    render-table:
+      columns:
+        Reads:
+          plot:
+            heatmap:
+              scale: ordinal
+              color-scheme: inferno
+#        Reads:
+#          plot:
+#            ticks:
+#              scale: linear
+        
+#views:
+#  demultiplex:
+#    dataset: demultiplex
+#    render-table:
+#      columns:
+#        Sample:
+#          plot:
+#            heatmap:
+#              scale: ordinal
+#              color-scheme: category20      

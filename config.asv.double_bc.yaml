@@ -13,7 +13,7 @@
 # ignored by Snakemake.                                                        #
 #                                                                              #
 # @Author: Julia Engelmann and Alejandro Abdala                                #
-# @Last update: 13/12/2022                                                     #
+# @Last update: 01/09/2025                                                     #
 ################################################################################
 
 ################################################################################
@@ -91,7 +91,7 @@ description: ""
 # (only the reads!, the metadata file always needs to be uncompressed) or "F"  #
 # if the input files are regular fastq files.                                  #
 #------------------------------------------------------------------------------#
-gzip_input: "F"
+gzip_input: "T"
 
 #------------------------------------------------------------------------------#
 #                      INTERMEDIATE FILES                                      #
@@ -100,7 +100,7 @@ gzip_input: "F"
 # Set this flag to true ("T") in order to keep all the intermediate files.     #
 # Default: "F" remove the files!                                               #
 #------------------------------------------------------------------------------#
-KEEP_TMP: "F"
+KEEP_TMP: "T"
 
 #------------------------------------------------------------------------------#
 #                             INPUT FILES                                      #
@@ -137,7 +137,7 @@ KEEP_TMP: "F"
 fw_reads: ""
 rv_reads: ""
 metadata: ""
-#OR 
+#OR
 input_files: ""
 
 #------------------------------------------------------------------------------#
@@ -180,7 +180,7 @@ big_data_wf: "F" #Set to true when your sequencing run contains more than 10^9 r
 # - wkhtmltopdf_command  name w/wo path to execute the html to pdf translation.#
 #------------------------------------------------------------------------------#
 pdfReport: "T"
-wkhtmltopdf_command: "wkhtmltopdf  -T 10mm -B 30mm"
+wkhtmltopdf_command: "wkhtmltopdf -T 10mm -B 30mm "
 
 #------------------------------------------------------------------------------#
 #                           Portable Report                                    #
@@ -374,8 +374,9 @@ pear:
   v: 10
   j: 6
   p: 0.05
+  q: 25
   extra_params: ""
-  prcpear: 90
+  prcpear: 100
 
 #------------------------------------------------------------------------------#
 # BOTH_WF:         FastQC on merged/assembled fragments                        #
@@ -387,21 +388,6 @@ pear:
 #------------------------------------------------------------------------------#
 fastQCPear: T
 
-#------------------------------------------------------------------------------#
-# BOTH_WF:                         QIIME                                       #
-# rule: bc_mapping_validation, extract_barcodes, extract_barcodes_unassigned,  #
-# split_libraries, split_libraries_rc, search_chimera, cluster_OTUs,           #
-# pick_representatives, assign_taxonomy, make_otu_table, summarize_taxa,       #
-# filter_rep_seqs, align_rep_seqs, filter_alignment, make_tree                 #
-#------------------------------------------------------------------------------#
-# Different QIIME scripts are used along the pipeline and in order to execute  #
-# these scripts, they need to be located on the user PATH environmental        #
-# variable, or QIIME's bin directory needs to be included in the parameter:    #
-# 'path' below. This parameter will be used by the pipeline for all the rules  #
-# that use a Qiime script.                                                     #
-#------------------------------------------------------------------------------#
-qiime:
-  path: ""
 
 #------------------------------------------------------------------------------#
 # BOTH_WF:                           R                                         #
@@ -447,49 +433,29 @@ java:
 #                       files. In this case, the metadata file has to be       #
 #                       provided.                                              #
 #                       "F". If the input files are already demultiplexed.     #
-# - create_fastq_files  "T" or "F". If 'demultiplex' = T and this is also T,   #
-#                       the pipeline will create demultiplexed fastq files per #
-#                       sample.                                                #
-# - remove_bc           The demultiplexed fastq files are created using the    #
-#                       raw data, thus they may contain artificial sequences   #
-#                       like the barcodes. This option trims the first N bases #
-#                       from each read.                                        #
-# - order_by_strand     During demultiplexing it is possible to identify the   #
-#                       current strand of the read according to the barcode.   #
-#                       Set this option to "T" in order to interchange FW with #
-#                       RV reads when barcodes are found on opposite strands.  #
-# - add_unpair          "T". Un-assembled reads are also included within the   #
-#                       demultiplexing process in order to being assigned to   #
-#                       their samples.                                         #
-#                       "F". Only carry out the demultiplexing process with    #
-#                       paired reads.                                          #
-# - dmx_params          Parameters to pass on to the demultiplexing script.    #
-#                       For example, the user can change the prefix and suffix #
-#                       of the output files. To see the available parameters,  #
-#                       run: java -cp Scripts DemultiplexQiime.                #
 # - bc_mismatch         Number of allowed mismatches for barcode correction    #
-#                       (computed using the Levenshtein distance).             #
+#                       This is used as option "-e" in cutadapt (Maximum       #
+#                       allowed error rate)                                    #
+#                       For the tag jump analysis, this value is used as the   #
+#                       max mismatch using the Levenshtein distance).          #
 #                        bc_mismatch = 0: don't allow mismatches in the barcode#
 #                        bc_mismatch > 0: correct bc_mismatch bases at maximum.#
-# - bcc_params:         Extra parameters for the barcode corrector tool.       #  
+# - cutadapt_extra_params  Parameters to pass to cutadapt. Only change this    #
+#                       value if you know what you are doing.                  #
+# - create_tag_jump_analysis "F"  Set this flag to True, to perform a tag jump #
+#                       analysis for problems while demultiplexing.            #
+# - tag_jump_extra_params  Extra parameters for the barcode corrector tool.    #  
 #                       Use: java -jar Scripts/BarcodeCorrector.jar to see     #
 #                       available options.                                     # 
-# - create_tag_pairs_heatmap: "T"   The barcode correction tool is useful for  #
-#                       detecting tag jumps. Set this to true "T" to create a  #
-#                       heatmap with the different tag pairs along a paired-end#
-#                       library.                                               #
 #------------------------------------------------------------------------------#
-demultiplexing:                                  
-  demultiplex: "T"                               
-  create_fastq_files: "T"                        
-  remove_bc: 12                                  
-  order_by_strand: "T"                           
-  add_unpair: "T"                                
-  dmx_params: "--remove-header"                  
-  bc_mismatch: 0                                 
-  bcc_params: ""       
-  create_tag_pairs_heatmap: "T"                  
-                                                 
+demultiplexing:
+  demultiplex: "T"
+  bc_mismatch: 2   # -e in cutadapt
+  cpus: "10"  #for cutadapt
+  cutadapt_extra_params: ""
+  create_tag_jump_analysis: "T" 
+  barcode_length: 12
+  tagjump_extra_params: " "                                                  
 #------------------------------------------------------------------------------#
 # BOTH_WF:             Remove adapters / primers                               #
 # rule: cutadapt                                                               #
@@ -516,7 +482,7 @@ demultiplexing:
 #   ** extra_params     Any extra parameter that you wish to supply to  the    #
 #                       cutadapt command.                                      #
 #                       By default Cascabel includes the values                #
-#                "--discard-untrimmed" and "--match-read-wildcards". The former# 
+#                "--discard-untrimmed" and "--match-read-wildcards". The former#
 #                will discard reads without adapters and the latest interprets #
 #                IUPAC wildcards in the reads. Notice that when using          #
 #                "--discard-untrimmed" Cascabel will redirect the untrimmed    #
@@ -535,58 +501,6 @@ primers:
 
 
     
-#------------------------------------------------------------------------------#
-# BOTH_WF:                  Extract barcodes                                   #
-# rules: extract_barcodes, extract_barcodes_unassigned                         #
-#------------------------------------------------------------------------------#
-# This rule extract barcodes from the reads, and generates two files: one      #
-# with only the extracted barcodes and a second one with the sequences without #
-# the barcodes.                                                                #
-#                                                                              #
-#-----------------------------       PARAMS       -----------------------------#
-#                                                                              #
-# - c             This parameter allows to choose the barcode configuration:   #
-#                 "barcode_single_end". The merged fragments start with the    #
-#		          barcode sequence.                                            #
-#                 "barcode_paired_stitched". Input has barcodes at the         #
-#                 beginning and end of the merged fragment.                    #
-#                 "barcode_paired_end". This option is not valid here since    #
-#                 the reads have already been merged to one fragment.          #
-# - bc_length     If 'c' is "barcode_paired_stitched" use both:                #
-#                 --bc1_len X and --bc2_len Y.                                 #
-#                 If 'c' is "barcode_single_end" use only --bc1_len X.         #
-#                 X and Y are the nucleotide lengths of the barcodes.          #
-# - extra_params  Extra parameters. See extract_barcodes.py -help.             #
-#------------------------------------------------------------------------------#
-ext_bc:
-  c: "barcode_paired_stitched"
-  bc_length: "--bc1_len 12 --bc2_len 12"
-  extra_params: ""
-
-#------------------------------------------------------------------------------#
-# BOTH_WF:                    Split libraries                                  #
-# rule: split_libraries, split_libraries_rc                                    #
-#------------------------------------------------------------------------------#
-# These rules performs demultiplexing of Fastq sequence data where barcodes and#
-# sequences are contained in two separate fastq files.                         #
-#                                                                              #
-#-----------------------------       PARAMS       -----------------------------#
-#                                                                              #
-# - q             Maximum unacceptable Phred quality score. e.g., for Q20 and  #
-#                 better, specify -q 19). [default: 19]                        #
-# - r             Maximum number of consecutive low quality base calls allowed #
-#                 before truncating a read. [default: 3]                       #
-# - barcode_type  The type of barcode used. This can be an integer, e.g., "6"  #
-#                 or “golay_12” for golay error-correcting barcodes.           #
-# - extra_params  Any extra parameter. Run split_libraries_fastq -h to see all #
-#                 options.                                                     #
-#------------------------------------------------------------------------------#
-split:
-  q: "19"
-  r: "5"
-  barcode_type:  "24"
-  extra_params: " --phred_offset 33"
-
 
 #------------------------------------------------------------------------------#
 # ASV_WF:                   dada2 trim and filter reads                        #
@@ -647,13 +561,13 @@ dada2_filter:
 #                                                                              #
 #-----------------------------       PARAMS       -----------------------------#
 #                                                                              #
-# - minOverlap      Default 12. The minimum length of the overlap required for #
+# - minOverlap      Default 10. The minimum length of the overlap required for #
 #                   merging the forward and reverse reads.                     #
 # - maxMismatch     Default 0. The maximum mismatches allowed in the overlap   #
 #                   region.                                                    #
 #------------------------------------------------------------------------------#
 dada2_merge:
-  minOverlap: 12
+  minOverlap: 10
   maxMismatch: 0
 
 #------------------------------------------------------------------------------#
@@ -689,10 +603,10 @@ dada2_asv:
   generateErrPlots: "T"
   nbases: "1e8"
   pool: "pseudo"
-  cpus: 15
+  cpus: 25
   chimeras: "T"
   chimeras_method: "consensus"
-  chimeras_taxonomy: "T"
+  chimeras_taxonomy: "F"
   extra_params: "selfConsist=FALSE"
 
 #------------------------------------------------------------------------------#
@@ -739,85 +653,13 @@ dada2_asv:
 # downloaded.                                                                  #  
 #------------------------------------------------------------------------------#
 dada2_taxonomy:
-  db: "/Absolute/Path/to/db/i.e./silva_nr_v132_train_set.fa.gz"
+  db: ""
   extra_params: "minBoot=70"
   seed: 4249
   add_sps: 
-    add: "F"
-    db_sps: "/Absolute/Path/to/sp_db/i.e./silva_species_assignment_v132.fa.gz"
+    add: "T"
+    db_sps: ""
     extra_params: "allowMultiple=TRUE"
-
-#------------------------------------------------------------------------------#
-# OTU_WF:                 Align reads vs a reference database                  #
-# rule: align_vs_reference                                                     #
-#------------------------------------------------------------------------------#
-# In some cases you may want to align the reads against a reference database   #
-# before generating OTUs. This facilitates removing technical sequence	       #
-# (primers, adapters) at the beginning and/or end of the reads, filters	       #
-# potential chimeric sequences or sequences of no interest, which the primers  #
-# amplified but which are not part of the study (e.g. reads of human origin).  #
-# Therefore, this alignment step can improve the OTU clustering and further    #
-# taxonomy assignation. In order to run the alignment here, use 'align': "T"   #
-# and bear in mind that whenever you do this, you should only do it with small #
-# to medium sized data bases, because sequence alignment is computationally    #
-# costly.                                       	    		       #
-#                                                                              #
-#-----------------------------       PARAMS       -----------------------------#
-#                                                                              #
-# - mothur_cmd:      Enter the command to call mothur [default: "mothur"].     #
-# - align:           "T" or "F" to run or skip this rule respectively.         #
-# - dbAligned:       Database to perform the alignment with.                   #
-# - cpus:            Number of CPUs to perform the alignment with.             #
-#------------------------------------------------------------------------------#
-align_vs_reference:
-  mothur_cmd: "mothur"
-  align: "F"
-  dbAligned: ""
-  cpus: 4
-
-#------------------------------------------------------------------------------#
-# OTU_WF:                 Identify chimeric sequences                          #
-# rule: search_chimera                                                         #
-#------------------------------------------------------------------------------#
-# This rule will be executed if and only if the option 'search' is set to "T"! #
-# Chimeric sequences are predicted using usearch61. This algorithm performs    #
-# both de novo (abundance based) chimera and reference based detection.        #
-# Unclustered sequences are used as input rather than a representative sequence#
-# set, as the sequences will be clustered to get abundance data.               #
-# The results are all input sequences not flagged as chimeras.                 # 
-# This rule implements different methods for identifying chimeras, below       #
-# more details about the available options.                                    #
-# For details about usearch, see: http://drive5.com/usearch/usearch_docs.html  #
-# If you are using usearch61, bear in mind that you can use a reference        #
-# database via extra_params, e.g., "-r /path/to/gold_db/gold.fa".              #
-#                                                                              #
-#-----------------------------       PARAMS       -----------------------------#
-#                                                                              #
-# - method        Select the method for chimera identification:                #
-#                  - "usearch61" This algorithm performs both de novo          #
-#                    (abundance based) chimera and reference based detection.  #
-#                    This method uses the usearch implementation within qiime's#
-#                    script identify_chimeric_seqs.py.                         #
-#                    To use reference based detection supply the reference     #
-#                    database via extra_params, e.g.:"-r /dbs/gold_db/gold.fa" #
-#                 For details, see: http://drive5.com/usearch/usearch_docs.html#
-#                  - "uchime_denovo" detect chimeras de novo (uses vsearch)    #
-#                  - "uchime_ref" detect chimeras using a reference database.  #
-#                     In this later case, user MUST suply extra_params:        #
-#                     "--db </full/path/to/db.fasta>" (i.e., path to gold db). #
-# - threads       Number of threads to use.                                    #
-# - extra_params  Any extra parameter. It is recommended to run the chimeric   #
-#                 search against a chimera database, e.g.,                     #
-#                 "-r /export/data/databases/gold_db/gold.fa" for "usearch61"  #
-#                 or "--db /export/data/databases/gold_db/gold.fa" for         #
-#                 "uchime_ref".                                                #
-# - search        "T" | "F" (true or false) to execute chimera checking or not.#
-#------------------------------------------------------------------------------#
-chimera:
-  search: "F"
-  method: "uchime_ref"
-  threads: 10
-  extra_params: "--db /Absolute/Path/gold.fa"
 
 #------------------------------------------------------------------------------#
 # BOTH_WF:           Length filtering for OTU or ASV                           #
@@ -870,270 +712,6 @@ rm_reads:
 
 
 #------------------------------------------------------------------------------#
-# OTU_WF:                       Dereplicate                                    #
-# rule: dereplicate, pick_derep_representatives                                #
-#------------------------------------------------------------------------------#
-# This parameters allows the user to dereplicate the sequences over the FULL   #
-# LENGTH (100% identity) before applying any OTU picking strategy. This is     #
-# advised for very large datasets, when OTU picking methods take too long or   #
-# have memory issues.                                                          #
-#                                                                              #
-#-----------------------------       PARAMS       -----------------------------#
-#                                                                              #
-# - dereplicate    Dereplicate sequences over their full length (F/T)          #
-#                  [default: "F"].                                             #
-# - vsearch_cmd    Command for calling vsearch [default: "vsearch"].           #
-# - min_abundance  Minimum abundance for output from dereplication.            #
-# - strand:        plus|both, search "plus" or "both" strands                  #
-#                  [default: "both"].                                          #
-# - extra_params   Dereplication is performed using vsearch, you can add       #
-#                  different options described by vsearch --help.              #
-#------------------------------------------------------------------------------#
-derep:
-  dereplicate: "T"
-  vsearch_cmd: "vsearch"
-  min_abundance: 1
-  strand: "both"
-  extra_params: ""
-
-#------------------------------------------------------------------------------#
-# OTU_WF:                       OTU picking                                    #
-# rule: cluster_OTUs                                                           #
-#------------------------------------------------------------------------------#
-# The OTU picking step assigns similar sequences to operational taxonomic      #
-# units, or OTUs, by clustering sequences based on a user-defined similarity   #
-# threshold. Sequences which are similar at or above the threshold level are   #
-# taken to represent the presence of a taxonomic unit (e.g., approximately at  #
-# genus level, when the similarity threshold is set at 0.94) in the sequence   #
-# collection. Swarm takes a different clustering approach which does not       #
-# require setting a threshold. Instead, clusters are formed using sequence     #
-# graphs and abundance.                                                        #
-#                                                                              #
-#-----------------------------       PARAMS       -----------------------------#
-#                                                                              #
-# - s              Sequence similarity threshold between 0 and 1. This applies #
-#                  for the following methods 'm': uclust, uclust_ref, usearch, #
-#                  usearch_ref, usearch61,  usearch61_ref, sumaclust, and      #
-#                  sortmerna. [default:0.97].                                  #
-#                  For Swarm this options must be supplied and it is equal to  #
-#                  the "distance" (option -d), and it take integer values.     #
-#                  [default:1]                                                 #
-# - m              OTU picking method. Valid choices are: sortmerna, mothur,   #
-#                  trie, uclust, uclust_ref, usearch, usearch_ref, swarm,      #
-#                          cdhit, sumaclust, prefix_suffix.                    #
-# - extra_params   Any extra parameter. Run 'pick_otus.py -h' to see all       #
-#                  options.                                                    #
-#                  For swarm, you can also add any extra parameter. Run        #
-#                  'swarm -h' to see the available options. When running swarm #
-#                  with distance (-d resolution) equal to 1 we recommend to add#
-#                  extra_param "-f"  (--fastidious) to link nearby             #
-#                  low-abundance swarms.                                       #
-#------------------------------------------------------------------------------#
-pickOTU:
-  s: "0.97"
-  m: "uclust"
-  cpus: "6"
-  extra_params: ""
-
-#------------------------------------------------------------------------------#
-# OTU_WF:                Select representative sequences                       #
-# rule: pick_representatives                                                   #
-#------------------------------------------------------------------------------#
-# After picking OTUs, this rule picks a representative sequence for each OTU.  #
-#                                                                              #
-#-----------------------------       PARAMS       -----------------------------#
-#                                                                              #
-# - m             Method for picking representative sequences. Valid choices   #
-#                 are: random, longest, most_abundant, first                   #
-#                 [default: "most_abundant"].                                  # 
-#                 Note: "first" chooses the cluster seed when picking otus with#
-#                 uclust.                                                      #
-# - extra_params  Any extra parameter. Run 'pick_rep_set.py -h' to see all     #
-#                 options.                                                     #
-#------------------------------------------------------------------------------#
-pickRep:
-  m: "most_abundant"
-  extra_params: ""
-
-################################################################################
-# OTU_WF:                    Assign taxonomy                                   #
-# rule: assign_taxonomy                                                        #
-#------------------------------------------------------------------------------#
-# Performs taxonomy assignment for the representative sequences.               #
-#                                                                              #
-#-----------------------------       PARAMS       -----------------------------#
-#                                                                              #
-# This step can be performed using three different tools (parameter 'tool'):   #
-# 1) VSEARCH.  Compare target sequences 'db_file' to the query sequences to    #
-#              assign taxonomy, using global pairwise alignment.               #
-# 2) BLAST.    This uses BLAST+.                                               #
-# 3) QIIME.    In this case, CASCABEL runs the assign_taxonomy.py script which #
-#              can use any of the following methods:                           #
-#  3.1) BLAST.  To use blast via QIIME, use "blast" as 'method' below.         # 
-#               This uses the old version of BLAST (not BLAST+).               #
-#               This method can work with either a BLAST database, setting     #
-#               'dbType' to "-b" and 'dbFile' with the full path to a BLAST    #
-#               database, or with a fasta file with 'dbTYpe' set to "-r" and   #
-#               'dbFile' pointing to the fasta file (full path must be used).  #
-#  3.2) UCLUST. A method based on sequence clustering. To use this method type #
-#               "uclust" as 'method' below. This method ONLY works with        #
-#               'dbType' set to "-r" and 'dbFile' full path to a fasta file.   #
-#  3.3) RDP.    The Ribosomal Database Project (RDP) Classifier, a naive       #
-#               Bayesian classifier, can rapidly and accurately classify       #
-#               bacterial 16S rRNA sequences. To use this method, use "rdp" as #
-#               'method' below.                                                #
-#               NOTE: In order to run RDP it is necessary to provide the       #
-#               classifier path. To do so, please include the following line   #
-#               on the "extra_params":                                         #
-#               '--rdp_classifier_fp /path/to/rdp_classifier-2.2.jar'          #
-#               Due to some compatibility issues, RDP needs a custom fasta file#
-#               and taxonomy mapping file. You can find the appropriate files  # 
-#               at the following references:                                   #
-#               'dbFile' "/gg/gg_13_8_otus/rep_set/97_otus.fasta"              #
-#               'mappFile' "/gg/gg_13_8_otus/taxonomy/97_otu_taxonomy.txt"     #
-#            These 3 different methods can use different sets of options in    #
-#            order to fine tune the taxonomy assignment. These options can be  #
-#            realized with the extra_params parameter. To see what options are #
-#            available for each 'method', type on the command line             #
-#            'parallel_assign_taxonomy_<method>.py -h'.                        #
-# - tool     Which tool to use, options are "vsearch", "qiime" and "blast".    #
-# - map_lca  For Vsearch and BLAST methods, the pipeline will map to its LCA   #
-#            the taxonomy of hits whose identity is equal to the identity of   #
-#            the best hit (see option max_target_seqs). Set this to "F" to only#
-#            use the taxonomy of the best hit. The final biom (otuTable.biom)  #
-#            table always includes either the  accessiones mapped or the       #
-#            accessions discarded, depending on the case. [default: "T"]       #
-# ----blast parameters                                                         #
-#    - command         Command to invoke blastn.  [default: "blastn"].         #
-#    - blast_db        Full path to target BLAST database for the assignation. #
-#    - fasta_db        Full path to a fasta file with sequences for the        #
-#                      assignation. In case of providing both (a Blast database#
-#                      and a fasta file, Cascabel will give priority to the    #
-#                      database 'blast_db'.                                    #
-#    - mapFile         Mapping file between sequence accessions and their      #
-#                      taxonomy. This file should be a two column file, tab    #
-#                      separated with the accessions in the first column and   #
-#                      the taxonomy in the second column with the taxonomic    #
-#                      levels separated by 'taxo_separator', e.g.              #
-#                      'AY190.44  Bacteria;Firmicutes;Bacilli;...'             # 
-#    - taxo_separator  Character used to split taxonomic levels specified at   #
-#                      the taxonomy mapping file 'mapFile'. [default: "';'"]   #
-#    - max_target_seqs Maximum number of target sequences per sequence query.  #
-#                      All the target sequences are taking into account and    #
-#                      their taxonomies are mapped to their Lowest Common      #
-#                      Ancestor (LCA).                                         #
-#    - jobs            Number of cpus.                                         #
-#    - identity        Minimum percentage of identity (between 0 and 1).       #
-#    - extra_params    Any extra parameter. Run 'blastn -help' to see all      #
-#                      options.                                                #
-# ----vsearch parameters                                                       #
-#    - command         Command to invoke vsearch  [default: "fastqc"].         #
-#    - db_file         Full path to a fasta file with sequences for the        #
-#                      assignation.                                            #
-#    - mapFile 	   Mapping file between sequence accessions and their          #
-#                      taxonomy. This file should be a two column file, tab    #
-#                      separated with the accessions in the first column and   #
-#                      the taxonomy in the second column with the taxonomic    # 
-#                      levels separated by the 'taxo_separator', e.g.          #
-#                      'AY190.44  Bacteria;Firmicutes;Bacilli;...'             #
-#    - taxo_separator  Character used to split taxonomic levels	specified at   #
-#                      the taxonomy mapping file 'mapFile'. [default: "';'"]   #
-#    - max_target_seqs Maximum number of target sequences per sequence query.  #
-#                      All the target sequences are taking into account	and   #
-#                      their taxonomies	are mapped to their Lowest Common      #
-#                      Ancestor	(LCA).                                        #
-#    - jobs            Number of cpus.                                         #
-#    - identity        Minimum percentage of identity (between 0 and 1).       #
-#    - identity_definition  Identity definitions available by vsearch. Values  #
-#                      accepted are:                                           #
-#                      "0". CD-HIT definition: (matching columns) / (shortest  #
-#                      sequence length).                                       #
-#                      "1". Edit distance: (matching columns) / (alignment     #
-#                      length).                                                #
-#                      "2". Edit distance excluding terminal gaps.             #
-#                      "3". Marine Biological Lab definition counting each     #
-#                      extended gap (internal or terminal) as a single         #
-#                      difference: 1.0 - [(mismatches + gaps)/(longest sequence#
-#                      length)].                                               #
-#                      "4". BLAST definition, equivalent to --iddef 2 in a     #
-#                      context of global pairwise alignment.                   #
-#                      [default:  "2"].                                        #
-#    - extra_params    Any extra parameter. Run 'vsearch -h' to see all        #
-#                      options [default: "--top_hits_only --maxrejects 32"]    #
-# ----qiime parameters                                                         #
-#    - method          Assignation method. Choose one of: "blast", "uclust" or #
-#                      "rdp".                                                  #
-#    - mapFile         Path to tab-delimited file mapping sequences to assigned#
-#                      taxonomy. Each assigned taxonomy is provided as a       #
-#                      semicolon-separated list. For assignment with "rdp",    #
-#                      each assigned taxonomy must be exactly 6 levels deep.   #
-#                      The default mapping file supplied by Qiime can be       #
-#                      located at cascabel's environment (if created with      #
-#                      conda), in such case you may found the file at:         #
-#                      /../.conda/envs/cascabel/lib/python2.7/site-packages/ \ #
-#                      qiime_default_reference/gg_13_8_otus/taxonomy/ \        #
-#                      97_otu_taxonomy.txt.                                    #
-#    - dbFile          Full path to reference fasta file or blast database     #
-#                      file.                                                   #
-#                      The default fasta file supplied by Qiime can be located #
-#                      at Cascabel's environment, if created with conda, in    #
-#                      such case you may find the file at: 	                   #
-#                      /../.conda/envs/cascabel/lib/python2.7/site-packages/ \ #
-#                      qiime_default_reference/gg_13_8_otus/taxonomy/ \        #
-#                      97_otus.fasta"                                          #
-#    - dbType          If 'dbFile' points to a fasta file use "-r". If 'dbFile'#
-#                      points to a blast database use "-b".                    #
-#    - jobs:           Number of jobs to start in parallel.                    #
-#------------------------------------------------------------------------------#
-assignTaxonomy:
-  tool: "vsearch"
-  map_lca: "T"
-  blast:
-    command: "blastn"
-    blast_db: ""
-    fasta_db: ""
-    mapFile: ""
-    taxo_separator: "';'" 
-    evalue: "0.001"
-    max_target_seqs: 5
-    jobs: 10
-    identity: 0.5   
-    extra_params: ""
-  vsearch:
-    command: "vsearch"
-    db_file: "/ABSOLUTE/PATH/silva132_99.fna" #available at https://www.arb-silva.de/fileadmin/silva_databases/qiime/Silva_132_release.zip
-    mapFile: "/ABSOLUTE/PATH/taxonomy_7_levels.txt" #available at https://www.arb-silva.de/fileadmin/silva_databases/qiime/Silva_132_release.zip
-    identity: 0.8
-    taxo_separator: "';'" 
-    max_target_seqs: 5 
-    identity_definition: 2  
-    jobs: 10
-    extra_params: "--top_hits_only --maxrejects 32"
-  qiime:
-    method: "rdp"
-    mapFile: "/ABSOLUTE/PATH/pr2_version_4.12.0_18S_UTAX_8l.tax.tsv" #available at https://github.com/pr2database/pr2database/releases
-    dbFile: "/ABSOLUTE/PATH/pr2_version_4.12.0_18S_mothur.fasta" #available at https://github.com/pr2database/pr2database/releases
-    dbType: "-r"
-    jobs: 10
-    extra_params: ""
-
-#------------------------------------------------------------------------------#
-# OTU_WF:                       Make OTU Table                                 #
-# rule: make_otu_table                                                         #
-#------------------------------------------------------------------------------#
-# The rule tabulates the number of times an OTU is found in each sample, and   #
-# adds the taxonomic predictions for each OTU in the last column if a taxonomy #
-# file is supplied.                                                            #
-#                                                                              #
-#-----------------------------       PARAMS       -----------------------------#
-#                                                                              #
-# - extra_params  Any extra desired parameter. Run 'make_otu_table.py --help'  #
-#                 to see all the options.                                      #
-#------------------------------------------------------------------------------#
-makeOtu:
-  extra_params: ""
-
-#------------------------------------------------------------------------------#
 # BOTH_WF:                 Filter OTUs / ASV from table                        #
 # rule: filter_otu                                                             #
 #------------------------------------------------------------------------------#
@@ -1142,13 +720,15 @@ makeOtu:
 #-----------------------------       PARAMS       -----------------------------#
 #                                                                              #
 # - n             The minimum total observation count of an OTU for that OTU   #
-#                 to be retained [default: "2 ]                                #
+#                 to be retained [default: "2"]                                #
+# - s             The minimum number of samples where an OTU must be pressent  #
+#                 for that OTU to be retained [default: "1"]
 # - extra_params  Any extra desired parameter. Run                             #
 #                 'filter_otus_from_otu_table.py --help' to see all options.   #
 #------------------------------------------------------------------------------#
 filterOtu:
   n: "2"
-  extra_params: ""
+  s: "1"
 
 #------------------------------------------------------------------------------#
 # BOTH_WF:                      Biom convert                                   #
@@ -1197,9 +777,10 @@ biom:
 # Level 7 = Species.                                                           #
 #------------------------------------------------------------------------------#
 summTaxa:
-  extra_params: "--level 2,3,4,5,6,7"
-
-
+  levels: "7"
+  row_names: "F"
+  taxo_separator: "';'"
+  
 #------------------------------------------------------------------------------#
 # BOTH_WF:                 Filter fasta file                                   #
 # rule: filter_rep_seqs                                                        #

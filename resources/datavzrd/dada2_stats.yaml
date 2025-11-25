@@ -1,0 +1,49 @@
+__use_yte__: true
+
+datasets:
+  dada2:
+    path: ?input.table
+    separator: "\t"
+
+views:
+  Dada2 stats:
+    dataset: dada2
+    render-table:
+      columns:
+        denoisedF:
+          plot:
+            heatmap:
+              scale: linear
+              color-scheme: blues
+        denoisedR:
+          plot:
+            heatmap:
+              scale: linear
+              color-scheme: blues
+        merged:
+          plot:
+            heatmap:
+              scale: linear
+              color-scheme: blues
+        length_filtered:
+          plot:
+            heatmap:
+              scale: linear
+              color-scheme: greens
+
+
+#        Reads:
+#          plot:
+#            ticks:
+#              scale: linear
+        
+#views:
+#  demultiplex:
+#    dataset: demultiplex
+#    render-table:
+#      columns:
+#        Sample:
+#          plot:
+#            heatmap:
+#              scale: ordinal
+#              color-scheme: category20      

@@ -89,7 +89,7 @@ setwd(args[1])
 paths <-NULL
 for(i in 7:(length(args))) {
   #paths <- c(paths,gsub('demultiplexed/','demultiplexed/filtered/',gsub("/summary.txt", '',args[i])))
-   paths <- c(paths,gsub("summary.pcr.txt", 'filtered/',args[i]))
+   paths <- c(paths,gsub("summary.pcr.tsv", 'filtered/',args[i]))
 }
 print(paths)
 filtFs <-  sort(list.files(paths, pattern="_1.fastq.gz", full.names = TRUE))
@@ -134,7 +134,7 @@ if (args[6] == "T" || args[6] == "TRUE" ){
 if (args[3] == "T" || args[3] == "TRUE" ){
   library(ggplot2)
   plots_fw <- plotErrors(errF, nominalQ=TRUE)
-  ggsave(paste(args[4],"fr_err.pdf",sep=""), plots_fw)
+  ggsave(paste(args[4],"fw_err.pdf",sep=""), plots_fw)
   plots_rv <- plotErrors(errR, nominalQ=TRUE)
   ggsave(paste(args[4],"rv_err.pdf", sep=""), plots_rv)
   #here we have to solve two things where to store the plots

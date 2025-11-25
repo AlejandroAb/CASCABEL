@@ -34,7 +34,7 @@ args <- commandArgs(trailingOnly = T)
 setwd(args[1])
 paths <-NULL
 for(i in 16:length(args)) {
-  paths <- c(paths,gsub("summary.pcr.txt", 'filtered/',args[i]))
+  paths <- c(paths,gsub("summary.pcr.tsv", 'filtered/',args[i]))
 }
 print(paths)
 filtFs <-  sort(list.files(paths, pattern="_1.fastq.gz", full.names = TRUE))
@@ -106,7 +106,7 @@ mx <- max(nchar(getSequences(seqtab)))
 readinteger <- function(x)
 { 
   n <- readline(prompt=x)
-  if(!grepl("^[0-9]+$",n))
+  if(is.null(n) || !grepl("^[0-9]+$",n))
   {
     return(readinteger(x))
   }
@@ -116,7 +116,7 @@ readinteger <- function(x)
 readintegerConsole <- function(x){
   cat(x);
   n <- readLines("stdin",n=1);
-  if(!grepl("^[0-9]+$",n))
+  if(is.null(n) ||  !grepl("^[0-9]+$",n))
   {
     return(readintegerConsole(x))
   }
@@ -135,7 +135,7 @@ createMenuConsole <- function()
   cat("5. Interrupt workflow.\n")
   cat("Enter your option:\n")
   n <- readLines("stdin",n=1);
-  if(!grepl("^[0-9]+$",n))
+  if(is.null(n) || !grepl("^[0-9]+$",n))
   {
     return(createMenuConsole())
   }else if(n == 1){
@@ -167,7 +167,7 @@ createMenu <- function()
   print("4. Print sequence length histogram.")
   print("5. Interrupt workflow.")
   n <- readline(prompt="Enter your option:") 
-  if(!grepl("^[0-9]+$",n))
+  if(is.null(n) || !grepl("^[0-9]+$",n))
   {
     return(createMenu())
   }else if(n == 1){
@@ -301,9 +301,9 @@ if (args[5] == "T" || args[5] == "TRUE" ){
   writeXStringSet(seq.out, filepath=paste(args[6],'representative_seq_set.fasta',sep=""), append=FALSE, compress=FALSE, compression_level=NA, format="fasta")
   writeXStringSet(seq.out.chim, filepath=paste(args[6],'representative_bimeras.fasta',sep=""), append=FALSE, compress=FALSE, compression_level=NA, format="fasta")
   
-  colnames(track) <- c( "denoisedF", "denoisedR", "merged","length", "nonchim")
+  colnames(track) <- c( "denoisedF", "denoisedR", "merged","length_filtered", "nonchim")
   rownames(track) <- sample.names
-  write.table(track, file=paste0(args[6],'stats_dada2.txt'), sep='\t', quote=FALSE, row.names=TRUE, col.names=NA)
+  write.table(track, file=paste0(args[6],'stats_dada2.tsv'), sep='\t', quote=FALSE, row.names=TRUE, col.names=NA)
 }else{
   new_names <- c(paste("asv",1:length(colnames(seqtab2)),sep=""))
   seqs <- getSequences(seqtab2)
@@ -337,9 +337,9 @@ if (args[5] == "T" || args[5] == "TRUE" ){
   }
   ###
   
-  colnames(track) <- c( "denoisedF", "denoisedR", "merged", "variants")
+  colnames(track) <- c( "denoisedF", "denoisedR", "merged", "length_filtered")
   rownames(track) <- sample.names
-  write.table(track, file=paste0(args[6],'stats_dada2.txt'), sep='\t', quote=FALSE, row.names=TRUE, col.names=NA)
+  write.table(track, file=paste0(args[6],'stats_dada2.tsv'), sep='\t', quote=FALSE, row.names=TRUE, col.names=NA)
   
 
 }

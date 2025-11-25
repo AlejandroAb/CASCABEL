@@ -13,7 +13,7 @@
 # ignored by Snakemake.                                                        #
 #                                                                              #
 # @Author: Julia Engelmann and Alejandro Abdala                                #
-# @Last update: 13/12/2022                                                     #
+# @Last update: 25/11/2025                                                     #
 ################################################################################
 
 ################################################################################
@@ -91,7 +91,7 @@ description: ""
 # (only the reads!, the metadata file always needs to be uncompressed) or "F"  #
 # if the input files are regular fastq files.                                  #
 #------------------------------------------------------------------------------#
-gzip_input: "F"
+gzip_input: "T"
 
 #------------------------------------------------------------------------------#
 #                      INTERMEDIATE FILES                                      #
@@ -100,7 +100,7 @@ gzip_input: "F"
 # Set this flag to true ("T") in order to keep all the intermediate files.     #
 # Default: "F" remove the files!                                               #
 #------------------------------------------------------------------------------#
-KEEP_TMP: "F"
+KEEP_TMP: "T"
 
 #------------------------------------------------------------------------------#
 #                             INPUT FILES                                      #
@@ -139,21 +139,6 @@ rv_reads: ""
 metadata: ""
 #OR
 input_files: ""
-
-#------------------------------------------------------------------------------#
-#  ASV_WF:             Binned qualities and Big data workflow                  #
-#------------------------------------------------------------------------------#
-# For fastq files with binned qualities (e.g. NovaSeq and NextSeq) the error   #
-# learning process within dada2 can be affected, and some data scientists      #
-# suggest that enforcing monotonicity could be beneficial for the analysis.    #
-# In this section, you can modify key parameters to enforce monotonicity and   #
-# also go through a big data workflow when the number of reads may exceed the  #
-# physical memory limit.
-# More on binned qualities: https://www.illumina.com/content/dam/illumina-marketing/documents/products/technotes/technote_understanding_quality_scores.pdf
-# You can also follow this excellent thread about binned qualities and Dada2: https://forum.qiime2.org/t/novaseq-and-dada2-incompatibility/25865/8
-#------------------------------------------------------------------------------#
-binned_q_scores: "F" #Binned quality scores.Set this to "T" if your data comes from e.g. NextSeq sequencing machine. 
-big_data_wf: "F" #Set to true when your sequencing run contains more than 10^9 reads (depends on RAM availability!)
 
 ################################################################################
 #                          REPORT PARAMETER SECTION                            #
@@ -372,8 +357,9 @@ pear:
   command: "pear"
   t: 100
   v: 10
-  j: 6
+  j: 30
   p: 0.05
+  q: 20
   extra_params: ""
   prcpear: 90
 
@@ -387,21 +373,6 @@ pear:
 #------------------------------------------------------------------------------#
 fastQCPear: T
 
-#------------------------------------------------------------------------------#
-# BOTH_WF:                         QIIME                                       #
-# rule: bc_mapping_validation, extract_barcodes, extract_barcodes_unassigned,  #
-# split_libraries, split_libraries_rc, search_chimera, cluster_OTUs,           #
-# pick_representatives, assign_taxonomy, make_otu_table, summarize_taxa,       #
-# filter_rep_seqs, align_rep_seqs, filter_alignment, make_tree                 #
-#------------------------------------------------------------------------------#
-# Different QIIME scripts are used along the pipeline and in order to execute  #
-# these scripts, they need to be located on the user PATH environmental        #
-# variable, or QIIME's bin directory needs to be included in the parameter:    #
-# 'path' below. This parameter will be used by the pipeline for all the rules  #
-# that use a Qiime script.                                                     #
-#------------------------------------------------------------------------------#
-qiime:
-  path: ""
 
 #------------------------------------------------------------------------------#
 # BOTH_WF:                           R                                         #
@@ -474,22 +445,21 @@ java:
 # - bcc_params:         Extra parameters for the barcode corrector tool.       #  
 #                       Use: java -jar Scripts/BarcodeCorrector.jar to see     #
 #                       available options.                                     # 
-# - create_tag_pairs_heatmap: "T"   The barcode correction tool is useful for  #
+# - create_tag_pairs_heatmap: "F"   The barcode correction tool is useful for  #
 #                       detecting tag jumps. Set this to true "T" to create a  #
 #                       heatmap with the different tag pairs along a paired-end#
 #                       library.                                               #
 #------------------------------------------------------------------------------#
-demultiplexing:                                  
-  demultiplex: "T"                               
-  create_fastq_files: "T"                        
-  remove_bc: 12                                  
-  order_by_strand: "T"                           
-  add_unpair: "T"                                
-  dmx_params: "--remove-header"                  
-  bc_mismatch: 0                                 
-  bcc_params: ""      
-  create_tag_pairs_heatmap: "T"                  
-                                                 
+demultiplexing:
+  demultiplex: "T"
+  bc_mismatch: 0   # -e in cutadapt
+  cpus: "10"  #for cutadapt
+  cutadapt_extra_params: ""
+  create_tag_jump_analysis: "F"
+  barcode_length: 12
+  tagjump_extra_params: " "
+
+
 #------------------------------------------------------------------------------#
 # BOTH_WF:             Remove adapters / primers                               #
 # rule: cutadapt                                                               #
@@ -535,216 +505,6 @@ primers:
 
 
     
-#------------------------------------------------------------------------------#
-# BOTH_WF:                  Extract barcodes                                   #
-# rules: extract_barcodes, extract_barcodes_unassigned                         #
-#------------------------------------------------------------------------------#
-# This rule extract barcodes from the reads, and generates two files: one      #
-# with only the extracted barcodes and a second one with the sequences without #
-# the barcodes.                                                                #
-#                                                                              #
-#-----------------------------       PARAMS       -----------------------------#
-#                                                                              #
-# - c             This parameter allows to choose the barcode configuration:   #
-#                 "barcode_single_end". The merged fragments start with the    #
-#		          barcode sequence.                                            #
-#                 "barcode_paired_stitched". Input has barcodes at the         #
-#                 beginning and end of the merged fragment.                    #
-#                 "barcode_paired_end". This option is not valid here since    #
-#                 the reads have already been merged to one fragment.          #
-# - bc_length     If 'c' is "barcode_paired_stitched" use both:                #
-#                 --bc1_len X and --bc2_len Y.                                 #
-#                 If 'c' is "barcode_single_end" use only --bc1_len X.         #
-#                 X and Y are the nucleotide lengths of the barcodes.          #
-# - extra_params  Extra parameters. See extract_barcodes.py -help.             #
-#------------------------------------------------------------------------------#
-ext_bc:
-  c: "barcode_paired_stitched"
-  bc_length: "--bc1_len 12 --bc2_len 12"
-  extra_params: ""
-
-#------------------------------------------------------------------------------#
-# BOTH_WF:                    Split libraries                                  #
-# rule: split_libraries, split_libraries_rc                                    #
-#------------------------------------------------------------------------------#
-# These rules performs demultiplexing of Fastq sequence data where barcodes and#
-# sequences are contained in two separate fastq files.                         #
-#                                                                              #
-#-----------------------------       PARAMS       -----------------------------#
-#                                                                              #
-# - q             Maximum unacceptable Phred quality score. e.g., for Q20 and  #
-#                 better, specify -q 19). [default: 19]                        #
-# - r             Maximum number of consecutive low quality base calls allowed #
-#                 before truncating a read. [default: 3]                       #
-# - barcode_type  The type of barcode used. This can be an integer, e.g., "6"  #
-#                 or “golay_12” for golay error-correcting barcodes.           #
-# - extra_params  Any extra parameter. Run split_libraries_fastq -h to see all #
-#                 options.                                                     #
-#------------------------------------------------------------------------------#
-split:
-  q: "19"
-  r: "5"
-  barcode_type:  "24"
-  extra_params: " --phred_offset 33"
-
-
-#------------------------------------------------------------------------------#
-# ASV_WF:                   dada2 trim and filter reads                        #
-# rule: dada2Filter                                                            #
-#------------------------------------------------------------------------------#
-# These parameters take effect during the quality trimming and filtering steps #
-# implemented within dada2 using the filterAndTrim() function.                 #
-#                                                                              #
-#-----------------------------       PARAMS       -----------------------------#
-#                                                                              #
-# - generateQAplots   Cascabel already generates FastQC reports, however dada2 #
-#                     quality plots can be generated by passing "T".           #
-#                     Default "T".                                             #
-# - truncFW           Truncate forward reads after truncFW bases. Reads shorter# 
-#                     than this are discarded. Your reads must still overlap   #
-#                     after truncation in order to merge them later.           #      
-# - tuncRV            Truncate reverse reads after truncRV bases. Reads shorter# 
-#                     than this are discarded. Your reads must still overlap   #
-#                     after truncation in order to merge them later.           #
-# - maxEE_FW          After truncation, forward reads with higher than         # 
-#                     maxEE_FW "expected errors" will be discarded.            #
-# - maxEE_RV          After truncation, reverse reads with higher than         # 
-#                     maxEE_RV "expected errors" will be discarded.            #
-# - cpus              Number of threads|cpus to be used.                       #
-# - extra_params      Any extra parameter belonging to dada2's function        #
-#                     filterAndTrim(). The value passed through this variable  #
-#                     is send directly to the function in R. Therefore, if your#
-#                     extra_params involves more than one argument, separate   #
-#                     them with commas i.e. Suppose you want to pass truncQ=2  #
-#                     and rm.phix=TRUE arguments. In R the function may look   #
-#                     like this: filterAndTrim(...,truncQ=2, rm.phix=TRUE)     #
-#                     Thus, the extra_params should look like the following:   #  
-#                     "truncQ=2, rm.phix=TRUE".                                #
-# Note from dada2's tutorial:                                                  #
-# "The standard filtering parameters are starting points, not set in stone.    #
-# If you want to speed up downstream computation, consider tightening maxEE.   #
-# If too few reads are passing the filter, consider relaxing maxEE, perhaps    #
-# especially on the reverse reads (maxEE_RV), and reducing the truncLen to     #
-# remove low quality tails. Remember though, when choosing truncLen for        #
-# paired-end reads you must maintain overlap after truncation in order to      #
-# merge them later."                                                           #
-#------------------------------------------------------------------------------# 
-dada2_filter:
-  generateQAplots: "T"
-  truncFW: 0
-  truncRV: 0
-  maxEE_FW: 3
-  maxEE_RV: 5
-  cpus: 10
-  extra_params: ",truncQ=2, rm.phix=TRUE"
-
-#------------------------------------------------------------------------------#
-# ASV_WF:                          dada2 merge pairs                           #
-# rule: run_dada2                                                              #
-#------------------------------------------------------------------------------#
-# After denoising forward and reverse reads, they are assembled with the       #
-# mergePairs() function from dada2 package.                                    #
-#                                                                              #
-#-----------------------------       PARAMS       -----------------------------#
-#                                                                              #
-# - minOverlap      Default 12. The minimum length of the overlap required for #
-#                   merging the forward and reverse reads.                     #
-# - maxMismatch     Default 0. The maximum mismatches allowed in the overlap   #
-#                   region.                                                    #
-#------------------------------------------------------------------------------#
-dada2_merge:
-  minOverlap: 12
-  maxMismatch: 0
-
-#------------------------------------------------------------------------------#
-# ASV_WF:                           dada2 generates ASV                        #
-# rule: run_dada2                                                              #
-#------------------------------------------------------------------------------#
-# Find true Amplicon Sequence Variants by denoising sequences with the dada()  #
-# function.                                                                    #
-#                                                                              #
-#-----------------------------       PARAMS       -----------------------------#
-#                                                                              #
-# - generateErrPLots    Default "T". Use "T" to generate the error plots       #
-#                       generated with the learned errors from the             #
-#                       learnErrors() function.                                #
-# - nbases              Number of bases used for learning the errors. [Def 1e8]#
-# - pool                If pool = "TRUE", the algorithm will pool together all #
-#                       samples prior to sample inference. If pool = "FALSE",  #
-#                       sample inference is performed on each sample           #
-#                       individually. If pool = "pseudo", the algorithm will   #
-#                       perform pseudo-pooling between individually processed  #
-#                       samples.                                               #
-# - chimeras            If "T" The samples in a sequence table are             #
-#                       independently checked for bimeras, and a consensus     #
-#                       decision on each sequence variant is made.             #
-# - extra_params        Any extra parameter belonging to dada2's function      #
-#                       dada(). e.g., "selfConsist=FALSE".                     #
-#                       The value passed through this variable is send directly#
-#                       to the function in R. Therefore, if your extra_params  #
-#                       involves more than one argument, separate them with    #
-#                       commas, as the example above.                          #                                              #
-#------------------------------------------------------------------------------#
-dada2_asv:
-  generateErrPlots: "T"
-  nbases: "1e8"
-  pool: "pseudo"
-  cpus: 15
-  chimeras: "T"
-  chimeras_method: "consensus"
-  chimeras_taxonomy: "T"
-  extra_params: "selfConsist=FALSE"
-
-#------------------------------------------------------------------------------#
-# ASV_WF:                             Assign taxonomy                          #
-# rule: run_dada2                                                              #
-#------------------------------------------------------------------------------#
-# The taxonomy assignation for the ASVs is performed within the dada2 package, #    
-# by using the assignTaxonomy() function which uses the RDP Naive Bayesian     #
-# Classifier algorithm.                                                        #
-#                                                                              #
-#-----------------------------       PARAMS       -----------------------------#
-#                                                                              #
-# - db             Full path to reference database training files:             #
-#                  https://benjjneb.github.io/dada2/training.html              #
-# - extra_params   Any extra parameter belonging to dada2's function           #
-#                  assignaxonomy(). e.g., "minBoot=45, tryRC=TRUE".            #
-#                  The value passed through this variable is send directly to  #
-#                  the function in R. Therefore, if your extra_params involves #
-#                  more than one argument, separate them with commas, as the   #
-#                  example above.                                              #
-#                  An important parameter to consider is minBoot, which sets   #
-#                  the minimum bootstrapping support required to return a      #
-#                  taxonomic classification. The original paper recommended a  #
-#                  threshold of 50 for sequences of 250nts or less. We set 70  #
-#                  as the default and advise to increase it to 80 for longer   #
-#                  fragments.                                                  #
-# - seed           RDP's bootstrap seed                                        #
-# - add_sp         Arguments for assigning genus-species binomials to the input#
-#                  sequences by exact matching against a reference fasta using #
-#                  the addSpecies() function from dada2.                       #
-#   + add          "T" or "F" Try to assign or not genus-species binomials.    #
-#   + db_sps       If add = "T"  full path to the reference species file.      #
-#   + extra_params Any extra parameter belonging to dada2's function           #
-#                  addSpecies(). e.g., "allowMultiple=TRUE".                   #
-#                  The value passed through this variable is send directly to  #
-#                  the function in R. Therefore, if your extra_params involves #
-#                  more than one argument, separate them with commas, as the   #
-#                  example above.                                              #
-# NOTE: Find available databases at:                                           # 
-# https://benjjneb.github.io/dada2/training.html                               #
-# Files "silva_nr_v132_train_set.fa.gz" & "silva_species_assignment_v132.fa.gz"#
-# are just a suggestion and they must be downloaded from previous reference    #
-# prior to its use. rename {FULL_PATH} to the path were your files were        #
-# downloaded.                                                                  #  
-#------------------------------------------------------------------------------#
-dada2_taxonomy:
-  db: "/Absolute/Path/to/DB"
-  extra_params: "minBoot=70"
-  add_sps: 
-    add: "F"
-    db_sps: "NONE"
-    extra_params: "allowMultiple=TRUE"
 
 #------------------------------------------------------------------------------#
 # OTU_WF:                 Align reads vs a reference database                  #
@@ -814,9 +574,9 @@ align_vs_reference:
 #------------------------------------------------------------------------------#
 chimera:
   search: "F"
-  method: "uchime_ref"
+  method: "uchime_denovo"
   threads: 10
-  extra_params: "--db /Absolute/Path/gold.fa"
+  extra_params: " " # "--db /Absolute/Path/gold.fa"
 
 #------------------------------------------------------------------------------#
 # BOTH_WF:           Length filtering for OTU or ASV                           #
@@ -929,8 +689,8 @@ derep:
 #                  low-abundance swarms.                                       #
 #------------------------------------------------------------------------------#
 pickOTU:
-  s: "0.97"
-  m: "uclust"
+  s: "0.96"
+  m: "vsearch"
   cpus: "6"
   extra_params: ""
 
@@ -1085,7 +845,7 @@ pickRep:
 #    - jobs:           Number of jobs to start in parallel.                    #
 #------------------------------------------------------------------------------#
 assignTaxonomy:
-  tool: "qiime"
+  tool: "vsearch"
   map_lca: "T"
   blast:
     command: "blastn"
@@ -1096,41 +856,26 @@ assignTaxonomy:
     evalue: "0.0001"
     max_target_seqs: 5
     jobs: 10
-    identity: 0.8   
+    identity: 0.9   
     extra_params: ""
   vsearch:
     command: "vsearch"
-    db_file: "/ABSOLUTE/PATH/silva132_99.fna" #available at https://www.arb-silva.de/fileadmin/silva_databases/qiime/Silva_132_release.zip
-    mapFile: "/ABSOLUTE/PATH/taxonomy_7_levels.txt" #available at https://www.arb-silva.de/fileadmin/silva_databases/qiime/Silva_132_release.zip
-    identity: 0.8
+    db_file: "" #available at https://www.arb-silva.de/fileadmin/silva_databases/qiime/Silva_132_release.zip
+    mapFile: "" #available at https://www.arb-silva.de/fileadmin/silva_databases/qiime/Silva_132_release.zip
+    identity: 0.9
     taxo_separator: "';'" 
     max_target_seqs: 5 
     identity_definition: 2  
     jobs: 10
     extra_params: "--top_hits_only --maxrejects 32"
   qiime:
-    method: "rdp"
-    mapFile: "/ABSOLUTE/PATH/pr2_version_4.12.0_18S_UTAX_8l.tax.tsv" #available at https://github.com/pr2database/pr2database/releases
-    dbFile: "/ABSOLUTE/PATH/pr2_version_4.12.0_18S_mothur.fasta" #available at https://github.com/pr2database/pr2database/releases
+    method: "uclust"
+    mapFile: "97_otu_taxonomy.txt"
+    dbFile: "97_otus.fasta"
     dbType: "-r"
     jobs: 10
     extra_params: ""
 
-#------------------------------------------------------------------------------#
-# OTU_WF:                       Make OTU Table                                 #
-# rule: make_otu_table                                                         #
-#------------------------------------------------------------------------------#
-# The rule tabulates the number of times an OTU is found in each sample, and   #
-# adds the taxonomic predictions for each OTU in the last column if a taxonomy #
-# file is supplied.                                                            #
-#                                                                              #
-#-----------------------------       PARAMS       -----------------------------#
-#                                                                              #
-# - extra_params  Any extra desired parameter. Run 'make_otu_table.py --help'  #
-#                 to see all the options.                                      #
-#------------------------------------------------------------------------------#
-makeOtu:
-  extra_params: ""
 
 #------------------------------------------------------------------------------#
 # BOTH_WF:                 Filter OTUs / ASV from table                        #
@@ -1141,13 +886,15 @@ makeOtu:
 #-----------------------------       PARAMS       -----------------------------#
 #                                                                              #
 # - n             The minimum total observation count of an OTU for that OTU   #
-#                 to be retained [default: "2 ]                                #
+#                 to be retained [default: "2"]                                #
+# - s             The minimum number of samples where an OTU must be pressent  #
+#                 for that OTU to be retained [default: "1"]
 # - extra_params  Any extra desired parameter. Run                             #
 #                 'filter_otus_from_otu_table.py --help' to see all options.   #
 #------------------------------------------------------------------------------#
 filterOtu:
   n: "2"
-  extra_params: ""
+  s: "1"
 
 #------------------------------------------------------------------------------#
 # BOTH_WF:                      Biom convert                                   #
@@ -1196,23 +943,10 @@ biom:
 # Level 7 = Species.                                                           #
 #------------------------------------------------------------------------------#
 summTaxa:
-  extra_params: "--level 2,3,4,5,6,7"
-
-
-#------------------------------------------------------------------------------#
-# BOTH_WF:                 Filter fasta file                                   #
-# rule: filter_rep_seqs                                                        #
-#------------------------------------------------------------------------------#
-# This rule performs OTU/ASV table-based filtering: Keep all sequences that    #
-# occur in an OTU/ASV table.                                                   #
-#                                                                              #
-#-----------------------------       PARAMS       -----------------------------#
-#                                                                              #
-# - extra_params  Any extra desired parameter. Run 'filter_fasta.py --help' to #
-#                 see all options.                                             #
-#------------------------------------------------------------------------------#
-filterFasta:
-  extra_params: ""
+  levels: "7"
+  row_names: "F"
+  taxo_separator: "';'"
+  
 
 #------------------------------------------------------------------------------#
 # BOTH_WF:                     Align representative sequences                  #

@@ -8,7 +8,7 @@ CASCABEL was designed for short read high-throughput sequence data. It covers qu
 
 Our pipeline is implemented with Snakemake as workflow management engine and allows customizing the analyses by offering several choices for most of the steps. The pipeline can make use of multiple computing nodes and scales from personal computers to computing servers. The analyses and results are fully reproducible and documented in an html and optional pdf report.
 
-**Current version:** 6.1.0
+**Current version:** 7.0.0
 
 ## Installation
 
@@ -26,12 +26,6 @@ wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
 Execute the installation script and follow the instructions.
 <pre><code class="text">
 bash Miniconda3-latest-Linux-x86_64.sh
-</code></pre>
-
-Unfortunately Cascabel have many dependencies and latest Conda releases find conflicts among them, however with conda v 4.6.14 we noticed that the installation can run smoothly. In order to do so, we need to downgrade the conda version with the following command: 
-
-<pre><code class="text">
-conda install conda=4.6.14
 </code></pre>
 
 ### Download CASCABEL
@@ -56,44 +50,42 @@ After downloading or cloning the repository, cd to the "CASCABEL" directory and 
 conda env create --name cascabel --file environment.yaml
 </code></pre>
 
-### Snakemake
-
-Now that you have cascabel's environment created, you can install Snakemake following this [on line help](https://snakemake.readthedocs.io/en/stable/getting_started/installation.html) or execute the following command:
-
-<pre><code class="text">
-conda install -c bioconda -c conda-forge snakemake
-</code></pre>
-
-### Matplotlib
- 
-All the dependencies required by CASCABEL except by Snakemake and thus Python are loaded in one [conda environment](https://docs.conda.io/projects/conda/en/latest/user-guide/concepts/environments.html). In this sense, CASCABEL uses [matplotlib](https://matplotlib.org/) for generating some charts, therefore it is needed to have this library installed prior to load the environment. The recommended way to do this is following the [installation guide](https://matplotlib.org/users/installing.html) or you can also try with:
-<pre><code class="text">
-pip install matplotlib  --user
-</code></pre>
-
-*Consider to use the flag *--user* as above, if you are doing a local installation or if you don't have *sudo* rights
 
 ### Activate environment
 
-After installing Snakemake and Matplotlib we can activate our new environment. 
+Now you can activate your new environment. 
 
 <pre><code class="text">
 conda activate cascabel
 </code></pre>
 
-_After activating the environment it is possible that Snakemake is not in your PATH anymore, in such case just export Snakemake's bin directory. i.e:_
+After activating the environment, if you have the environmental variable _PER5LIB_ preconfigured, it is possinle that you will need to change it. To avoid any issue, configre PER5LIB path as follow:_
 
 <pre><code class="text">
-export PATH=$PATH:/path/to/miniconda3/bin
+export  PERL5LIB=/path/to/conda/.conda/envs/cascabel/perl5
 </code></pre>
 
-### DADA2
+*Just make sure to change `/path/to/conda/` for the correct path on your system*
 
-You only need to follow this one more step if you are planning to run **Cascabel** with the *asv workflow*.
+To identify your path, you can use the followinig command:
 
-There are some issues reported while installing dada2 within conda, therefore we need to perform one more final step in order to install **dada2**
+<pre><code class="text">
+which snakemake
+</code></pre>
 
-Enter to R shell (just type `R`) and execute the following command:  
+### Dada2
+
+There are some issues reported while installing dada2 within conda, if you are experiencing issues you  need to perform one more final step in order to install **dada2**
+
+Enter to R shell (just type `R`) and execute the following command:
+
+<pre><code class="text">
+BiocManager::install("dada2", version = "3.10")
+</code></pre>
+
+*Please notice that BiocManager should be already installed, so you just need to execute previous command. You can also find more information at [dada2's installation guide.](https://benjjneb.github.io/dada2/dada-i
+nstallation.html)
+
 
 <pre><code class="text">
 BiocManager::install("dada2", version = "3.10")
@@ -101,11 +93,6 @@ BiocManager::install("dada2", version = "3.10")
 
 *Please notice that BiocManager should be already installed, so you just need to execute previous command. You can also find more information at [dada2's installation guide.](https://benjjneb.github.io/dada2/dada-installation.html)
 
-### Singularity
-
-We are aware that this is not the easiest installation, therefore we are working on a singularity container, same that we hope to have available soon.
-
-Thanks for your understanding! 
 
 ## Getting started
 
@@ -250,10 +237,18 @@ As you can see on the previous fragment of the configuration file (config.yaml),
 and spaces), as well as the name of the parameters. Once that you have valid values for these entries, you are ready to run the pipeline (before start CASCABEL always is a good practice to make a ["dry run"](../../wiki#31-dry-run)):
 
 Also, please notice the **ANALYSIS TYPE** section. Cascabel, supports two main type of analysis, OTUs (Operational Taxonomic Units) and ASVs (Amplicon Sequence Variants), here you can select the target workflow that Cascabel will execute. For more information pleasee refer to the [Analysis type section](../../wiki#233-analysis-type) 
+
+### Run Cascabel
+
+Once everything is in place, just run _Cascabel_ with the following command:
  
 <pre><code class="yaml">
-snakemake --configfile config.yaml 
+snakemake --configfile config.yaml -j1 -c20
 </code></pre>
+
+If you run Cascabel interactively, specify only one job: `-j1` so that you can correctly interact with the pipeline in the designated *breakingpoints*.
+
+Adjust the option `-c20` to designate the maximum number of cores to use within the pipeline rules. In this example, we are using *20*.
 
 Optionally you can specify the same parameters* via --config flag, rather than within the config.yaml file:
 
@@ -264,6 +259,18 @@ Optionally you can specify the same parameters* via --config flag, rather than w
 
 *Except for the LIBRARY, as this is declared as an array, therefore it must be filled up within the configuration file
 
+### Create the report
+
+The report is one of the most important parts of the pipeline, as this will show the executed commands, software versions, read cleaning and read filtering results, as well as point and even embed some of the main output files (such as the OTU table), making the results more portable and easy to back up after a completed run.
+
+To create this report, while located in the same directory used for the run, use the same configuration file as for the run, and execute the following command:
+
+<pre><code class="yaml">
+snakemake --configfile config.yaml --report name_your_report.zip
+</code></pre>
+
+The resultant file `name_your_report.zip` will contain everything you need.
+
 ### Configure pipeline
 
 For a complete guide on how to setup and use CASCABEL please visit the official project [wiki](https://github.com/AlejandroAb/CASCABEL/wiki)
@@ -273,9 +280,7 @@ For a complete guide on how to setup and use CASCABEL please visit the official 
 We supply some "pre-filled" configuration files for the main possible configurations like for double and single barcoded paired end reads for OTU and ASV analysis. We strongly advise to make informed choices about parameter settings matching the individual needs of the experiment and data set.
 
 * **config.otu.double_bc.yaml**. Configuration file for paired-end data, barcodes on both reads, OTU analysis.
-* **config.otu.single_bc.yaml**. Configuration file for single-end data, barcodes only on one read, OTU analysis.
 * **config.asv.double_bc.yaml**. Configuration file for paired-end data, barcodes on both reads, ASV analysis.
-* **config.asv.single_bc.yaml**. Configuration file for single-end data, barcodes only on one read, ASV analysis.
 * **config.otu.double_bc.unpaired.yaml**. Configuration file for paired-end data, barcodes on both reads, OTU analysis, [unpaired workflow](../../wiki#4-unpaired-workflow), taxonomy assignation with RDP 
 * **config.asv.double_bc.unpaired.yaml**. Configuration file for paired-end data, barcodes on both reads, ASV analysis, [unpaired workflow](../../wiki#4-unpaired-workflow).
 

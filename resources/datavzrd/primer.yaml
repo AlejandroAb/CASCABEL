@@ -1,0 +1,44 @@
+__use_yte__: true
+
+datasets:
+  primers:
+    path: ?input.table
+    separator: "\t"
+
+views:
+  Primer removed:
+    dataset: primers
+    render-table:
+      columns:
+        Reads_before_cutadapt:
+          plot:
+            heatmap:
+              scale: linear
+              color-scheme: blues
+        Surviving_reads:
+          plot:
+            heatmap:
+              scale: linear
+              color-scheme: blues
+        Prc_surviving_reads:
+          plot:
+            heatmap:
+              scale: linear
+              color-scheme: blues
+
+
+#        Reads:
+#          plot:
+#            ticks:
+#              scale: linear
+        
+#views:
+#  demultiplex:
+#    dataset: demultiplex
+#    render-table:
+#      columns:
+#        Sample:
+#          plot:
+#            heatmap:
+#              scale: ordinal
+#              color-scheme: category20      

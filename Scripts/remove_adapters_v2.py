@@ -54,11 +54,12 @@ if snakemake.config["primers"]["remove"].lower() == "metadata":
                         idx_fw_primer=c
                     elif col == "ReverseLinkerPrimerSequenceRevCom"  or col == "ReversePrimerRevCom":
                         idx_rv_revcomp_primer=c
+                        #idx_rv_primer=c
                         isRC=True
                     c=c+1
                 if isRC:
                     idx_rv_primer=idx_rv_revcomp_primer 
-            elif not line.startswith("#"):
+            elif not line.startswith("#") and len(columns) > 5:
                 if idx_rv_primer != -1:
                     #here, we are creating a dic with sample:primer
                     if isRC:  
@@ -113,7 +114,7 @@ if snakemake.config["primers"]["remove"].lower() == "metadata":
                 initialReads=countFasta(snakemake.params[4]+file,False)
                 survivingReads=countFasta(tmp_out,False)
                 prc = "{:.2f}".format(float((survivingReads/initialReads)*100))
-                log_by_sample=log_by_sample+sample+"\t"+str(initialReads)+"\t"+str(survivingReads)+" ("+prc+"%)\n"
+                log_by_sample=log_by_sample+sample+"\t"+str(initialReads)+"\t"+str(survivingReads)+" ("+prc+")\n"
                 all_primers=all_primers+sample+"\t"+primer_set+"\n"
             else:
                 print("\033[91mNo primers found for sample:"+ sample+ " \033[0m")
@@ -159,7 +160,13 @@ while (user_input != "1" and user_input !=  "2"):
     print("\033[93m Total number of initial reads: " + str(initialReads) + " \033[0m")
     print("\033[93m Total number of surviving reads: " + str(survivingReads) + " = "+ prc_str + "% \033[0m")
     print("\033[93m You can find cutadapt's log file at: " + snakemake.params[5] +"\n \033[0m")
-    if snakemake.config["interactive"] != "F" or prc < snakemake.config["primers"]["min_prc"]:
+    if snakemake.config["interactive"] == "F" and prc < snakemake.config["primers"]["min_prc"]:
+        print("\033[93m" +" Interactive mode off \033[0m")
+        print("\033[93m" +" Percentage of surviving reads is lower than the threshold.\033[0m")
+        print("\033[93m" +" Adjust configuration file value 'primers: min_prc' to pass filters or run the pipeline on interactive mode! \033[0m")
+        print("\033[93m" +" Exiting workflow... \033[0m")
+        exit(1)
+    elif snakemake.config["interactive"] != "F" or prc < snakemake.config["primers"]["min_prc"]:
         print("\033[92m What would you like to do? \033[0m")
         print("\033[92m 1. Continue with the workflow. \033[0m")
         print("\033[92m 2. Interrupt the workflow. \033[0m")
@@ -190,9 +197,9 @@ if snakemake.config["primers"]["remove"].lower() == "metadata" and  len(uniq_pri
     subprocess.run( ["rm -fr " + snakemake.params[4]],stdout=subprocess.PIPE, shell=True)
 
 #Summarize results    
-subprocess.run( ["cat "+ snakemake.output[0]+"| grep '^>' | cut -f1 -d' ' | sed 's/>// ; s/_[0-9]*$//' |  sort | uniq -c | awk '{print $2\"\\t\"$1}' > " + snakemake.params[3]+".tmp1"],stdout=subprocess.PIPE, shell=True)
-subprocess.run( ["cat "+ snakemake.input[0]+"| grep '^>' | cut -f1 -d' ' | sed 's/>// ; s/_[0-9]*$//' |  sort | uniq -c | awk '{print $2\"\\t\"$1}'| awk -F'\t' 'NR==FNR{h[$1]=$2;next} BEGIN{print \"Sample\\tReads_before_cutadapt\\tSurviving_reads\\tPrc_surviving_reads\"}{if(h[$1]){print $1\"\\t\"h[$1]\"\\t\"$2\"\\t\"($2/h[$1])*100\"%\"}else{print $1\"\\t\"$2\"\\t0\\t0%\"}}' - "+snakemake.params[3]+".tmp1 > "+ snakemake.params[3]],stdout=subprocess.PIPE, shell=True)
-os.remove(snakemake.params[3]+".tmp1")
+subprocess.run( ["cat "+ snakemake.output[0]+"| grep '^>' | cut -f1 -d' ' | sed 's/>// ; s/_[0-9]*$//' |  sort | uniq -c | awk '{print $2\"\\t\"$1}' > " + snakemake.output[1]+".tmp1"],stdout=subprocess.PIPE, shell=True)
+subprocess.run( ["cat "+ snakemake.input[0]+"| grep '^>' | cut -f1 -d' ' | sed 's/>// ; s/_[0-9]*$//' |  sort | uniq -c | awk '{print $2\"\\t\"$1}'| awk -F'\t' 'NR==FNR{h[$1]=$2;next} BEGIN{print \"Sample\\tReads_before_cutadapt\\tSurviving_reads\\tPrc_surviving_reads\"}{if(h[$1]){print $1\"\\t\"h[$1]\"\\t\"$2\"\\t\"($2/h[$1])*100\"\"}else{print $1\"\\t\"$2\"\\t0\\t0\"}}' - "+snakemake.output[1]+".tmp1 > "+ snakemake.output[1]],stdout=subprocess.PIPE, shell=True)
+os.remove(snakemake.output[1]+".tmp1")
 exit(0)
 #sample=snakemake.params[3].split("/")[3].split("_")[0]
 #summ_file = open(snakemake.params[3],"w")

@@ -1,0 +1,35 @@
+__use_yte__: true
+
+datasets:
+  paired_reads:
+    path: ?input.table
+    separator: "\t"
+
+views:
+  Assembly results:
+    dataset: paired_reads
+    desc: Reads assembled using Pear
+    render-table:
+      columns:
+        Reads:
+          plot:
+            heatmap:
+              scale: linear
+              color-scheme: blues
+        Assembled:
+          plot:
+            heatmap:
+              scale: linear
+              color-scheme: blues
+        Discarded:
+          plot:
+            heatmap:
+              scale: linear
+              color-scheme: reds
+        Not_Assembled:
+          plot:
+            heatmap:
+              scale: linear
+              color-scheme: reds
+
+

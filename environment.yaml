@@ -1,25 +1,22 @@
 channels:
-  - bioconda
   - conda-forge
-  - r
+  - bioconda
+  - defaults
 dependencies:
-  - r-base=3.6.1
   - fastqc
-  - pyyaml=3.11
-  - biom-format
+  - snakemake
   - cutadapt
-  - qiime
+  - python 
+  - pandas
+  - matplotlib
+  - krona
+  - sequali
+  - seqkit 
+  - swarm 
+  - bioconductor-dada2
   - vsearch
   - mothur
-  - wkhtmltopdf
+  - datavzrd
+  - r-dplyr
+  - biom-format
   - pear
-  - bioconductor-biostrings
-  - bioconductor-shortread
-  - r-ggplot2
-  - krona
-  - blast
-  - seqtk
-  - rdp_classifier
-  - java-jdk
-  - zip
-

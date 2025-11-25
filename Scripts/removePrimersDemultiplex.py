@@ -52,12 +52,13 @@ with open(snakemake.input[0]) as mappingFile:
             if idx_rv_primer == -1 and idx_rv_revcomp_primer !=1:
                 idx_rv_primer=idx_rv_revcomp_primer
                 isRC = True 
-        elif not line.startswith("#"):
-            if idx_rv_primer != -1:
+        elif not line.startswith("#") and len(columns) > 3:
+            if idx_rv_primer != -1 and idx_fw_primer != -1:
                 #if the valuee is the reverse complemented now we want the 5' to 3' orientation so rev com again.
                 if isRC:
                     primer_by_sample[columns[0]]=[columns[idx_fw_primer],reverse_complement(columns[idx_rv_primer])]
                 else:
+                    print(""+columns[idx_fw_primer]+", "+columns[idx_rv_primer])
                     primer_by_sample[columns[0]]=[columns[idx_fw_primer],columns[idx_rv_primer]]
             elif idx_fw_primer != -1:
                 primer_by_sample[columns[0]]=[columns[idx_fw_primer]]
